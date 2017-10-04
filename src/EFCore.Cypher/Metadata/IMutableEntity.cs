@@ -1,14 +1,13 @@
-
-
 using System.Collections.Generic;
 
 namespace Microsoft.EntityFrameworkCore.Metadata
 {
-    public interface IEntity: INode {        
+    public interface IMutableEntity: IEntity, IMutableNode {
+
         /// <summary>
         /// Relationships (both inbound and outbound)
         /// </summary>
         /// <returns></returns>
-        IEnumerable<IRelationship> GetRelationships();
+        new IEnumerable<IMutableRelationship> GetRelationships();
     }
 }

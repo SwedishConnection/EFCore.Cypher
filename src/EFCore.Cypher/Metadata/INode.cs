@@ -23,6 +23,18 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         string[] Labels { get; }
 
         /// <summary>
+        /// Base of node (null if not a derived type)
+        /// </summary>
+        /// <returns></returns>
+        INode BaseNode { get; }
+
+        /// <summary>
+        /// Defining node
+        /// </summary>
+        /// <returns></returns>
+        INode DefiningNode { get; }
+
+        /// <summary>
         /// CLR class representings instances of this type
         /// </summary>
         /// <returns></returns>
@@ -40,5 +52,11 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         /// </summary>
         /// <returns></returns>
         IEnumerable<INodeProperty> GetProperties();
+
+        /// <summary>
+        /// Gets constraints (e.g. unique, exists etc.)
+        /// </summary>
+        /// <returns></returns>
+        IEnumerable<IConstraint> GetConstraints();
     }
 }

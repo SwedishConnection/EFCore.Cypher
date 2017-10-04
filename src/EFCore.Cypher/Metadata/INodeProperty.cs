@@ -16,7 +16,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         /// Ownership
         /// </summary>
         /// <returns></returns>
-        INode Declaring { get; }
+        INode DeclaringNode { get; }
 
         /// <summary>
         /// CLR property type

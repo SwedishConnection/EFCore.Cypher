@@ -13,6 +13,12 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         IReadOnlyList<INodeProperty> Properties { get; }
 
         /// <summary>
+        /// Constraint Type
+        /// </summary>
+        /// <returns></returns>
+        ConstraintType Type { get; }
+
+        /// <summary>
         /// Node the constraint is defined on
         /// </summary>
         /// <returns></returns>
