@@ -14,8 +14,8 @@ namespace Microsoft.EntityFrameworkCore.Query {
         /// Cypher read parts can have multiple reading clauses (expressions)
         /// </summary>
         /// <returns></returns>
-        protected virtual Dictionary<IQuerySource, ReadingExpression> QueriesBySource { get; } =
-            new Dictionary<IQuerySource, ReadingExpression>();
+        protected virtual Dictionary<IQuerySource, ReadOnlyExpression> QueriesBySource { get; } =
+            new Dictionary<IQuerySource, ReadOnlyExpression>();
 
         /// <summary>
         /// Visitor factory
@@ -35,16 +35,16 @@ namespace Microsoft.EntityFrameworkCore.Query {
         /// <summary>
         /// Active reading expressions
         /// </summary>
-        public virtual ICollection<ReadingExpression> Queries => QueriesBySource.Values;
+        public virtual ICollection<ReadOnlyExpression> Queries => QueriesBySource.Values;
 
         /// <summary>
-        /// Get active ReadingExpression
+        /// Get active ReadOnlyExpression
         /// </summary>
         /// <param name="querySource"></param>
         /// <returns></returns>
-        public virtual ReadingExpression TryGetQuery([NotNull] IQuerySource querySource) {
+        public virtual ReadOnlyExpression TryGetQuery([NotNull] IQuerySource querySource) {
             // TODO: What happens when no reading expression is found?
-            QueriesBySource.TryGetValue(querySource, out ReadingExpression expr);
+            QueriesBySource.TryGetValue(querySource, out ReadOnlyExpression expr);
 
             return expr;
         }
