@@ -10,7 +10,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 
         }
 
-        public NodeIdentity([NotNull] TypeBase type): this((object)type) {
+        public NodeIdentity([NotNull] Type type): this((object)type) {
 
         }
 

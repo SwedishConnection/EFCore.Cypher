@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using JetBrains.Annotations;
 
@@ -7,7 +8,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata
 
         new IMutableGraph Graph { get; }
 
-        new IMutableNode BaseNode { get; }
+        new IMutableNode BaseNode { get; [param: CanBeNull] set; }
 
         /// <summary>
         /// Get constraints
@@ -75,7 +76,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        IMutableProperty AddProperty([NotNull] string name, [CanBeNull] TypeBaseExtensions propertyType);
+        IMutableProperty AddProperty([NotNull] string name, [CanBeNull] Type propertyType);
 
         /// <summary>
         /// Remove property

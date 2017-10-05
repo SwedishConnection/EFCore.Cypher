@@ -6,8 +6,12 @@ namespace Microsoft.EntityFrameworkCore.Metadata
 {
     public interface IGraph: IAnnotatable {
 
-        IEnumerable<INode> GetNodes();
+        IEnumerable<IEntity> GetEntities();
 
-        INode FindNode([NotNull] string[] labels);
+        IEntity FindEntity([NotNull] string[] labels);
+
+        IEnumerable<IRelationship> GetRelationships();
+
+        IRelationship FindRelationship([NotNull] string[] labels);
     }
 }

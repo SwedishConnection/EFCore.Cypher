@@ -10,4 +10,8 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Builders
         
         public IMutableGraph Instance => throw new System.NotImplementedException();
     }
+
+    public class EntityBuilder<TEntity>: EntityBuilder where TEntity: class {
+        
+    }
 }
