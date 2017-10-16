@@ -4,6 +4,7 @@ using System.Linq;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 {
@@ -23,12 +24,24 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         }
 
         public Graph(GraphConventionSet conventions) {
-            
+            var dispatcher = new GraphConventionDispatcher(conventions);
+            var builder = new InternalGraphBuilder(this);
+
+            GraphConventionDispatcher = dispatcher;
+            Builder = builder;
         }
 
-        // TODO: Conventions
+        /// <summary>
+        /// Dispatcher (conventions)
+        /// </summary>
+        /// <returns></returns>
+        public virtual GraphConventionDispatcher GraphConventionDispatcher { get; }
 
-        public virtual InternalGraphBuilder Buider { get; }
+        /// <summary>
+        /// Internal builder
+        /// </summary>
+        /// <returns></returns>
+        public virtual InternalGraphBuilder Builder { get; }
 
         /// <summary>
         /// Add entity by labels

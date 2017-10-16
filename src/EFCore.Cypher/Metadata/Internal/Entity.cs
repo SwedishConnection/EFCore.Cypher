@@ -12,6 +12,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             ConfigurationSource configurationSource
         ) : base(labels, graph, configurationSource)
         {
+            Builder = new InternalEntityBuilder(this, graph.Builder);
         }
 
         public Entity(
@@ -21,6 +22,8 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         ) : base(clrType, graph, configurationSource)
         {
         }
+
+        public override InternalNodeBuilder Builder { get; }
 
         public IEnumerable<IMutableRelationship> GetRelationships()
         {

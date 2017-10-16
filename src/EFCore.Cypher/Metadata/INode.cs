@@ -28,6 +28,8 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         /// <returns></returns>
         INode BaseNode { get; }
 
+        // TODO: Defining navigation name
+
         /// <summary>
         /// Defining node
         /// </summary>

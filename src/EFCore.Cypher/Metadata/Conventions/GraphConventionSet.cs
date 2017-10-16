@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal;
+
 namespace Microsoft.EntityFrameworkCore.Metadata.Conventions
 {
     /// <summary>
@@ -5,10 +8,6 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions
     /// for information about conventions
     /// </summary>
     public class GraphConventionSet {
-        // Nothing for constraints
-
-        // Need relationship conventions that tie properties to paths
-
-        // Inheritance with properties
+        public virtual IList<IEntityAddedConvention> EntityAddedConventions { get; } = new List<IEntityAddedConvention>();
     }
 }

@@ -23,5 +23,8 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         public static bool IsAbstract([NotNull] this INode node) {
             return node.ClrType?.GetTypeInfo().IsAbstract ?? false;
         }
+
+        public static PropertyAccessMode? GetPropertyAccessMode([NotNull] this INode node) =>
+            (PropertyAccessMode?)node[CoreAnnotationNames.PropertyAccessModeAnnotation] ?? node.Graph.GetPropertyAccessMode();
     }
 }

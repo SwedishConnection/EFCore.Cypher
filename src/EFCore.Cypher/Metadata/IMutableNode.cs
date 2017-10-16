@@ -6,29 +6,23 @@ namespace Microsoft.EntityFrameworkCore.Metadata
 {
     public interface IMutableNode: INode, IMutableAnnotatable {
 
+        /// <summary>
+        /// Graph
+        /// </summary>
+        /// <returns></returns>
         new IMutableGraph Graph { get; }
 
+        /// <summary>
+        /// Get or set base type
+        /// </summary>
+        /// <returns></returns>
         new IMutableNode BaseNode { get; [param: CanBeNull] set; }
 
         /// <summary>
-        /// Get constraints
+        /// Get mutable constraints
         /// </summary>
         /// <returns></returns>
         new IEnumerable<IMutableConstraint> GetConstraints();
-
-        /// <summary>
-        /// Add unique constraint
-        /// </summary>
-        /// <param name="properties"></param>
-        /// <returns></returns>
-        IMutableConstraint AddUniqueConstraint([NotNull] IMutableNodeProperty property);
-
-        /// <summary>
-        /// Remove unique constraint
-        /// </summary>
-        /// <param name="properties"></param>
-        /// <returns></returns>
-        IMutableConstraint RemoveUniqueConstraint([NotNull] INodeProperty property);
 
         /// <summary>
         /// Add exist constraint
@@ -43,20 +37,6 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         /// <param name="properties"></param>
         /// <returns></returns>
         IMutableConstraint RemoveExistConstraint([NotNull] INodeProperty property);
-
-        /// <summary>
-        /// Add keys constraint (implicit exists assertion)
-        /// </summary>
-        /// <param name="properties"></param>
-        /// <returns></returns>
-        IMutableConstraint AddKeysConstraint([NotNull] IReadOnlyList<IMutableNodeProperty> properties);
-
-        /// <summary>
-        /// Remove keys constraint (implicit exists assertion)
-        /// </summary>
-        /// <param name="properties"></param>
-        /// <returns></returns>
-        IMutableConstraint RemoveKeysConstraint([NotNull] IReadOnlyList<INodeProperty> properties);
 
         /// <summary>
         /// Defined properties
