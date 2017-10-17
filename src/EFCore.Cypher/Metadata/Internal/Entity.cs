@@ -23,11 +23,46 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         {
         }
 
-        public override InternalNodeBuilder Builder { get; }
+        public new InternalEntityBuilder Builder { get; }
+
+        public string DefiningNavigationName => throw new NotImplementedException();
+
+        public IEntity DefiningType => throw new NotImplementedException();
+
+        IMutableEntity IMutableEntity.BaseType { 
+            get => (IMutableEntity)_baseType; 
+            set => HasBaseType((Entity)value);
+        }
+
+        public new Entity BaseType => (Entity)_baseType;
+
+        IEntity IEntity.BaseType => (IEntity)_baseType;
+
+        public virtual void HasBaseType(
+            [CanBeNull] Entity entity, 
+            ConfigurationSource configurationSource = ConfigurationSource.Explicit
+        ) {
+
+        }
+
+        public IMutableConstraint AddKeysConstraint([NotNull] IReadOnlyList<IMutableNodeProperty> properties)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IMutableConstraint AddUniqueConstraint([NotNull] IMutableNodeProperty property)
+        {
+            throw new NotImplementedException();
+        }
 
         public IEnumerable<IMutableRelationship> GetRelationships()
         {
             throw new System.NotImplementedException();
+        }
+
+        public IMutableConstraint RemoveKeysConstraint([NotNull] IReadOnlyList<INodeProperty> properties)
+        {
+            throw new NotImplementedException();
         }
 
         IEnumerable<IRelationship> IEntity.GetRelationships()

@@ -4,6 +4,17 @@ using JetBrains.Annotations;
 namespace Microsoft.EntityFrameworkCore.Metadata
 {
     public interface IMutableEntity: IEntity, IMutableNode {
+        /// <summary>
+        /// Get or set the base type
+        /// </summary>
+        /// <returns></returns>
+        new IMutableEntity BaseType { get; [param: CanBeNull] set; }
+
+        /// <summary>
+        /// Relationships (both inbound and outbound)
+        /// </summary>
+        /// <returns></returns>
+        new IEnumerable<IMutableRelationship> GetRelationships();
 
         /// <summary>
         /// Add unique constraint
@@ -32,11 +43,5 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         /// <param name="properties"></param>
         /// <returns></returns>
         IMutableConstraint RemoveKeysConstraint([NotNull] IReadOnlyList<INodeProperty> properties);
-
-        /// <summary>
-        /// Relationships (both inbound and outbound)
-        /// </summary>
-        /// <returns></returns>
-        new IEnumerable<IMutableRelationship> GetRelationships();
     }
 }

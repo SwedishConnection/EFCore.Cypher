@@ -22,7 +22,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             [NotNull] Type clrType,
             [CanBeNull] PropertyInfo propertyInfo,
             [CanBeNull] FieldInfo fieldInfo,
-            [NotNull] Node declaringNode,
+            [NotNull] Node declaringType,
             ConfigurationSource configurationSource,
             ConfigurationSource? typeConfigurationSource
         ) {
@@ -32,7 +32,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             ClrType = clrType;
             PropertyInfo = propertyInfo;
             _fieldInfo = fieldInfo;
-            DeclaringNode = declaringNode;
+            DeclaringType = declaringType;
 
             _configurationSource = configurationSource;
             _typeConfigurationSource = typeConfigurationSource;
@@ -76,7 +76,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
                 return;
             }
 
-            var fieldInfo = GetFieldInfo(fieldName, DeclaringNode.ClrType, Name, shouldThrow: true);
+            var fieldInfo = GetFieldInfo(fieldName, DeclaringType.ClrType, Name, shouldThrow: true);
             if (!(fieldInfo is null)) {
                 SetFieldInfo(fieldInfo, configurationSource);
             }
@@ -97,7 +97,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 
             // when passed field info is not null check if compatible
             if (!(fieldInfo is null)) {
-                IsCompatible(fieldInfo, ClrType, DeclaringNode.ClrType, Name, shouldThrow: true);
+                IsCompatible(fieldInfo, ClrType, DeclaringType.ClrType, Name, shouldThrow: true);
             }
 
             UpdateFieldInfoConfigurationSource(configurationSource);
@@ -144,15 +144,20 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         public virtual InternalNodePropertyBuilder Builder { get; [param: CanBeNull] set; }
 
         /// <summary>
-        /// Declaring node (mutable)
+        /// Declaring type
         /// </summary>
         /// <returns></returns>
-        public virtual Node DeclaringNode { get; }
+        public virtual Node DeclaringType { get; }
 
         /// <summary>
-        /// Declaring node
+        /// Declaring type
         /// </summary>
-        INode INodeProperty.DeclaringNode => DeclaringNode;
+        IMutableNode IMutableNodeProperty.DeclaringType => DeclaringType;
+
+        /// <summary>
+        /// Declaring type
+        /// </summary>
+        INode INodeProperty.DeclaringType => DeclaringType;
 
         /// <summary>
         /// 
@@ -169,6 +174,12 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         public virtual IClrNodePropertyGetter Getter
             => NonCapturingLazyInitializer.EnsureInitialized(ref _getter, this, p => new ClrNodePropertyGetterFactory().Create(p));
 
+        public bool IsNullable { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+        public bool IsShadowProperty => throw new NotImplementedException();
+
+        bool INodeProperty.IsNullable => throw new NotImplementedException();
+
         /// <summary>
         /// Configuration precedence
         /// </summary>
@@ -179,10 +190,10 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <summary>
         /// 
         /// </summary>
-        protected void PropertyInfoChanged() => DeclaringNode.PropertyInfoChanged();
+        protected void PropertyInfoChanged() => DeclaringType.PropertyInfoChanged();
 
         protected void OnFieldInfoSet(FieldInfo oldFieldInfo) =>
-            DeclaringNode.Graph.GraphConventionDispatcher.OnPropertyFieldChanged(Builder, oldFieldInfo);
+            DeclaringType.Graph.GraphConventionDispatcher.OnPropertyFieldChanged(Builder, oldFieldInfo);
 
         /// <summary>
         /// False if field info isn't assignable from either the property type or passed node CLR type

@@ -16,7 +16,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         /// Get or set base type
         /// </summary>
         /// <returns></returns>
-        new IMutableNode BaseNode { get; [param: CanBeNull] set; }
+        new IMutableNode BaseType { get; }
 
         /// <summary>
         /// Get mutable constraints

@@ -7,8 +7,8 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             PropertyInfo propertyInfo, 
             INodeProperty nodeProperty
         ) {
-            var memberInfo = nodeProperty?.GetMemberInfo(forConstruction: false, forSet: false)
-                ?? propertyInfo.FindGetterProperty();
+            // TODO: 
+            return null;
         }    
     }
 }

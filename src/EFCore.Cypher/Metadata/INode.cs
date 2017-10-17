@@ -23,18 +23,10 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         string[] Labels { get; }
 
         /// <summary>
-        /// Base of node (null if not a derived type)
+        /// Base type
         /// </summary>
         /// <returns></returns>
-        INode BaseNode { get; }
-
-        // TODO: Defining navigation name
-
-        /// <summary>
-        /// Defining node
-        /// </summary>
-        /// <returns></returns>
-        INode DefiningNode { get; }
+        INode BaseType { get; }
 
         /// <summary>
         /// CLR class representings instances of this type

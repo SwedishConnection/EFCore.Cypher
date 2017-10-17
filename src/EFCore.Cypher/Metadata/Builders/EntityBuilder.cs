@@ -22,20 +22,20 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Builders
         /// <summary>
         /// Entity being configured
         /// </summary>
-        public virtual IMutableEntity Base => Builder.Base;
+        public virtual IMutableEntity Metadata => Builder.Metadata;
         
         /// <summary>
         /// Graph that the entity belongs to
         /// </summary>
-        IMutableGraph IInfrastructure<IMutableGraph>.Instance => Builder.GraphBuilder.Base;
+        IMutableGraph IInfrastructure<IMutableGraph>.Instance => Builder.GraphBuilder.Metadata;
 
         /// <summary>
         /// Set the base node of this entity (inheritance hierarchy)
         /// </summary>
         /// <param name="labels"></param>
         /// <returns></returns>
-        public virtual EntityBuilder HasBaseNode([CanBeNull] string[] labels)
-            => new EntityBuilder(Builder.HasBaseNode(labels, ConfigurationSource.Explicit));
+        public virtual EntityBuilder HasBaseType([CanBeNull] string[] labels)
+            => new EntityBuilder(Builder.HasBaseType(labels, ConfigurationSource.Explicit));
     }
 
     public class EntityBuilder<TEntity>: EntityBuilder where TEntity: class {

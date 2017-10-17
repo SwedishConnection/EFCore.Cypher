@@ -2,11 +2,11 @@ using JetBrains.Annotations;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 {
-    public class InternalNodePropertyBuilder: InternalBaseItemBuilder<NodeProperty> {
+    public class InternalNodePropertyBuilder: InternalMetadataItemBuilder<NodeProperty> {
 
         public InternalNodePropertyBuilder(
-            [NotNull] NodeProperty baze, 
-            [NotNull] InternalGraphBuilder graphBuilder): base(baze, graphBuilder) {   
+            [NotNull] NodeProperty metadata, 
+            [NotNull] InternalGraphBuilder graphBuilder): base(metadata, graphBuilder) {   
         }
 
     }

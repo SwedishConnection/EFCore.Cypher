@@ -16,10 +16,6 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             return node.ClrType != null;
         }
 
-        public static bool HasDefiningNode([NotNull] this INode node) {
-            return node.DefiningNode != null;
-        }
-
         public static bool IsAbstract([NotNull] this INode node) {
             return node.ClrType?.GetTypeInfo().IsAbstract ?? false;
         }

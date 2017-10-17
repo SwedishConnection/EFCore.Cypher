@@ -7,56 +7,78 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
     public class InternalEntityBuilder: InternalNodeBuilder {
 
         public InternalEntityBuilder(
-            [NotNull] Entity baze, 
+            [NotNull] Entity metadata, 
             [NotNull] InternalGraphBuilder graphBuilder
-        ) : base(baze, graphBuilder) {
+        ) : base(metadata, graphBuilder) {
         }
 
-        public new virtual Entity Base { get { return (Entity)base.Base; } }
+        public new virtual Entity Metadata { get { return (Entity)base.Metadata; } }
 
         /// <summary>
-        /// Labels are used by the Graph Builder to create a base entity while 
-        /// null labels are deferred to this method which takes an Entity
+        /// 
         /// </summary>
-        /// <param name="labels"></param>
+        /// <param name="baseClrType"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
-        public virtual InternalEntityBuilder HasBaseNode([CanBeNull] string[] labels, ConfigurationSource configurationSource) {
-            if (labels is null) {
-                return HasBaseNode((Entity)null, configurationSource);
+        public virtual InternalEntityBuilder HasBaseType(
+            [CanBeNull] Type baseClrType, 
+            ConfigurationSource configurationSource
+        ) {
+            if (baseClrType == null) {
+                return HasBaseType((Entity)null, configurationSource);
             }
 
-            InternalEntityBuilder builder = GraphBuilder.Entity(labels, configurationSource);
+            var builder = GraphBuilder.Entity(baseClrType, configurationSource);
             return builder is null
                 ? null
-                : HasBaseNode(builder.Base, configurationSource);
+                : HasBaseType(builder.Metadata, configurationSource);
         }
 
         /// <summary>
-        /// When the constructor's base is the same as the passed entity then set the base
-        /// to the passed otherwise bail when overriding is not possible and when possible 
-        /// batch ?? to the graph dispatcher
+        /// 
         /// </summary>
-        /// <param name="baseNode"></param>
+        /// <param name="baseLabels"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
-        public virtual InternalEntityBuilder HasBaseNode([CanBeNull] Entity baseNode, ConfigurationSource configurationSource) {
-            if (Base.BaseNode == baseNode) {
-                Base.HasBaseNode(baseNode, configurationSource);
+        public virtual InternalEntityBuilder HasBaseType(
+            [CanBeNull] string[] baseLabels,
+            ConfigurationSource configurationSource
+        ) {
+            if (baseLabels is null) {
+                return HasBaseType((Entity)null, configurationSource);
+            }
+
+            var builder = GraphBuilder.Entity(baseLabels, configurationSource);
+            return builder is null
+                ? null 
+                : HasBaseType(builder.Metadata, configurationSource);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="baseType"></param>
+        /// <param name="configurationSource"></param>
+        /// <returns></returns>
+        public virtual InternalEntityBuilder HasBaseType([CanBeNull] Entity baseType, ConfigurationSource configurationSource) {
+            if (Metadata.BaseType == baseType) {
+                Metadata.HasBaseType(baseType, configurationSource);
                 return this;
             }
 
-            if (!configurationSource.Overrides(Base.GetBaseNodeConfigurationSource())) {
+            if (!configurationSource.Overrides(Metadata.GetBaseTypeConfigurationSource())) {
                 return null;
             }
 
-            using (Base.Graph.GraphConventionDispatcher.StartBatch()) {
-                // TODO: Snapshots of properties, relationships, constraints
-
-                // TODO: Merge from base
+            using (Metadata.Graph.GraphConventionDispatcher.StartBatch()) {
+                // TODO: Everything
             }
 
-            return null;
+            Metadata.HasBaseType(baseType, configurationSource);
+
+            // TODO: Cleanup from dispatcher
+
+            return this;
         }
     }
 }

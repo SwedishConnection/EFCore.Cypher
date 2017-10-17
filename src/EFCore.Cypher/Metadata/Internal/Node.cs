@@ -10,16 +10,21 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
     {
         private readonly object _labelsOrType;
 
+        protected Node _baseType;
+
         private ConfigurationSource _configurationSource;
 
-        private Node _baseNode;
-
-        private ConfigurationSource? _baseNodeConfigurationSource;
-
-        private readonly SortedSet<Node> _directlyDerivedTypes = new SortedSet<Node>(NodePathComparer.Instance);
+        private ConfigurationSource? _baseTypeConfigurationSource;
 
         private readonly SortedDictionary<string, NodeProperty> _properties;
 
+        /// <summary>
+        /// Node by labels
+        /// </summary>
+        /// <param name="labels"></param>
+        /// <param name="graph"></param>
+        /// <param name="configurationSource"></param>
+        /// <returns></returns>
         protected Node(
             [NotNull] string[] labels, 
             [NotNull] Graph graph, 
@@ -28,6 +33,13 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             _labelsOrType = labels;
         }
 
+        /// <summary>
+        /// Node by CLR type
+        /// </summary>
+        /// <param name="clrType"></param>
+        /// <param name="graph"></param>
+        /// <param name="configurationSource"></param>
+        /// <returns></returns>
         protected Node(
             [NotNull] Type clrType, 
             [NotNull] Graph graph, 
@@ -36,12 +48,25 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             _labelsOrType = clrType;
         }
 
+    
+        /// <summary>
+        /// Set graph and configuration source
+        /// </summary>
+        /// <param name="graph"></param>
+        /// <param name="configurationSource"></param>
         private Node(
             [NotNull] Graph graph, 
             ConfigurationSource configurationSource
         ) {
+            Graph = graph;
             _configurationSource = configurationSource;
         }
+
+        /// <summary>
+        /// Internal builder
+        /// </summary>
+        /// <returns></returns>
+        public virtual InternalNodeBuilder Builder { get; }
 
         /// <summary>
         /// Graph
@@ -62,12 +87,6 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         IGraph INode.Graph { get => Graph; }
 
         /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        public abstract InternalNodeBuilder Builder { get; }
-
-        /// <summary>
         /// CLR Type
         /// </summary>
         public virtual Type ClrType => _labelsOrType as Type;
@@ -79,94 +98,20 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         Type INode.ClrType { get => ClrType; }
 
         /// <summary>
-        /// Base node
-        /// </summary>
-        public virtual Node BaseNode => _baseNode;
-
-        /// <summary>
-        /// Mutable base node
+        /// 
         /// </summary>
         /// <returns></returns>
-        IMutableNode IMutableNode.BaseNode {
-            get => _baseNode;
-            set => HasBaseNode((Node)value);
-        }
+        public virtual Node BaseType { get; }
 
         /// <summary>
-        /// 
+        /// Base type
         /// </summary>
-        INode INode.BaseNode => _baseNode;
+        IMutableNode IMutableNode.BaseType => BaseType;
 
         /// <summary>
-        /// 
+        /// Base type
         /// </summary>
-        /// <param name="node"></param>
-        /// <param name="configurationSource"></param>
-        public virtual void HasBaseNode(
-            [CanBeNull] Node node, 
-            ConfigurationSource configurationSource = ConfigurationSource.Explicit
-        ) {
-            if (_baseNode == node) {
-                // TODO: Investigate what is going on here ;-)
-                UpdateBaseNodeConfigurationSource(configurationSource);
-                node?.UpdateConfigurationSource(configurationSource);
-                return;
-            }
-
-            // TODO: If has defining navigation
-
-            var originalBaseNode = _baseNode;
-            _baseNode?._directlyDerivedTypes.Remove(this);
-            _baseNode = null;
-
-            if (!(node is null)) {
-                if (this.HasClrType()) {
-                    // when the base node is a shadow node and this node is not
-                    if (!node.HasClrType()) {
-                        throw new InvalidOperationException(
-                            CoreCypherStrings.NonClrBaseNode(
-                                this.DisplayLabels(), 
-                                node.DisplayLabels()
-                            )
-                        );
-                    }
-
-                    // non-assignable CLR types
-                    if (!node.ClrType.GetTypeInfo().IsAssignableFrom(ClrType.GetTypeInfo())) {
-                        throw new InvalidOperationException(
-                            CoreCypherStrings.NotAssignableClrBaseNode(
-                                this.DisplayLabels(), 
-                                node.DisplayLabels(), 
-                                ClrType.ShortDisplayName(), 
-                                node.ClrType.ShortDisplayName()
-                            )
-                        );
-                    }
-
-                    // TODO: if defining navigation
-                }
-
-                // when this node is a shadow node and the base is not
-                if (!this.HasClrType() && node.HasClrType()) {
-                    throw new InvalidOperationException(
-                        CoreCypherStrings.NonShadowBaseNode(
-                            this.DisplayLabels(),
-                            node.DisplayLabels()
-                        )
-                    );
-                }
-
-                // when circular inheritance
-                if (node.InheritsFrom(this)) {
-                    throw new InvalidOperationException(
-                        CoreCypherStrings.CircularInheritance(
-                            this.DisplayLabels(),
-                            node.DisplayLabels()
-                        )
-                    );
-                }
-            }
-        }
+        INode INode.BaseType => BaseType;
 
         /// <summary>
         /// Labels
@@ -176,73 +121,108 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             ? ClrType.DisplayLabels()
             : (string[])_labelsOrType;
 
-        public INode DefiningNode => throw new NotImplementedException();
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="property"></param>
+        /// <returns></returns>
         public IMutableConstraint AddExistConstraint([NotNull] IMutableNodeProperty property)
         {
             throw new NotImplementedException();
         }
-
-        public IMutableConstraint AddKeysConstraint([NotNull] IReadOnlyList<IMutableNodeProperty> properties)
-        {
-            throw new NotImplementedException();
-        }
-
+        
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="propertyType"></param>
+        /// <returns></returns>
         public IMutableProperty AddProperty([NotNull] string name, [CanBeNull] Type propertyType)
         {
             throw new NotImplementedException();
         }
 
-        public IMutableConstraint AddUniqueConstraint([NotNull] IMutableNodeProperty property)
-        {
-            throw new NotImplementedException();
-        }
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
         public IMutableNodeProperty FindProperty([NotNull] string name)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
         public IEnumerable<IMutableConstraint> GetConstraints()
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
         public IEnumerable<IMutableNodeProperty> GetProperties()
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="property"></param>
+        /// <returns></returns>
         public IMutableConstraint RemoveExistConstraint([NotNull] INodeProperty property)
         {
             throw new NotImplementedException();
         }
 
-        public IMutableConstraint RemoveKeysConstraint([NotNull] IReadOnlyList<INodeProperty> properties)
-        {
-            throw new NotImplementedException();
-        }
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
         public IMutableProperty RemoveProperty([NotNull] string name)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="property"></param>
+        /// <returns></returns>
         public IMutableConstraint RemoveUniqueConstraint([NotNull] INodeProperty property)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
         INodeProperty INode.FindProperty(string name)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
         IEnumerable<IConstraint> INode.GetConstraints()
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
         IEnumerable<INodeProperty> INode.GetProperties()
         {
             throw new NotImplementedException();
@@ -252,7 +232,13 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// 
         /// </summary>
         /// <returns></returns>
-        public virtual ConfigurationSource? GetBaseNodeConfigurationSource() => _baseNodeConfigurationSource;
+        public virtual ConfigurationSource GetConfigurationSource() => _configurationSource;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public virtual ConfigurationSource? GetBaseTypeConfigurationSource() => _baseTypeConfigurationSource;
 
         /// <summary>
         /// 
@@ -265,11 +251,11 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// 
         /// </summary>
         /// <param name="configurationSource"></param>
-        private void UpdateBaseNodeConfigurationSource(ConfigurationSource configurationSource)
-            => _baseNodeConfigurationSource = configurationSource.Max(_baseNodeConfigurationSource);
+        private void UpdateBaseTypeConfigurationSource(ConfigurationSource configurationSource)
+            => _baseTypeConfigurationSource = configurationSource.Max(_baseTypeConfigurationSource);
 
         /// <summary>
-        /// Walk the base nodes until null looking for a match on the passed node
+        /// 
         /// </summary>
         /// <param name="node"></param>
         /// <returns></returns>
@@ -281,7 +267,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
                     return true;
                 }
             }
-            while (!((n = n._baseNode) is null));
+            while (!((n = n.BaseType) is null));
 
             return false;
         }

@@ -19,7 +19,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         {
             var boundMethod = !(nodeProperty is null)
                 ? _genericCreate.MakeGenericMethod(
-                    nodeProperty.DeclaringNode.ClrType,
+                    nodeProperty.DeclaringType.ClrType,
                     nodeProperty.ClrType,
                     nodeProperty.ClrType.UnwrapNullableType()
                 )

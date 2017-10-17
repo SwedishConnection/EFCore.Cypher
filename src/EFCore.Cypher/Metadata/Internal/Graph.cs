@@ -88,12 +88,64 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             return entity;
         }
 
-        public IMutableEntity AddEntity([NotNull] string[] labels)
+        public Entity AddEntity(
+            [NotNull] string[] labels,
+            [NotNull] string definingNavigationName,
+            [NotNull] IMutableEntity definingType,
+            ConfigurationSource configurationSource = ConfigurationSource.Explicit
+        ) {
+            throw new NotImplementedException();
+        }
+
+        public Entity AddEntity(
+            [NotNull] Type clrType,
+            [NotNull] string definingNavigationName,
+            [NotNull] IMutableEntity definingType,
+            ConfigurationSource configurationSource = ConfigurationSource.Explicit
+        ) {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="labels"></param>
+        /// <returns></returns>
+        public IMutableEntity AddEntity(string[] labels) => AddEntity(labels);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="clrType"></param>
+        /// <returns></returns>
+        public IMutableEntity AddEntity(Type clrType) => AddEntity(clrType);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="labels"></param>
+        /// <param name="definingNavigationName"></param>
+        /// <param name="definingType"></param>
+        /// <returns></returns>
+        public IMutableEntity AddEntity(string[] labels, string definingNavigationName, IMutableEntity definingType) => 
+            AddEntity(labels, definingNavigationName, definingType);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="clrType"></param>
+        /// <param name="definingNavigationName"></param>
+        /// <param name="definingType"></param>
+        /// <returns></returns>
+        public IMutableEntity AddEntity(Type clrType, string definingNavigationName, IMutableEntity definingType) => 
+            AddEntity(clrType, definingNavigationName, definingType);
+
+        public IMutableRelationship AddRelationship([NotNull] string[] labels)
         {
             throw new NotImplementedException();
         }
 
-        public IMutableRelationship AddRelationship([NotNull] string[] labels)
+        public IMutableRelationship AddRelationship([NotNull] Type clrType)
         {
             throw new NotImplementedException();
         }

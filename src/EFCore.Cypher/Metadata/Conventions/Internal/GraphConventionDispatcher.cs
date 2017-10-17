@@ -7,6 +7,11 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
 {
     public partial class GraphConventionDispatcher {
 
+        public GraphConventionDispatcher([NotNull] GraphConventionSet graphConventionSet) {
+            // TODO: Check graphConventionSet not null
+            
+        }
+
         private GraphConventionScope _scope;
 
         public virtual IGraphConventionBatch StartBatch() => new GraphConventionBatch(this);

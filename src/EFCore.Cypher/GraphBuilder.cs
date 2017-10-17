@@ -23,7 +23,7 @@ namespace Microsoft.EntityFrameworkCore
         /// <summary>
         /// Graph being configured
         /// </summary>
-        public virtual IMutableGraph Graph => Builder.Base;
+        public virtual IMutableGraph Graph => Builder.Metadata;
 
         /// <summary>
         /// Internal builder being used to configure the graph

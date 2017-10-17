@@ -2,7 +2,7 @@ using JetBrains.Annotations;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 {
-    public abstract class InternalNodeBuilder : InternalBaseItemBuilder<Node>
+    public abstract class InternalNodeBuilder : InternalMetadataItemBuilder<Node>
     {
         public InternalNodeBuilder(
             [NotNull] Node node, 

@@ -3,10 +3,10 @@ namespace Microsoft.EntityFrameworkCore.Metadata
     public interface IMutableNodeProperty: INodeProperty, IMutableAnnotatable {
 
         /// <summary>
-        /// Ownership
+        /// Delcaring type
         /// </summary>
         /// <returns></returns>
-        new IMutableNode DeclaringNode { get; }
+        new IMutableNode DeclaringType { get; }
 
         /// <summary>
         /// Is there a property existence constraint

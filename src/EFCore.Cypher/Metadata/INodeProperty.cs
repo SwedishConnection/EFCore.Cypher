@@ -13,10 +13,10 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         string Name { get; }
 
         /// <summary>
-        /// Ownership
+        /// Declaring type
         /// </summary>
         /// <returns></returns>
-        INode DeclaringNode { get; }
+        INode DeclaringType { get; }
 
         /// <summary>
         /// CLR property type

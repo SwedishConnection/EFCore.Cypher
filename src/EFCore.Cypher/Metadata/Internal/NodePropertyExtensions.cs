@@ -20,7 +20,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         }
 
         public static PropertyAccessMode? GetPropertyAccessMode([NotNull] this INodeProperty nodeProperty) => 
-            (PropertyAccessMode?)nodeProperty[CoreAnnotationNames.PropertyAccessModeAnnotation] ?? nodeProperty.DeclaringNode.GetPropertyAccessMode();
+            (PropertyAccessMode?)nodeProperty[CoreAnnotationNames.PropertyAccessModeAnnotation] ?? nodeProperty.DeclaringType.GetPropertyAccessMode();
 
         public static bool TryGetMemberInfo(
             [NotNull] this INodeProperty nodeProperty,

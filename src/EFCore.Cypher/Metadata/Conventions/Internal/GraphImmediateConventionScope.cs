@@ -13,13 +13,9 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
         }
 
         public override bool OnPropertyFieldChanged(InternalNodePropertyBuilder builder, FieldInfo oldFieldInfo) {
-            if (builder.Base.Builder == null || 
-                builder.Base.DeclaringNode.Builder == null) {
+            if (builder.Metadata.Builder == null || 
+                builder.Metadata.DeclaringType.Builder == null) {
                 return false;        
-            }
-
-            foreach (var convention in _graphConventionSet.Pro) {
-
             }
 
             return true;
