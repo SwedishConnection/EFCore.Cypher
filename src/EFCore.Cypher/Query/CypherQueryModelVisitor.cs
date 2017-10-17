@@ -20,7 +20,7 @@ namespace Microsoft.EntityFrameworkCore.Query {
         /// <summary>
         /// Visitor factory
         /// </summary>    
-        private readonly ICypherTranslatingExpressionVisitorFactory _cypherTranslatingExpressionVisitorFactory;
+        // private readonly ICypherTranslatingExpressionVisitorFactory _cypherTranslatingExpressionVisitorFactory;
         
         public CypherQueryModelVisitor(
             [NotNullAttribute] EntityQueryModelVisitorDependencies dependencies,

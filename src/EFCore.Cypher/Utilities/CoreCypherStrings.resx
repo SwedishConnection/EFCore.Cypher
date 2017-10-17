@@ -78,4 +78,13 @@
   <data name="MissingBackingField" xml:space="preserve">
     <value>The specified field '{field}' could not be found for property '{property}' on node '{node}'.</value>
   </data>
+  <data name="ClashingNonDependentEntity" xml:space="preserve">
+    <value>The dependent entity '{entity}' cannot be added to the model because an entity with the same name already exists.</value>
+  </data>
+  <data name="ClashingDependentEntity" xml:space="preserve">
+    <value>The entity '{entity}' cannot be added to the model because a dependent entity with the same name already exists.</value>
+  </data>
+  <data name="DuplicateEntity" xml:space="preserve">
+    <value>The entity '{entity}' cannot be added to the model because an entity with the same name already exists.</value>
+  </data>
 </root>

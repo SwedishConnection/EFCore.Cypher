@@ -28,5 +28,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
         }
 
         public virtual OnPropertyFieldChangedNode VisitOnPropertyFieldChanged(OnPropertyFieldChangedNode node) => node;
+
+        public virtual OnEntityAddedNode VisitOnEntityAdded(OnEntityAddedNode node) => node;
     }
 }

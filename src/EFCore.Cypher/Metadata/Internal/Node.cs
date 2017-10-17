@@ -16,7 +16,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 
         private ConfigurationSource? _baseTypeConfigurationSource;
 
-        private readonly SortedDictionary<string, NodeProperty> _properties;
+        //private readonly SortedDictionary<string, NodeProperty> _properties;
 
         /// <summary>
         /// Node by labels

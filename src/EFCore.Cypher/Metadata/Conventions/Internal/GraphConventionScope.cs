@@ -40,6 +40,11 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
         public override GraphConventionNode Accept(GraphConventionVisitor visitor) => 
             visitor.VisitGraphConventionScope(this);
 
+        public virtual InternalEntityBuilder OnEntityAdded([NotNull] InternalEntityBuilder builder) {
+            Add(new OnEntityAddedNode(builder));
+            return builder;
+        }
+
         /// <summary>
         /// 
         /// </summary>

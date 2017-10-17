@@ -46,7 +46,9 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             NodeIdentity identity, 
             ConfigurationSource configurationSource
         ) {
-            // TODO: Ignore check
+            if (IsIgnoring(identity, configurationSource)) {
+                return null;
+            }
 
             Type clrType = identity.Type;
             Entity entity = clrType == null
@@ -99,7 +101,9 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             Entity definingEntityType,
             ConfigurationSource configurationSource
         ) {
-            // TODO: Ignore check
+            if (IsIgnoring(identity, configurationSource)) {
+                return null;
+            }
 
             Type clrType = identity.Type;
             Entity entity = clrType == null
@@ -127,6 +131,38 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             }
             
             return entity?.Builder;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="clrType"></param>
+        /// <param name="configurationSource"></param>
+        /// <returns></returns>
+        public virtual bool IsIgnoring(
+            [NotNull] Type clrType, 
+            ConfigurationSource configurationSource
+        ) => IsIgnoring(new NodeIdentity(clrType), configurationSource);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="labels"></param>
+        /// <param name="configurationSource"></param>
+        /// <returns></returns>
+        public virtual bool IsIgnoring(
+            [NotNull] string[] labels, 
+            ConfigurationSource configurationSource
+        ) => IsIgnoring(new NodeIdentity(labels), configurationSource);
+
+        public bool IsIgnoring(NodeIdentity identity, ConfigurationSource configurationSource) {
+            if (configurationSource == ConfigurationSource.Explicit)
+            {
+                return false;
+            }
+
+            // TODO
+            return true;
         }
     }
 }

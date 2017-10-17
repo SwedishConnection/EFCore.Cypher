@@ -77,6 +77,39 @@ namespace Microsoft.EntityFrameworkCore.Internal
                 node
             );
 
+        /// <summary>
+        /// The dependent entity '{entity}' cannot be added to the model because an entity with the same name already exists.
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <returns></returns>
+        public static string ClashingNonDependentEntity([CanBeNull] object entity) => 
+            string.Format(
+                GetString("ClashingNonDependentEntity", nameof(entity)),
+                entity
+            );
+
+        /// <summary>
+        /// The entity '{entity}' cannot be added to the model because a dependent entity with the same name already exists.
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <returns></returns>
+        public static string ClashingDependentEntity([CanBeNull] object entity) =>
+            string.Format(
+                GetString("ClashingDependentEntity", nameof(entity)),
+                entity
+            );
+
+        /// <summary>
+        /// The entity '{entity}' cannot be added to the model because an entity with the same name already exists.
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <returns></returns>
+        public static string DuplicateEntity([CanBeNull] object entity) =>
+            string.Format(
+                GetString("DuplicateEntity", nameof(entity)),
+                entity
+            );
+
         private static string GetString(string name, params string[] formatterNames)
         {
             var value = _resourceManager.GetString(name);

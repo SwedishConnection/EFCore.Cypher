@@ -1,9 +1,11 @@
+using System;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.EntityFrameworkCore.Utilities;
 
 namespace Microsoft.EntityFrameworkCore
 {
@@ -37,6 +39,17 @@ namespace Microsoft.EntityFrameworkCore
         public virtual EntityBuilder<TEntity> Entity<TEntity>() 
             where TEntity: class =>
             new EntityBuilder<TEntity>(Builder.Entity(typeof(TEntity), ConfigurationSource.Explicit));
+
+        /// <summary>
+        /// Returns a builder used to configure the given entity in the graph
+        /// </summary>
+        /// <param name="clrType"></param>
+        /// <returns></returns>
+        public virtual EntityBuilder Entity([NotNull] Type clrType) {
+            Check.NotNull(clrType, nameof(clrType));
+
+            return new EntityBuilder(Builder.Entity(clrType, ConfigurationSource.Explicit));
+        }
 
 
         private InternalGraphBuilder Builder => this.GetInfrastructure();

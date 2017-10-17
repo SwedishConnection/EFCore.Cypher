@@ -5,16 +5,23 @@ using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal;
+using Microsoft.EntityFrameworkCore.Utilities;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 {
     public class Graph : ConventionalAnnotatable, IMutableGraph
     {
-        private readonly Dictionary<string[], Entity> _entities =
-            new Dictionary<string[], Entity>(new LabelsComparer());
+        private readonly Dictionary<NodeIdentity, Entity> _entities =
+            new Dictionary<NodeIdentity, Entity>(new NodeIdentityComparer());
 
-        private readonly SortedDictionary<string[], Relationship> _relationships =
-            new SortedDictionary<string[], Relationship>();
+        private readonly IDictionary<NodeIdentity, HashSet<Entity>> _entitesWithDefiningNavigation =
+            new Dictionary<NodeIdentity, HashSet<Entity>>(new NodeIdentityComparer());
+
+        private readonly Dictionary<NodeIdentity, Relationship> _relationships =
+            new Dictionary<NodeIdentity, Relationship>(new NodeIdentityComparer());
+
+        private readonly Dictionary<NodeIdentity, ConfigurationSource> _ignored = 
+            new Dictionary<NodeIdentity, ConfigurationSource>(new NodeIdentityComparer());
 
         private readonly IDictionary<Type, INode> _clrTypeMap = 
             new Dictionary<Type, INode>();
@@ -53,8 +60,9 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             [NotNull] string[] labels,
             ConfigurationSource configurationSource = ConfigurationSource.Explicit
         ) {
-            var entity = new Entity(labels, this, configurationSource);
+            Check.NotEmpty(labels, nameof(labels));
 
+            var entity = new Entity(labels, this, configurationSource);
             return AddEntity(entity);
         }
 
@@ -68,6 +76,8 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             [NotNull] Type clrType,
             ConfigurationSource configurationSource = ConfigurationSource.Explicit
         ) {
+            Check.NotNull(clrType, nameof(clrType));
+
              var entity = new Entity(clrType, this, configurationSource);
 
              _clrTypeMap[clrType] = entity;
@@ -80,12 +90,32 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="entity"></param>
         /// <returns></returns>
         private Entity AddEntity(Entity entity) {
-            if (_entities.ContainsKey(entity.Labels)) {
-                // TODO: String pattern
-                throw new InvalidOperationException("");
+            NodeIdentity identity = new NodeIdentity(entity.Labels);
+
+            if (entity.HasDefiningNavigation()) {
+                if (_entities.ContainsKey(identity)) {
+                    throw new InvalidOperationException(CoreCypherStrings.ClashingNonDependentEntity(entity.DisplayLabels()));
+                }
+
+                if (!_entitesWithDefiningNavigation.TryGetValue(identity, out var sameEntities)) {
+                    sameEntities = new HashSet<Entity>();
+                    _entitesWithDefiningNavigation[identity] = sameEntities;
+                }
+
+                sameEntities.Add(entity);
+            } else {
+                if (_entitesWithDefiningNavigation.ContainsKey(identity)) {
+                    throw new InvalidOperationException(CoreCypherStrings.ClashingDependentEntity(entity.DisplayLabels()));
+                }
+
+                var howManyEntities = _entities.Count;
+                _entities[identity] = entity;
+                if (howManyEntities == _entities.Count) {
+                    throw new InvalidOperationException(CoreCypherStrings.DuplicateEntity(entity.DisplayLabels()));
+                }
             }
 
-            return entity;
+            return GraphConventionDispatcher.OnEntityAdded(entity.Builder)?.Metadata;
         }
 
         public Entity AddEntity(
@@ -156,7 +186,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="labels"></param>
         /// <returns></returns>
         public virtual Entity FindEntity([NotNull] string[] labels) 
-            => _entities.TryGetValue(labels, out var entity)
+            => _entities.TryGetValue(new NodeIdentity(labels), out var entity)
                 ? entity 
                 : null;
 
@@ -190,7 +220,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="labels"></param>
         /// <returns></returns>
         public IMutableRelationship FindRelationship([NotNull] string[] labels)
-            => _relationships.TryGetValue(labels, out var rel)
+            => _relationships.TryGetValue(new NodeIdentity(labels), out var rel)
                 ? rel 
                 : null;
 
@@ -265,18 +295,64 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         {
             throw new NotImplementedException();
         }
+
+        public virtual ConfigurationSource? FindIgnoredTypeConfigurationSource([NotNull] Type clrType) =>
+            FindIgnoredTypeConfigurationSource(new NodeIdentity(Check.NotNull(clrType, nameof(clrType))));
+
+        public virtual ConfigurationSource? FindIgnoredTypeConfigurationSource([NotNull] string[] labels) => 
+            FindIgnoredTypeConfigurationSource(Check.NotNull(labels, nameof(labels)));
+
+        private ConfigurationSource? FindIgnoredTypeConfigurationSource(NodeIdentity identity) =>
+            _ignored.TryGetValue(identity, out var ignoredConfigurationSource)
+                ? (ConfigurationSource?)ignoredConfigurationSource
+                : null;
+        
+        public virtual void Ignore(
+            [NotNull] Type clrType,
+            ConfigurationSource configurationSource = ConfigurationSource.Explicit
+        ) => Ignore(new NodeIdentity(Check.NotNull(clrType, nameof(clrType))), configurationSource);
+
+        public virtual void Ignore(
+            [NotNull] string[] labels,
+            ConfigurationSource configurationSource = ConfigurationSource.Explicit
+        ) => Ignore(new NodeIdentity(Check.NotNull(labels, nameof(labels))), configurationSource);
+
+        private void Ignore(
+            NodeIdentity identity,
+            ConfigurationSource configurationSource
+        ) {
+            if (_ignored.TryGetValue(identity, out var existing)) {
+                configurationSource = configurationSource.Max(existing);
+                _ignored[identity] = configurationSource;
+                return;
+            }
+
+            _ignored[identity] = configurationSource;
+            // TODO: dispatcher
+        }
+
+        public virtual void NotIgnore([NotNull] Type clrType) => 
+            NotIgnore(new NodeIdentity(Check.NotNull(clrType, nameof(clrType))));
+
+        public virtual void NotIgnore([NotNull] string[] labels) => 
+            NotIgnore(new NodeIdentity(Check.NotNull(labels, nameof(labels))));
+
+        private void NotIgnore(NodeIdentity identity) => _ignored.Remove(identity);
     }
 
-    public class LabelsComparer : IEqualityComparer<string[]>
+    public class NodeIdentityComparer : IEqualityComparer<NodeIdentity>
     {
-        public bool Equals(string[] x, string[] y)
+        public bool Equals(NodeIdentity x, NodeIdentity y)
         {
-            if (x.Length != y.Length) {
+            string[] xLabels = x.Labels;
+            string[] yLabels = y.Labels;
+
+            if (xLabels.Length != yLabels.Length) {
                 return false;
             }
 
-            var xs = x.OrderByDescending(i => i, StringComparer.CurrentCulture).ToArray();
-            var ys = y.OrderByDescending(i => i, StringComparer.CurrentCulture).ToArray();
+            var xs = xLabels.OrderByDescending(i => i, StringComparer.CurrentCulture).ToArray();
+            var ys = yLabels.OrderByDescending(i => i, StringComparer.CurrentCulture).ToArray();
 
             for (var i=0; i < xs.Length; i++) {
                 if (xs[i] != ys[i]) {
@@ -287,12 +363,14 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             return true;
         }
 
-        public int GetHashCode(string[] obj)
+        public int GetHashCode(NodeIdentity obj)
         {
+            string[] labels = obj.Labels;
             int result = 17;
-            for (int i=0; i < obj.Length; i++) {
+
+            for (int i=0; i < labels.Length; i++) {
                 unchecked {
-                    result = result * 23 + Convert.ToInt32(obj[i]);
+                    result = result * 23 + labels[i].GetHashCode();
                 }
             }
 

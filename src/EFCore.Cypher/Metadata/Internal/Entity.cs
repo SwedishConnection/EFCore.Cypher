@@ -21,13 +21,18 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             ConfigurationSource configurationSource
         ) : base(clrType, graph, configurationSource)
         {
+            Builder = new InternalEntityBuilder(this, graph.Builder);
         }
 
         public new InternalEntityBuilder Builder { get; }
 
-        public string DefiningNavigationName => throw new NotImplementedException();
+        public virtual string DefiningNavigationName { get; }
 
-        public IEntity DefiningType => throw new NotImplementedException();
+        string IEntity.DefiningNavigationName => DefiningNavigationName;
+
+        public virtual Entity DefiningType { get; }
+
+        IEntity IEntity.DefiningType => DefiningType;
 
         IMutableEntity IMutableEntity.BaseType { 
             get => (IMutableEntity)_baseType; 
