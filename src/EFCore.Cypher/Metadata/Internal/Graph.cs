@@ -286,9 +286,51 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <returns></returns>
         IEnumerable<IMutableRelationship> IMutableGraph.GetRelationships() => GetRelationships();
 
-        public IMutableNode RemoveEntity([NotNull] string[] labels)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="labels"></param>
+        /// <returns></returns>
+        IMutableNode IMutableGraph.RemoveEntity([NotNull] string[] labels) =>
+            RemoveEntity(labels);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="clrType"></param>
+        /// <returns></returns>
+        public virtual Entity RemoveEntity([NotNull] Type clrType)
+            => RemoveEntity(FindEntity(clrType));
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="labels"></param>
+        /// <returns></returns>
+        public virtual Entity RemoveEntity([NotNull] string[] labels)
+            => RemoveEntity(FindEntity(labels));
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <returns></returns>
+        public virtual Entity RemoveEntity([CanBeNull] Entity entity)
         {
-            throw new NotImplementedException();
+            // bail if no builder
+            if (entity?.Builder is null) {
+                return null;
+            }
+
+            entity.AssertCanRemove();
+
+            if (entity.HasDefiningNavigation()) {
+                // TODO:
+            } else {
+                // TODO:
+            }
+
+            return entity;
         }
 
         public IMutableNode RemoveRelationship([NotNull] string[] labels)
@@ -302,7 +344,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         public virtual ConfigurationSource? FindIgnoredTypeConfigurationSource([NotNull] string[] labels) => 
             FindIgnoredTypeConfigurationSource(Check.NotNull(labels, nameof(labels)));
 
-        private ConfigurationSource? FindIgnoredTypeConfigurationSource(NodeIdentity identity) =>
+        internal ConfigurationSource? FindIgnoredTypeConfigurationSource(NodeIdentity identity) =>
             _ignored.TryGetValue(identity, out var ignoredConfigurationSource)
                 ? (ConfigurationSource?)ignoredConfigurationSource
                 : null;
@@ -317,7 +359,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             ConfigurationSource configurationSource = ConfigurationSource.Explicit
         ) => Ignore(new NodeIdentity(Check.NotNull(labels, nameof(labels))), configurationSource);
 
-        private void Ignore(
+        internal void Ignore(
             NodeIdentity identity,
             ConfigurationSource configurationSource
         ) {
@@ -337,7 +379,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         public virtual void NotIgnore([NotNull] string[] labels) => 
             NotIgnore(new NodeIdentity(Check.NotNull(labels, nameof(labels))));
 
-        private void NotIgnore(NodeIdentity identity) => _ignored.Remove(identity);
+        internal void NotIgnore(NodeIdentity identity) => _ignored.Remove(identity);
     }
 
     public class NodeIdentityComparer : IEqualityComparer<NodeIdentity>

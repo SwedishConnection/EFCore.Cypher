@@ -17,7 +17,7 @@ namespace Microsoft.EntityFrameworkCore
         /// </summary>
         /// <param name="conventions"></param>
         public GraphBuilder([NotNull] GraphConventionSet conventions) {
-            // TODO: Check conventions not null
+            Check.NotNull(conventions, nameof(conventions));
 
             _builder = new InternalGraphBuilder(new Graph(conventions));
         }
@@ -51,6 +51,25 @@ namespace Microsoft.EntityFrameworkCore
             return new EntityBuilder(Builder.Entity(clrType, ConfigurationSource.Explicit));
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public virtual GraphBuilder Ignore<TEntity>() where TEntity : class
+            => Ignore(typeof(TEntity));
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        public virtual GraphBuilder Ignore([NotNull] Type type)
+        {
+            Check.NotNull(type, nameof(type));
+
+            Builder.Ignore(type, ConfigurationSource.Explicit);
+            return this;
+        }
 
         private InternalGraphBuilder Builder => this.GetInfrastructure();
     }

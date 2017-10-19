@@ -1,5 +1,6 @@
 using JetBrains.Annotations;
 using System;
+using System.Linq;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 {
@@ -57,11 +58,11 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 
             if (entity is null) {
                 if (clrType is null) {
-                    // TODO: Unignore by labels
+                    Metadata.NotIgnore(identity);
 
                     entity = Metadata.AddEntity(identity.Labels, configurationSource);
                 } else {
-                    // TODO: Unignore the CLR type
+                    Metadata.NotIgnore(identity);
 
                     entity = Metadata.AddEntity(clrType, configurationSource);
                 }
@@ -155,13 +156,144 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             ConfigurationSource configurationSource
         ) => IsIgnoring(new NodeIdentity(labels), configurationSource);
 
-        public bool IsIgnoring(NodeIdentity identity, ConfigurationSource configurationSource) {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="identity"></param>
+        /// <param name="configurationSource"></param>
+        /// <returns></returns>
+        internal bool IsIgnoring(NodeIdentity identity, ConfigurationSource configurationSource) {
             if (configurationSource == ConfigurationSource.Explicit)
             {
                 return false;
             }
 
-            // TODO
+            var ignoredConfigurationSource = Metadata.FindIgnoredTypeConfigurationSource(identity);
+            return ignoredConfigurationSource.HasValue &&
+                ignoredConfigurationSource.Value.Overrides(configurationSource);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="configurationSource"></param>
+        /// <returns></returns>
+        public virtual bool Ignore([NotNull] Type type, ConfigurationSource configurationSource)
+            => Ignore(new NodeIdentity(type), configurationSource);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="labels"></param>
+        /// <param name="configurationSource"></param>
+        /// <returns></returns>
+        public virtual bool Ignore([NotNull] string[] labels, ConfigurationSource configurationSource)
+            => Ignore(new NodeIdentity(labels), configurationSource);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="identity"></param>
+        /// <param name="configurationSource"></param>
+        /// <returns></returns>
+        private bool Ignore([NotNull] NodeIdentity identity, ConfigurationSource configurationSource)
+        {
+            var ignoredConfigurationSource = Metadata.FindIgnoredTypeConfigurationSource(identity);
+            if (ignoredConfigurationSource.HasValue)
+            {
+                if (configurationSource.Overrides(ignoredConfigurationSource) && 
+                    configurationSource != ignoredConfigurationSource)
+                {
+                    Metadata.Ignore(identity, configurationSource);
+                }
+
+                return true;
+            }
+
+            var entity = Metadata.FindEntity(identity.Labels);
+            if (entity == null)
+            {
+                Metadata.Ignore(identity, configurationSource);
+
+                return true;
+            }
+
+            return Ignore(entity, configurationSource);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <param name="configurationSource"></param>
+        /// <returns></returns>
+        private bool Ignore(Entity entity, ConfigurationSource configurationSource)
+        {
+            var entityConfigurationSource = entity.GetConfigurationSource();
+            if (!configurationSource.Overrides(entityConfigurationSource))
+            {
+                return false;
+            }
+
+            using (Metadata.GraphConventionDispatcher.StartBatch())
+            {
+                if (entity.HasClrType())
+                {
+                    Metadata.Ignore(entity.ClrType, configurationSource);
+                }
+                else
+                {
+                    Metadata.Ignore(entity.Labels, configurationSource);
+                }
+
+                return RemoveEntity(entity, configurationSource);
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <param name="configurationSource"></param>
+        /// <returns></returns>
+        public virtual bool RemoveEntity(
+            [NotNull] Entity entity, 
+            ConfigurationSource configurationSource
+        )
+        {
+            // bail if configuration can not override
+            var entityConfigurationSource = entity.GetConfigurationSource();
+            if (!configurationSource.Overrides(entityConfigurationSource))
+            {
+                return false;
+            }
+
+            // wipe out the base type association
+            var baseType = entity.BaseType;
+            entity.Builder.HasBaseType((Entity)null, configurationSource);
+
+            // TODO: remove from relationships
+
+            // hoist children to the base type
+            foreach (var directlyDerivedType in entity.GetDirectlyDerivedTypes().ToList())
+            {
+                var derivedEntityTypeBuilder = directlyDerivedType
+                    .Builder
+                    .HasBaseType(baseType, configurationSource);
+            }
+
+            // when a defining type
+            using (Metadata.GraphConventionDispatcher.StartBatch())
+            {
+                foreach (var definedType in Metadata.GetEntities().Where(e => e.DefiningType == entity).ToList())
+                {
+                    RemoveEntity(definedType, configurationSource);
+                }
+
+                Metadata.RemoveEntity(entity);
+            }
+
             return true;
         }
     }

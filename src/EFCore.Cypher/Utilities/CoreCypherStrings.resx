@@ -87,4 +87,7 @@
   <data name="DuplicateEntity" xml:space="preserve">
     <value>The entity '{entity}' cannot be added to the model because an entity with the same name already exists.</value>
   </data>
+  <data name="EntityInUseByDerived" xml:space="preserve">
+    <value>The entity '{entity}' cannot be removed because '{derivedEntity}' is derived from it. All derived entities must be removed or redefined before the entity can be removed.</value>
+  </data>
 </root>

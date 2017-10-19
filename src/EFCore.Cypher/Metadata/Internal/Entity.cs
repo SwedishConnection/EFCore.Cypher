@@ -6,6 +6,8 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 {
     public class Entity : Node, IMutableEntity
     {
+        private readonly HashSet<Entity> _directlyDerivedTypes = new HashSet<Entity>();
+
         public Entity(
             [NotNull] string[] labels, 
             [NotNull] Graph graph, 
@@ -74,5 +76,13 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         {
             throw new System.NotImplementedException();
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public virtual ISet<Entity> GetDirectlyDerivedTypes() => _directlyDerivedTypes;
+
+        
     }
 }

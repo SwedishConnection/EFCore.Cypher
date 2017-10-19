@@ -110,6 +110,20 @@ namespace Microsoft.EntityFrameworkCore.Internal
                 entity
             );
 
+        /// <summary>
+        /// The entity '{entity}' cannot be removed because '{derivedEntity}' is derived from it. All derived entities must be removed or redefined before the entity can be removed.
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <param name="derivedEntity"></param>
+        /// <returns></returns>
+        public static string EntityInUseByDerived([CanBeNull] object entity, [CanBeNull] object derivedEntity) =>
+            string.Format(
+                GetString("EntityInUseByDerived", nameof(entity), nameof(derivedEntity)),
+                entity,
+                derivedEntity
+            );
+
+        
         private static string GetString(string name, params string[] formatterNames)
         {
             var value = _resourceManager.GetString(name);
