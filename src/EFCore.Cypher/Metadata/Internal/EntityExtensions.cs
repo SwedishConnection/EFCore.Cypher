@@ -1,3 +1,6 @@
+// Based on https://github.com/aspnet/EntityFrameworkCore
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +11,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
     public static class EntityExtensions {
 
         /// <summary>
-        /// 
+        /// Assert (i.e. throw if necessary) that the entity can be removed
         /// </summary>
         /// <param name="entity"></param>
         public static void AssertCanRemove(this Entity entity) {
@@ -27,7 +30,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         }
 
         /// <summary>
-        /// 
+        /// Does entity inherit from the other entity
         /// </summary>
         /// <param name="entity"></param>
         /// <param name="other"></param>
@@ -46,7 +49,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         }
 
         /// <summary>
-        /// 
+        /// Dervied entities
         /// </summary>
         /// <param name="entity"></param>
         /// <returns></returns>

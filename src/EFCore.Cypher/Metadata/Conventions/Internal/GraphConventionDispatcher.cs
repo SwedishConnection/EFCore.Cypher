@@ -1,3 +1,6 @@
+// Based on https://github.com/aspnet/EntityFrameworkCore
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 using System;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore.Internal;
@@ -6,6 +9,9 @@ using Microsoft.EntityFrameworkCore.Utilities;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
 {
+    /// <summary>
+    /// Graph convention dispatcher
+    /// </summary>
     public partial class GraphConventionDispatcher {
 
         private GraphConventionScope _scope;
@@ -54,12 +60,19 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
         /// <returns></returns>
         public virtual IConventionBatch StartBatch() => new GraphConventionBatch(this);
 
+        /// <summary>
+        /// Batching (i.e. deferred scoping)
+        /// </summary>
         private class GraphConventionBatch : IConventionBatch
         {
             private readonly GraphConventionDispatcher _dispatcher;
 
             private int _runCount;
 
+            /// <summary>
+            /// Lift the dispatcher's scope into a delayed scope
+            /// </summary>
+            /// <param name="dispatcher"></param>
             public GraphConventionBatch(GraphConventionDispatcher dispatcher)
             {
                 _dispatcher = dispatcher;
@@ -71,6 +84,9 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
                 }
             }
 
+            /// <summary>
+            /// 
+            /// </summary>
             private void Run()
             {
                 while (true)

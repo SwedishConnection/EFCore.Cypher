@@ -1,3 +1,6 @@
+// Based on https://github.com/aspnet/EntityFrameworkCore
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 using JetBrains.Annotations;
 using System;
 using System.Linq;
@@ -5,6 +8,9 @@ using Microsoft.EntityFrameworkCore.Internal;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 {
+    /// <summary>
+    /// Internal graph builder
+    /// </summary>
     public class InternalGraphBuilder: InternalMetadataBuilder<Graph> {
         
         public InternalGraphBuilder([NotNull] Graph metadata): base(metadata) {
@@ -39,7 +45,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         ) => Entity(new TypeIdentity(clrType), configurationSource);
 
         /// <summary>
-        /// Create entity returning an entity builder
+        /// Create entity if not ignoring
         /// </summary>
         /// <param name="identity"></param>
         /// <param name="configurationSource"></param>

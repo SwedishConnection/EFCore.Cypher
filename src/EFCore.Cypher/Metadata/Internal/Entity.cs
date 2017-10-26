@@ -1,3 +1,6 @@
+// Based on https://github.com/aspnet/EntityFrameworkCore
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,6 +13,9 @@ using Microsoft.EntityFrameworkCore.Utilities;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 {
+    /// <summary>
+    /// Entity (<see cref="EntityType" />)
+    /// </summary>
     public class Entity : Node, IMutableEntityType
     {
         private Entity _baseType;
@@ -46,7 +52,8 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             ConfigurationSource configurationSource
         ) : this(name, graph, configurationSource)
         {
-
+            DefiningNavigationName = definingNavigationName;
+            DefiningEntityType = definingEntity;
         }
 
         public Entity(
@@ -57,7 +64,8 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             ConfigurationSource configurationSource
         ) : this(clrType, graph, configurationSource)
         {
-
+            DefiningNavigationName = definingNavigationName;
+            DefiningEntityType = definingEntity;
         }
 
         /// <summary>
@@ -75,10 +83,14 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         public virtual Entity BaseType => _baseType;
 
         /// <summary>
-        /// Base type
+        /// Base type (read)
         /// </summary>
         IEntityType IEntityType.BaseType => _baseType;
 
+        /// <summary>
+        /// Base type (mutable)
+        /// </summary>
+        /// <returns></returns>
         IMutableEntityType IMutableEntityType.BaseType {
             get => _baseType;
             set => HasBaseType((Entity)value);
@@ -102,7 +114,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         public virtual string DefiningNavigationName { get; }
 
         /// <summary>
-        /// 
+        /// Defining entity (read)
         /// </summary>
         /// <returns></returns>
         public IEntityType DefiningEntityType { get; }
@@ -121,6 +133,11 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             set => QueryFilter = value;
         }
 
+        /// <summary>
+        /// Set base type
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <param name="configurationSource"></param>
         public virtual void HasBaseType(
             [CanBeNull] Entity entity,
             ConfigurationSource configurationSource = ConfigurationSource.Explicit
@@ -218,7 +235,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         }
 
         /// <summary>
-        /// 
+        /// Base type configuration source
         /// </summary>
         /// <returns></returns>
         public virtual ConfigurationSource? GetBaseTypeConfigurationSource() => _baseTypeConfigurationSource;
@@ -229,6 +246,37 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="configurationSource"></param>
         private void UpdateBaseTypeConfigurationSource(ConfigurationSource configurationSource)
             => _baseTypeConfigurationSource = configurationSource.Max(_baseTypeConfigurationSource);
+
+        /// <summary>
+        /// Derived types
+        /// </summary>
+        /// <returns></returns>
+        public virtual IEnumerable<Entity> GetDerivedTypes()
+        {
+            var derivedTypes = new List<Entity>();
+            var type = this;
+            var currentTypeIndex = 0;
+
+            while (type != null)
+            {
+                derivedTypes.AddRange(type.GetDirectlyDerivedTypes());
+
+                type = derivedTypes.Count > currentTypeIndex
+                    ? derivedTypes[currentTypeIndex]
+                    : null;
+
+                currentTypeIndex++;
+            }
+
+            return derivedTypes;
+        }
+
+        /// <summary>
+        /// Derived types (inclusive)
+        /// </summary>
+        /// <returns></returns>
+        public virtual IEnumerable<Entity> GetDerivedTypesInclusive()
+            => new[] { this }.Concat(GetDerivedTypes());
 
         /// <summary>
         /// Directly derived types
@@ -427,6 +475,12 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 
             _propertyCounts = null;
         }
+        
+        /// <summary>
+        /// Declared properties
+        /// </summary>
+        /// <returns></returns>
+        public virtual IEnumerable<Property> GetDeclaredProperties() => _properties.Values;
 
         /// <summary>
         /// Property Counts
@@ -438,7 +492,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             => NonCapturingLazyInitializer.EnsureInitialized(ref _propertyCounts, this, entity => entity.CalculateCounts());
 
         /// <summary>
-        /// 
+        /// Directly derived types
         /// </summary>
         /// <returns></returns>
         public virtual ISet<Entity> GetDirectlyDerivedTypes() => _directlyDerivedTypes;

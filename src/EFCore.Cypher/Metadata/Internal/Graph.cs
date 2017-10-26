@@ -1,3 +1,6 @@
+// Based on https://github.com/aspnet/EntityFrameworkCore
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,7 +13,9 @@ using Microsoft.EntityFrameworkCore.Utilities;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 {
-
+    /// <summary>
+    /// Graph
+    /// </summary>
     public class Graph : ConventionalAnnotatable, IMutableModel
     {
         private readonly SortedDictionary<string, Entity> _entities
@@ -99,15 +104,17 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         }
 
         /// <summary>
-        /// 
+        /// Add entity type
         /// </summary>
         /// <param name="clrType"></param>
         /// <returns></returns>
         IMutableEntityType IMutableModel.AddEntityType(Type clrType) => AddEntity(clrType);
 
         /// <summary>
-        /// Add entity
+        /// When entity has a defining navigation lookup in the navigation set
+        /// otherwise go the entities set adding if not found
         /// </summary>
+        /// <remarks>Fires convention event</remarks>
         /// <param name="entity"></param>
         /// <returns></returns>
         private Entity AddEntity(Entity entity) {
@@ -242,7 +249,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         ) => FindEntity(clrType.DisplayName(), definingNavigationName, definingEntity);
 
         /// <summary>
-        /// Find entity by name
+        /// Find entity by navigation
         /// </summary>
         /// <param name="name"></param>
         /// <param name="definingNavigationName"></param>
@@ -264,7 +271,14 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         }
 
         /// <summary>
-        /// Find entity type by another
+        /// Find (read) entity type by name
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        IEntityType IModel.FindEntityType(string name) => FindEntity(name);
+
+        /// <summary>
+        /// Find entity type by navigation
         /// </summary>
         /// <param name="name"></param>
         /// <param name="definingNavigationName"></param>
@@ -274,7 +288,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             FindEntity(name, definingNavigationName, (Entity)definingEntityType);
 
         /// <summary>
-        /// Find entity type by another
+        /// Find entity type by navigation
         /// </summary>
         /// <param name="name"></param>
         /// <param name="definingNavigationName"></param>
@@ -343,7 +357,8 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             RemoveEntity(FindEntity(name));
 
         /// <summary>
-        /// Remove entity
+        /// When has defining navigation remove from navigation set 
+        /// otherwise from the entities set. Remove builder reference.
         /// </summary>
         /// <param name="entity"></param>
         /// <returns></returns>
@@ -422,11 +437,6 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         IMutableEntityType IMutableModel.RemoveEntityType(string name, string definingNavigationName, IMutableEntityType definingEntityType) =>
             RemoveEntity(name, definingNavigationName, (Entity)definingEntityType);
 
-        IEntityType IModel.FindEntityType(string name)
-        {
-            throw new NotImplementedException();
-        }
-
         /// <summary>
         /// Ignore by type
         /// </summary>
@@ -448,8 +458,9 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             => Ignore(Check.NotNull(name, nameof(name)), null, configurationSource);
 
         /// <summary>
-        /// Ignore
+        /// Add to ignorables
         /// </summary>
+        /// <remarks>Fire convention event</remarks>
         /// <param name="name"></param>
         /// <param name="type"></param>
         /// <param name="configurationSource"></param>

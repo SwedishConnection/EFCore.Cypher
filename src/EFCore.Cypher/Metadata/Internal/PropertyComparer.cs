@@ -1,9 +1,16 @@
+// Based on https://github.com/aspnet/EntityFrameworkCore
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 {
+    /// <summary>
+    /// Could have used the provided PropertyComparer if it worked off the 
+    /// readable interface rather than the concrete thing
+    /// </summary>
     public class PropertyComparer: IComparer<string> {
         private readonly IEntityType _entityType;
 

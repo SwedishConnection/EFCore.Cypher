@@ -58,22 +58,22 @@ namespace Microsoft.EntityFrameworkCore
         }
 
         /// <summary>
-        /// 
+        /// Ignore entity by type
         /// </summary>
         /// <returns></returns>
         public virtual GraphBuilder Ignore<TEntity>() where TEntity : class
             => Ignore(typeof(TEntity));
 
         /// <summary>
-        /// 
+        /// Ignore entity by type
         /// </summary>
         /// <param name="type"></param>
         /// <returns></returns>
-        public virtual GraphBuilder Ignore([NotNull] Type type)
+        public virtual GraphBuilder Ignore([NotNull] Type clrType)
         {
-            Check.NotNull(type, nameof(type));
+            Check.NotNull(clrType, nameof(clrType));
 
-            Builder.Ignore(type, ConfigurationSource.Explicit);
+            Builder.Ignore(clrType, ConfigurationSource.Explicit);
             return this;
         }
 
