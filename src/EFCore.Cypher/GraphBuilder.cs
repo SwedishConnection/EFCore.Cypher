@@ -1,3 +1,6 @@
+// Based on https://github.com/aspnet/EntityFrameworkCore
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 using System;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -9,11 +12,14 @@ using Microsoft.EntityFrameworkCore.Utilities;
 
 namespace Microsoft.EntityFrameworkCore
 {
+    /// <summary>
+    /// Graph builder similar to Entity Framework's model builder
+    /// </summary>
     public class GraphBuilder: IInfrastructure<InternalGraphBuilder> {
         private readonly InternalGraphBuilder _builder;
 
         /// <summary>
-        /// With conventions
+        /// With graph conventions
         /// </summary>
         /// <param name="conventions"></param>
         public GraphBuilder([NotNull] GraphConventionSet conventions) {
