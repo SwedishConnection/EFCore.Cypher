@@ -13,7 +13,7 @@ namespace Microsoft.EntityFrameworkCore
         private readonly InternalGraphBuilder _builder;
 
         /// <summary>
-        /// With set of graph conventions
+        /// With conventions
         /// </summary>
         /// <param name="conventions"></param>
         public GraphBuilder([NotNull] GraphConventionSet conventions) {
@@ -25,7 +25,7 @@ namespace Microsoft.EntityFrameworkCore
         /// <summary>
         /// Graph being configured
         /// </summary>
-        public virtual IMutableGraph Graph => Builder.Metadata;
+        public virtual IMutableModel Graph => Builder.Metadata;
 
         /// <summary>
         /// Internal builder being used to configure the graph
@@ -71,6 +71,10 @@ namespace Microsoft.EntityFrameworkCore
             return this;
         }
 
+        /// <summary>
+        /// Builder
+        /// </summary>
+        /// <returns></returns>
         private InternalGraphBuilder Builder => this.GetInfrastructure();
     }
 }

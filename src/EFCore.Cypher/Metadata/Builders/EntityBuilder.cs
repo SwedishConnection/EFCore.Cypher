@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Builders
 {
-    public class EntityBuilder : IInfrastructure<IMutableGraph>, IInfrastructure<InternalEntityBuilder>
+    public class EntityBuilder : IInfrastructure<IMutableModel>, IInfrastructure<InternalEntityBuilder>
     {
         private InternalEntityBuilder Builder { get; }
 
@@ -22,20 +22,20 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Builders
         /// <summary>
         /// Entity being configured
         /// </summary>
-        public virtual IMutableEntity Metadata => Builder.Metadata;
+        public virtual IMutableEntityType Metadata => Builder.Metadata;
         
         /// <summary>
         /// Graph that the entity belongs to
         /// </summary>
-        IMutableGraph IInfrastructure<IMutableGraph>.Instance => Builder.GraphBuilder.Metadata;
+        IMutableModel IInfrastructure<IMutableModel>.Instance => Builder.GraphBuilder.Metadata;
 
         /// <summary>
         /// Set the base node of this entity (inheritance hierarchy)
         /// </summary>
-        /// <param name="labels"></param>
+        /// <param name="name"></param>
         /// <returns></returns>
-        public virtual EntityBuilder HasBaseType([CanBeNull] string[] labels)
-            => new EntityBuilder(Builder.HasBaseType(labels, ConfigurationSource.Explicit));
+        public virtual EntityBuilder HasBaseType([CanBeNull] string name)
+            => new EntityBuilder(Builder.HasBaseType(name, ConfigurationSource.Explicit));
     }
 
     public class EntityBuilder<TEntity>: EntityBuilder where TEntity: class {

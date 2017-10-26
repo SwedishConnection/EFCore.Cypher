@@ -1,5 +1,6 @@
 
 using System;
+using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using Xunit;
@@ -18,9 +19,9 @@ namespace Microsoft.EntityFrameworkCore {
             GraphBuilder builder = new GraphBuilder(_graphConventionSet);
             
             var entityBuilder = builder.Entity<Person>();
-            IMutableEntity entity = builder
+            IMutableEntityType entity = builder
                 .Graph
-                .FindEntity(new string[] { "Person" });
+                .FindEntityType(typeof(Person).DisplayName());
 
             Assert.Equal(entity.ClrType, typeof(Person));
         }

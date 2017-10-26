@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore.Internal;
@@ -9,65 +10,78 @@ using Microsoft.EntityFrameworkCore.Utilities;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 {
-    public class Graph : ConventionalAnnotatable, IMutableGraph
+
+    public class Graph : ConventionalAnnotatable, IMutableModel
     {
-        private readonly Dictionary<NodeIdentity, Entity> _entities =
-            new Dictionary<NodeIdentity, Entity>(new NodeIdentityComparer());
+        private readonly SortedDictionary<string, Entity> _entities
+            = new SortedDictionary<string, Entity>();
 
-        private readonly IDictionary<NodeIdentity, HashSet<Entity>> _entitesWithDefiningNavigation =
-            new Dictionary<NodeIdentity, HashSet<Entity>>(new NodeIdentityComparer());
+        private readonly IDictionary<Type, Entity> _clrTypeMap
+            = new Dictionary<Type, Entity>();
 
-        private readonly Dictionary<NodeIdentity, Relationship> _relationships =
-            new Dictionary<NodeIdentity, Relationship>(new NodeIdentityComparer());
+        private readonly SortedDictionary<string, SortedSet<Entity>> _entitiesWithDefiningNavigation
+            = new SortedDictionary<string, SortedSet<Entity>>();
 
-        private readonly Dictionary<NodeIdentity, ConfigurationSource> _ignored = 
-            new Dictionary<NodeIdentity, ConfigurationSource>(new NodeIdentityComparer());
+        private readonly Dictionary<string, ConfigurationSource> _ignorables
+            = new Dictionary<string, ConfigurationSource>();
 
-        private readonly IDictionary<Type, INode> _clrTypeMap = 
-            new Dictionary<Type, INode>();
-
+        /// <summary>
+        /// With empty graph convention set
+        /// </summary>
         public Graph(): this(new GraphConventionSet()) {
 
         }
 
-        public Graph(GraphConventionSet conventions) {
+        /// <summary>
+        /// With conventions
+        /// </summary>
+        /// <param name="conventions"></param>
+        public Graph([NotNull] GraphConventionSet conventions) {
             var dispatcher = new GraphConventionDispatcher(conventions);
             var builder = new InternalGraphBuilder(this);
 
             GraphConventionDispatcher = dispatcher;
             Builder = builder;
+            dispatcher.OnGraphInitialized(builder);
         }
 
         /// <summary>
-        /// Dispatcher (conventions)
+        /// Convention dispatcher
         /// </summary>
         /// <returns></returns>
-        public virtual GraphConventionDispatcher GraphConventionDispatcher { get; }
+        public virtual GraphConventionDispatcher GraphConventionDispatcher { [DebuggerStepThrough] get; }
 
         /// <summary>
-        /// Internal builder
+        /// Builder
         /// </summary>
         /// <returns></returns>
-        public virtual InternalGraphBuilder Builder { get; }
+        public virtual InternalGraphBuilder Builder { [DebuggerStepThrough] get; }      
 
         /// <summary>
-        /// Add entity by labels
+        /// Add entity 
         /// </summary>
-        /// <param name="labels"></param>
+        /// <param name="name"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
         public virtual Entity AddEntity(
-            [NotNull] string[] labels,
+            [NotNull] string name, 
             ConfigurationSource configurationSource = ConfigurationSource.Explicit
         ) {
-            Check.NotEmpty(labels, nameof(labels));
+            Check.NotEmpty(name, nameof(name));
 
-            var entity = new Entity(labels, this, configurationSource);
+            var entity = new Entity(name, this, configurationSource);
             return AddEntity(entity);
         }
 
         /// <summary>
-        /// Add entity be type
+        /// Add entity type
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        IMutableEntityType IMutableModel.AddEntityType(string name) => AddEntity(name);
+
+        /// <summary>
+        /// Add entity 
         /// </summary>
         /// <param name="clrType"></param>
         /// <param name="configurationSource"></param>
@@ -78,11 +92,18 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         ) {
             Check.NotNull(clrType, nameof(clrType));
 
-             var entity = new Entity(clrType, this, configurationSource);
+            var entity = new Entity(clrType, this, configurationSource);
 
-             _clrTypeMap[clrType] = entity;
-             return AddEntity(entity);
+            _clrTypeMap[clrType] = entity;
+            return AddEntity(entity);
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="clrType"></param>
+        /// <returns></returns>
+        IMutableEntityType IMutableModel.AddEntityType(Type clrType) => AddEntity(clrType);
 
         /// <summary>
         /// Add entity
@@ -90,333 +111,403 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="entity"></param>
         /// <returns></returns>
         private Entity AddEntity(Entity entity) {
-            NodeIdentity identity = new NodeIdentity(entity.Labels);
+            var name = entity.Name;
 
             if (entity.HasDefiningNavigation()) {
-                if (_entities.ContainsKey(identity)) {
-                    throw new InvalidOperationException(CoreCypherStrings.ClashingNonDependentEntity(entity.DisplayLabels()));
+                if (_entities.ContainsKey(name)) {
+                    throw new InvalidOperationException(CoreStrings.ClashingNonDependentEntityType(entity.DisplayName()));
                 }
 
-                if (!_entitesWithDefiningNavigation.TryGetValue(identity, out var sameEntities)) {
-                    sameEntities = new HashSet<Entity>();
-                    _entitesWithDefiningNavigation[identity] = sameEntities;
+                if (!_entitiesWithDefiningNavigation.TryGetValue(name, out var withSameType)) {
+                    withSameType = new SortedSet<Entity>(EntityTypePathComparer.Instance);
+                    _entitiesWithDefiningNavigation[name] = withSameType;
                 }
 
-                sameEntities.Add(entity);
+                withSameType.Add(entity);
             } else {
-                if (_entitesWithDefiningNavigation.ContainsKey(identity)) {
-                    throw new InvalidOperationException(CoreCypherStrings.ClashingDependentEntity(entity.DisplayLabels()));
+                if (_entitiesWithDefiningNavigation.ContainsKey(name)) {
+                    throw new InvalidOperationException(CoreStrings.ClashingDependentEntityType(entity.DisplayName()));
                 }
 
-                var howManyEntities = _entities.Count;
-                _entities[identity] = entity;
+                int howManyEntities = _entities.Count;
+                _entities[name] = entity;
+
                 if (howManyEntities == _entities.Count) {
-                    throw new InvalidOperationException(CoreCypherStrings.DuplicateEntity(entity.DisplayLabels()));
+                    throw new InvalidOperationException(CoreStrings.DuplicateEntityType(entity.DisplayName()));
                 }
             }
 
             return GraphConventionDispatcher.OnEntityAdded(entity.Builder)?.Metadata;
         }
 
-        public Entity AddEntity(
-            [NotNull] string[] labels,
+        /// <summary>
+        /// Add entity through another
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="definingNavigationName"></param>
+        /// <param name="definingEntity"></param>
+        /// <param name="configurationSource"></param>
+        /// <returns></returns>
+        public virtual Entity AddEntity(
+            [NotNull] string name,
             [NotNull] string definingNavigationName,
-            [NotNull] IMutableEntity definingType,
+            [NotNull] Entity definingEntity,
             ConfigurationSource configurationSource = ConfigurationSource.Explicit
         ) {
-            throw new NotImplementedException();
+            Check.NotEmpty(name, nameof(name));
+
+            var entity = new Entity(name, this, definingNavigationName, definingEntity, configurationSource);
+            return AddEntity(entity);
         }
 
-        public Entity AddEntity(
+        /// <summary>
+        /// Add entity through another
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="definingNavigationName"></param>
+        /// <param name="definingEntityType"></param>
+        /// <returns></returns>
+        IMutableEntityType IMutableModel.AddEntityType(string name, string definingNavigationName, IMutableEntityType definingEntityType) =>
+            AddEntity(name, definingNavigationName, (Entity)definingEntityType);
+
+        /// <summary>
+        /// Add entity through another
+        /// </summary>
+        /// <param name="clrType"></param>
+        /// <param name="definingNavigationName"></param>
+        /// <param name="definingEntity"></param>
+        /// <param name="configurationSource"></param>
+        /// <returns></returns>
+        public virtual Entity AddEntity(
             [NotNull] Type clrType,
             [NotNull] string definingNavigationName,
-            [NotNull] IMutableEntity definingType,
+            [NotNull] Entity definingEntity,
             ConfigurationSource configurationSource = ConfigurationSource.Explicit
         ) {
-            throw new NotImplementedException();
+            Check.NotNull(clrType, nameof(clrType));
+
+            var entity = new Entity(clrType, this, definingNavigationName, definingEntity, configurationSource);
+            return AddEntity(entity);
         }
 
         /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="labels"></param>
-        /// <returns></returns>
-        public IMutableEntity AddEntity(string[] labels) => AddEntity(labels);
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="clrType"></param>
-        /// <returns></returns>
-        public IMutableEntity AddEntity(Type clrType) => AddEntity(clrType);
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="labels"></param>
-        /// <param name="definingNavigationName"></param>
-        /// <param name="definingType"></param>
-        /// <returns></returns>
-        public IMutableEntity AddEntity(string[] labels, string definingNavigationName, IMutableEntity definingType) => 
-            AddEntity(labels, definingNavigationName, definingType);
-
-        /// <summary>
-        /// 
+        /// Add entity through another
         /// </summary>
         /// <param name="clrType"></param>
         /// <param name="definingNavigationName"></param>
-        /// <param name="definingType"></param>
+        /// <param name="definingEntityType"></param>
         /// <returns></returns>
-        public IMutableEntity AddEntity(Type clrType, string definingNavigationName, IMutableEntity definingType) => 
-            AddEntity(clrType, definingNavigationName, definingType);
-
-        public IMutableRelationship AddRelationship([NotNull] string[] labels)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IMutableRelationship AddRelationship([NotNull] Type clrType)
-        {
-            throw new NotImplementedException();
-        }
+        IMutableEntityType IMutableModel.AddEntityType(Type clrType, string definingNavigationName, IMutableEntityType definingEntityType) =>
+            AddEntity(clrType, definingNavigationName, (Entity)definingEntityType);
 
         /// <summary>
-        /// 
+        /// Find entity by name
         /// </summary>
-        /// <param name="labels"></param>
+        /// <param name="name"></param>
         /// <returns></returns>
-        public virtual Entity FindEntity([NotNull] string[] labels) 
-            => _entities.TryGetValue(new NodeIdentity(labels), out var entity)
-                ? entity 
+        public virtual Entity FindEntity([NotNull] string name)
+            => _entities.TryGetValue(Check.NotEmpty(name, nameof(name)), out var entity)
+                ? entity
                 : null;
 
+
         /// <summary>
-        /// 
+        /// Find entity type by name
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        IMutableEntityType IMutableModel.FindEntityType(string name) => FindEntity(name);
+
+        /// <summary>
+        /// Find entity by type
         /// </summary>
         /// <param name="clrType"></param>
         /// <returns></returns>
         public virtual Entity FindEntity([NotNull] Type clrType)
-            => _clrTypeMap.TryGetValue(clrType, out var entityType) && entityType is IMutableEntity
-                ? entityType as Entity
-                : FindEntity(clrType.DisplayLabels());
+            => _clrTypeMap.TryGetValue(Check.NotNull(clrType, nameof(clrType)), out var entityType)
+                ? entityType
+                : FindEntity(clrType.DisplayName());
 
         /// <summary>
-        /// 
+        /// Find entity by Clr type
         /// </summary>
-        /// <param name="labels"></param>
+        /// <param name="clrType"></param>
+        /// <param name="definingNavigationName"></param>
+        /// <param name="definingEntity"></param>
         /// <returns></returns>
-        IEntity IGraph.FindEntity(string[] labels) => FindEntity(labels);
+        public virtual Entity FindEntity(
+            [NotNull] Type clrType,
+            [NotNull] string definingNavigationName,
+            [NotNull] Entity definingEntity
+        ) => FindEntity(clrType.DisplayName(), definingNavigationName, definingEntity);
 
         /// <summary>
-        /// 
+        /// Find entity by name
         /// </summary>
-        /// <param name="labels"></param>
+        /// <param name="name"></param>
+        /// <param name="definingNavigationName"></param>
+        /// <param name="definingEntity"></param>
         /// <returns></returns>
-        IMutableEntity IMutableGraph.FindEntity(string[] labels) => FindEntity(labels);
+        public virtual Entity FindEntity(
+            [NotNull] string name,
+            [NotNull] string definingNavigationName,
+            [NotNull] Entity definingEntity
+        ) {
+            if (!_entitiesWithDefiningNavigation.TryGetValue(name, out var withSameType)) {
+                return null;
+            }
+
+            return withSameType.FirstOrDefault(
+                e => e.DefiningNavigationName == definingNavigationName &&
+                    e.DefiningEntityType == definingEntity
+            );
+        }
 
         /// <summary>
-        /// 
+        /// Find entity type by another
         /// </summary>
-        /// <param name="labels"></param>
+        /// <param name="name"></param>
+        /// <param name="definingNavigationName"></param>
+        /// <param name="definingEntityType"></param>
         /// <returns></returns>
-        public IMutableRelationship FindRelationship([NotNull] string[] labels)
-            => _relationships.TryGetValue(new NodeIdentity(labels), out var rel)
-                ? rel 
-                : null;
+        IMutableEntityType IMutableModel.FindEntityType(string name, string definingNavigationName, IMutableEntityType definingEntityType) =>
+            FindEntity(name, definingNavigationName, (Entity)definingEntityType);
 
         /// <summary>
-        /// 
+        /// Find entity type by another
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="definingNavigationName"></param>
+        /// <param name="definingEntityType"></param>
+        /// <returns></returns>
+        IEntityType IModel.FindEntityType(string name, string definingNavigationName, IEntityType definingEntityType) =>
+            FindEntity(name, definingNavigationName, (Entity)definingEntityType);
+
+        /// <summary>
+        /// Get entities
+        /// </summary>
+        /// <returns></returns>
+        public virtual IEnumerable<Entity> GetEntities() =>
+            _entities.Values.Concat(_entitiesWithDefiningNavigation.Values.SelectMany(e => e));
+
+        /// <summary>
+        /// Get entities by Clr type
         /// </summary>
         /// <param name="clrType"></param>
         /// <returns></returns>
-        public IMutableRelationship FindRelationship([NotNull] Type clrType)
-            => _clrTypeMap.TryGetValue(clrType, out var entityType) && entityType is IMutableRelationship
-                ? entityType as IMutableRelationship
-                : FindRelationship(clrType.DisplayLabels());
+        public virtual IReadOnlyCollection<Entity> GetEntities([NotNull] Type clrType) =>
+            GetEntities(clrType.DisplayName());
 
         /// <summary>
-        /// 
+        /// Get entities by name
         /// </summary>
-        /// <param name="labels"></param>
+        /// <param name="name"></param>
         /// <returns></returns>
-        IRelationship IGraph.FindRelationship(string[] labels) => FindRelationship(labels);
+        public virtual IReadOnlyCollection<Entity> GetEntities([NotNull] string name) {
+            if (_entitiesWithDefiningNavigation.TryGetValue(name, out var withSameType)) {
+                return withSameType;
+            }
+
+            var entity = FindEntity(name);
+            return entity is null
+                ? new Entity[0]
+                : new[] { entity };
+        }
 
         /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="labels"></param>
-        /// <returns></returns>
-        IMutableRelationship IMutableGraph.FindRelationship(string[] labels) => FindRelationship(labels);
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        public IEnumerable<Entity> GetEntities()
-            => _entities.Where(n => n.Value is IMutableEntity).Select(n => n.Value as Entity);
-
-        /// <summary>
-        /// 
+        /// Get (read) entity types
         /// </summary>
         /// <returns></returns>
-        IEnumerable<IEntity> IGraph.GetEntities() => GetEntities();
+        IEnumerable<IEntityType> IModel.GetEntityTypes() => GetEntities();
 
         /// <summary>
-        /// 
+        /// Get (mutable) entity types
         /// </summary>
         /// <returns></returns>
-        IEnumerable<IMutableEntity> IMutableGraph.GetEntities() => GetEntities();
+        IEnumerable<IMutableEntityType> IMutableModel.GetEntityTypes() => GetEntities();
 
         /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        public IEnumerable<IMutableRelationship> GetRelationships()
-            => _relationships.Where(n => n.Value is IMutableRelationship).Select(n => n.Value as Relationship);
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        IEnumerable<IRelationship> IGraph.GetRelationships() => GetRelationships();
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        IEnumerable<IMutableRelationship> IMutableGraph.GetRelationships() => GetRelationships();
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="labels"></param>
-        /// <returns></returns>
-        IMutableNode IMutableGraph.RemoveEntity([NotNull] string[] labels) =>
-            RemoveEntity(labels);
-
-        /// <summary>
-        /// 
+        /// Remove entity by Clr type
         /// </summary>
         /// <param name="clrType"></param>
         /// <returns></returns>
-        public virtual Entity RemoveEntity([NotNull] Type clrType)
-            => RemoveEntity(FindEntity(clrType));
+        public virtual Entity RemoveEntity([NotNull] Type clrType) =>
+            RemoveEntity(FindEntity(clrType));
 
         /// <summary>
-        /// 
+        /// Remove entity by name
         /// </summary>
-        /// <param name="labels"></param>
+        /// <param name="name"></param>
         /// <returns></returns>
-        public virtual Entity RemoveEntity([NotNull] string[] labels)
-            => RemoveEntity(FindEntity(labels));
+        public virtual Entity RemoveEntity([NotNull] string name) =>
+            RemoveEntity(FindEntity(name));
 
         /// <summary>
-        /// 
+        /// Remove entity
         /// </summary>
         /// <param name="entity"></param>
         /// <returns></returns>
-        public virtual Entity RemoveEntity([CanBeNull] Entity entity)
-        {
-            // bail if no builder
+        public virtual Entity RemoveEntity([CanBeNull] Entity entity) {
             if (entity?.Builder is null) {
                 return null;
             }
 
             entity.AssertCanRemove();
 
+            var name = entity.Name;
             if (entity.HasDefiningNavigation()) {
-                // TODO:
+                if (!_entitiesWithDefiningNavigation.TryGetValue(name, out var withSameType)) {
+                    return null;
+                }
+
+                withSameType.Remove(entity);
+
+                if (withSameType.Count == 0) {
+                    _entitiesWithDefiningNavigation.Remove(name);
+                }
             } else {
-                // TODO:
+                _entities.Remove(name);
+
+                if (!(entity.ClrType is null)) {
+                    _clrTypeMap.Remove(entity.ClrType);
+                }
             }
 
+            entity.Builder = null;
             return entity;
         }
 
-        public IMutableNode RemoveRelationship([NotNull] string[] labels)
+        /// <summary>
+        /// Remove entity by another
+        /// </summary>
+        /// <param name="clrType"></param>
+        /// <param name="definingNavigationName"></param>
+        /// <param name="definingEntity"></param>
+        /// <returns></returns>
+        public virtual Entity RemoveEntity(
+            [NotNull] Type clrType,
+            [NotNull] string definingNavigationName,
+            [NotNull] Entity definingEntity
+        ) => RemoveEntity(FindEntity(clrType, definingNavigationName, definingEntity));
+
+        /// <summary>
+        /// Remove entity by another
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="definingNavigationName"></param>
+        /// <param name="definingEntity"></param>
+        /// <returns></returns>
+        public virtual Entity RemoveEntity(
+            [NotNull] string name,
+            [NotNull] string definingNavigationName,
+            [NotNull] Entity definingEntity
+        ) => RemoveEntity(FindEntity(name, definingNavigationName, definingEntity));
+
+        /// <summary>
+        /// Remove entity type
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        IMutableEntityType IMutableModel.RemoveEntityType(string name) =>
+            RemoveEntity(name);
+        
+
+        /// <summary>
+        /// Remove entity type
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="definingNavigationName"></param>
+        /// <param name="definingEntityType"></param>
+        /// <returns></returns>
+        IMutableEntityType IMutableModel.RemoveEntityType(string name, string definingNavigationName, IMutableEntityType definingEntityType) =>
+            RemoveEntity(name, definingNavigationName, (Entity)definingEntityType);
+
+        IEntityType IModel.FindEntityType(string name)
         {
             throw new NotImplementedException();
         }
 
-        public virtual ConfigurationSource? FindIgnoredTypeConfigurationSource([NotNull] Type clrType) =>
-            FindIgnoredTypeConfigurationSource(new NodeIdentity(Check.NotNull(clrType, nameof(clrType))));
-
-        public virtual ConfigurationSource? FindIgnoredTypeConfigurationSource([NotNull] string[] labels) => 
-            FindIgnoredTypeConfigurationSource(Check.NotNull(labels, nameof(labels)));
-
-        internal ConfigurationSource? FindIgnoredTypeConfigurationSource(NodeIdentity identity) =>
-            _ignored.TryGetValue(identity, out var ignoredConfigurationSource)
-                ? (ConfigurationSource?)ignoredConfigurationSource
-                : null;
-        
+        /// <summary>
+        /// Ignore by type
+        /// </summary>
+        /// <param name="clrType"></param>
+        /// <param name="configurationSource"></param>
         public virtual void Ignore(
             [NotNull] Type clrType,
-            ConfigurationSource configurationSource = ConfigurationSource.Explicit
-        ) => Ignore(new NodeIdentity(Check.NotNull(clrType, nameof(clrType))), configurationSource);
+            ConfigurationSource configurationSource = ConfigurationSource.Explicit)
+            => Ignore(Check.NotNull(clrType, nameof(clrType)).DisplayName(), clrType, configurationSource);
 
+        /// <summary>
+        /// Ignore by name
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="configurationSource"></param>
         public virtual void Ignore(
-            [NotNull] string[] labels,
-            ConfigurationSource configurationSource = ConfigurationSource.Explicit
-        ) => Ignore(new NodeIdentity(Check.NotNull(labels, nameof(labels))), configurationSource);
+            [NotNull] string name,
+            ConfigurationSource configurationSource = ConfigurationSource.Explicit)
+            => Ignore(Check.NotNull(name, nameof(name)), null, configurationSource);
 
-        internal void Ignore(
-            NodeIdentity identity,
-            ConfigurationSource configurationSource
-        ) {
-            if (_ignored.TryGetValue(identity, out var existing)) {
-                configurationSource = configurationSource.Max(existing);
-                _ignored[identity] = configurationSource;
+        /// <summary>
+        /// Ignore
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="type"></param>
+        /// <param name="configurationSource"></param>
+        private void Ignore(
+            [NotNull] string name,
+            [CanBeNull] Type clrType,
+            ConfigurationSource configurationSource)
+        {
+            if (_ignorables.TryGetValue(name, out var existingIgnoredConfigurationSource))
+            {
+                configurationSource = configurationSource.Max(existingIgnoredConfigurationSource);
+                _ignorables[name] = configurationSource;
                 return;
             }
 
-            _ignored[identity] = configurationSource;
-            // TODO: dispatcher
+            _ignorables[name] = configurationSource;
+
+            GraphConventionDispatcher.OnEntityIgnored(Builder, name, clrType);
         }
 
-        public virtual void NotIgnore([NotNull] Type clrType) => 
-            NotIgnore(new NodeIdentity(Check.NotNull(clrType, nameof(clrType))));
+        /// <summary>
+        /// Undo ignore by type
+        /// </summary>
+        /// <param name="clrType"></param>
+        public virtual void NotIngore([NotNull] Type clrType) {
+            Check.NotNull(clrType, nameof(clrType));
+            NotIngore(clrType.DisplayName());
+        }
 
-        public virtual void NotIgnore([NotNull] string[] labels) => 
-            NotIgnore(new NodeIdentity(Check.NotNull(labels, nameof(labels))));
+        /// <summary>
+        /// Undo ignore by name
+        /// </summary>
+        /// <param name="name"></param>
+        public virtual void NotIngore([NotNull] string name) {
+            Check.NotNull(name, nameof(name));
+            _ignorables.Remove(name);
+        }
 
-        internal void NotIgnore(NodeIdentity identity) => _ignored.Remove(identity);
-    }
-
-    public class NodeIdentityComparer : IEqualityComparer<NodeIdentity>
-    {
-        public bool Equals(NodeIdentity x, NodeIdentity y)
+        /// <summary>
+        /// Find ignorables by type
+        /// </summary>
+        /// <param name="clrType"></param>
+        /// <returns></returns>
+        public virtual ConfigurationSource? FindIgnoredTypeConfigurationSource([NotNull] Type clrType)
         {
-            string[] xLabels = x.Labels;
-            string[] yLabels = y.Labels;
+            Check.NotNull(clrType, nameof(clrType));
 
-            if (xLabels.Length != yLabels.Length) {
-                return false;
-            }
-
-            var xs = xLabels.OrderByDescending(i => i, StringComparer.CurrentCulture).ToArray();
-            var ys = yLabels.OrderByDescending(i => i, StringComparer.CurrentCulture).ToArray();
-
-            for (var i=0; i < xs.Length; i++) {
-                if (xs[i] != ys[i]) {
-                    return false;
-                }
-            }
-
-            return true;
+            return FindIgnoredTypeConfigurationSource(clrType.DisplayName());
         }
 
-        public int GetHashCode(NodeIdentity obj)
-        {
-            string[] labels = obj.Labels;
-            int result = 17;
-
-            for (int i=0; i < labels.Length; i++) {
-                unchecked {
-                    result = result * 23 + labels[i].GetHashCode();
-                }
-            }
-
-            return result;
-        }
+        /// <summary>
+        /// Find ignorables by name
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public virtual ConfigurationSource? FindIgnoredTypeConfigurationSource([NotNull] string name)
+            => _ignorables.TryGetValue(Check.NotEmpty(name, nameof(name)), out var ignoredConfigurationSource)
+                ? (ConfigurationSource?)ignoredConfigurationSource
+                : null;
     }
 }

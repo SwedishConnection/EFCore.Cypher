@@ -1,6 +1,7 @@
 using JetBrains.Annotations;
 using System;
 using System.Linq;
+using Microsoft.EntityFrameworkCore.Internal;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 {
@@ -16,15 +17,15 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         public override InternalGraphBuilder GraphBuilder => this;
 
         /// <summary>
-        /// Entity builder from labels
+        /// Entity builder from name
         /// </summary>
-        /// <param name="labels"></param>
+        /// <param name="name"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
         public virtual InternalEntityBuilder Entity(
-            [NotNull] string[] labels, 
+            [NotNull] string name, 
             ConfigurationSource configurationSource
-        ) => Entity(new NodeIdentity(labels), configurationSource);
+        ) => Entity(new TypeIdentity(name), configurationSource);
 
         /// <summary>
         /// Entity builder from CLR type
@@ -35,7 +36,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         public virtual InternalEntityBuilder Entity(
             [NotNull] Type clrType, 
             ConfigurationSource configurationSource
-        ) => Entity(new NodeIdentity(clrType), configurationSource);
+        ) => Entity(new TypeIdentity(clrType), configurationSource);
 
         /// <summary>
         /// Create entity returning an entity builder
@@ -44,7 +45,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="configurationSource"></param>
         /// <returns></returns>
         private InternalEntityBuilder Entity(
-            NodeIdentity identity, 
+            TypeIdentity identity, 
             ConfigurationSource configurationSource
         ) {
             if (IsIgnoring(identity, configurationSource)) {
@@ -52,17 +53,17 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             }
 
             Type clrType = identity.Type;
-            Entity entity = clrType == null
-                ? Metadata.FindEntity(identity.Labels)
+            var entity = clrType == null
+                ? Metadata.FindEntity(identity.Name)
                 : Metadata.FindEntity(clrType);
 
             if (entity is null) {
                 if (clrType is null) {
-                    Metadata.NotIgnore(identity);
+                    Metadata.NotIngore(identity.Name);
 
-                    entity = Metadata.AddEntity(identity.Labels, configurationSource);
+                    entity = Metadata.AddEntity(identity.Name, configurationSource);
                 } else {
-                    Metadata.NotIgnore(identity);
+                    Metadata.NotIngore(clrType);
 
                     entity = Metadata.AddEntity(clrType, configurationSource);
                 }
@@ -82,11 +83,26 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="configurationSource"></param>
         /// <returns></returns>
         public InternalEntityBuilder Entity(
-            [NotNull] Type type,
+            [NotNull] string name,
             [NotNull] string definingNavigationName,
             [NotNull] Entity definingEntityType,
             ConfigurationSource configurationSource
-        ) => Entity(new NodeIdentity(type), definingNavigationName, definingEntityType, configurationSource);
+        ) => Entity(new TypeIdentity(name), definingNavigationName, definingEntityType, configurationSource);
+
+        /// <summary>
+        /// Entity builder from a defining property
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="definingNavigationName"></param>
+        /// <param name="definingEntityType"></param>
+        /// <param name="configurationSource"></param>
+        /// <returns></returns>
+        public InternalEntityBuilder Entity(
+            [NotNull] Type clrType,
+            [NotNull] string definingNavigationName,
+            [NotNull] Entity definingEntityType,
+            ConfigurationSource configurationSource
+        ) => Entity(new TypeIdentity(clrType), definingNavigationName, definingEntityType, configurationSource);
 
         /// <summary>
         /// 
@@ -97,7 +113,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="configurationSource"></param>
         /// <returns></returns>
         private InternalEntityBuilder Entity(
-            NodeIdentity identity,
+            TypeIdentity identity,
             string definingNavigationName,
             Entity definingEntityType,
             ConfigurationSource configurationSource
@@ -107,8 +123,8 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             }
 
             Type clrType = identity.Type;
-            Entity entity = clrType == null
-                ? Metadata.FindEntity(identity.Labels) 
+            var entity = clrType == null
+                ? Metadata.FindEntity(identity.Name) 
                 : Metadata.FindEntity(clrType);
 
             if (!(entity is null)) {
@@ -117,16 +133,16 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
                 }
 
                 if (entity.GetConfigurationSource() != ConfigurationSource.Explicit) {
-                    // TODO: Ignore
+                    Ignore(entity, configurationSource);
                 }
             }
 
             if (clrType is null) {
-                // TODO: Unignore by labels
+                Metadata.NotIngore(clrType.Name);
 
-                entity = Metadata.AddEntity(identity.Labels, definingNavigationName, definingEntityType, configurationSource);
+                entity = Metadata.AddEntity(identity.Name, definingNavigationName, definingEntityType, configurationSource);
             } else {
-                // TODO: Unignore by type
+                Metadata.NotIngore(clrType);
 
                 entity = Metadata.AddEntity(clrType, definingNavigationName, definingEntityType, configurationSource);
             }
@@ -143,18 +159,18 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         public virtual bool IsIgnoring(
             [NotNull] Type clrType, 
             ConfigurationSource configurationSource
-        ) => IsIgnoring(new NodeIdentity(clrType), configurationSource);
+        ) => IsIgnoring(new TypeIdentity(clrType), configurationSource);
 
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="labels"></param>
+        /// <param name="name"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
         public virtual bool IsIgnoring(
-            [NotNull] string[] labels, 
+            [NotNull] string name, 
             ConfigurationSource configurationSource
-        ) => IsIgnoring(new NodeIdentity(labels), configurationSource);
+        ) => IsIgnoring(new TypeIdentity(name), configurationSource);
 
         /// <summary>
         /// 
@@ -162,13 +178,13 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="identity"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
-        internal bool IsIgnoring(NodeIdentity identity, ConfigurationSource configurationSource) {
+        internal bool IsIgnoring(TypeIdentity identity, ConfigurationSource configurationSource) {
             if (configurationSource == ConfigurationSource.Explicit)
             {
                 return false;
             }
 
-            var ignoredConfigurationSource = Metadata.FindIgnoredTypeConfigurationSource(identity);
+            var ignoredConfigurationSource = Metadata.FindIgnoredTypeConfigurationSource(identity.Name);
             return ignoredConfigurationSource.HasValue &&
                 ignoredConfigurationSource.Value.Overrides(configurationSource);
         }
@@ -179,17 +195,17 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="type"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
-        public virtual bool Ignore([NotNull] Type type, ConfigurationSource configurationSource)
-            => Ignore(new NodeIdentity(type), configurationSource);
+        public virtual bool Ignore([NotNull] Type clrType, ConfigurationSource configurationSource)
+            => Ignore(clrType.DisplayName(), clrType, configurationSource);
 
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="labels"></param>
+        /// <param name="name"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
-        public virtual bool Ignore([NotNull] string[] labels, ConfigurationSource configurationSource)
-            => Ignore(new NodeIdentity(labels), configurationSource);
+        public virtual bool Ignore([NotNull] string name, ConfigurationSource configurationSource)
+            => Ignore(name, null, configurationSource);
 
         /// <summary>
         /// 
@@ -197,24 +213,28 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="identity"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
-        private bool Ignore([NotNull] NodeIdentity identity, ConfigurationSource configurationSource)
+        private bool Ignore([NotNull] string name, [CanBeNull] Type clrType, ConfigurationSource configurationSource)
         {
-            var ignoredConfigurationSource = Metadata.FindIgnoredTypeConfigurationSource(identity);
+            var ignoredConfigurationSource = Metadata.FindIgnoredTypeConfigurationSource(name);
             if (ignoredConfigurationSource.HasValue)
             {
                 if (configurationSource.Overrides(ignoredConfigurationSource) && 
                     configurationSource != ignoredConfigurationSource)
                 {
-                    Metadata.Ignore(identity, configurationSource);
+                    Metadata.Ignore(name, configurationSource);
                 }
 
                 return true;
             }
 
-            var entity = Metadata.FindEntity(identity.Labels);
+            var entity = Metadata.FindEntity(name);
             if (entity == null)
             {
-                Metadata.Ignore(identity, configurationSource);
+                if (!(clrType is null)) {
+                    Metadata.Ignore(clrType, configurationSource);
+                } else {
+                    Metadata.Ignore(name, configurationSource);
+                }
 
                 return true;
             }
@@ -244,7 +264,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
                 }
                 else
                 {
-                    Metadata.Ignore(entity.Labels, configurationSource);
+                    Metadata.Ignore(entity.Name, configurationSource);
                 }
 
                 return RemoveEntity(entity, configurationSource);
@@ -286,12 +306,12 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             // when a defining type
             using (Metadata.GraphConventionDispatcher.StartBatch())
             {
-                foreach (var definedType in Metadata.GetEntities().Where(e => e.DefiningType == entity).ToList())
+                foreach (var definedType in Metadata.GetEntities().Where(e => e.DefiningEntityType == entity).ToList())
                 {
                     RemoveEntity(definedType, configurationSource);
                 }
 
-                Metadata.RemoveEntity(entity);
+                Metadata.RemoveEntity(entity.Name);
             }
 
             return true;

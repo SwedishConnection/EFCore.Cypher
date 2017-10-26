@@ -4,15 +4,13 @@ using JetBrains.Annotations;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 {
-    public class InternalEntityBuilder: InternalNodeBuilder {
+    public class InternalEntityBuilder: InternalMetadataItemBuilder<Entity> {
 
         public InternalEntityBuilder(
             [NotNull] Entity metadata, 
             [NotNull] InternalGraphBuilder graphBuilder
         ) : base(metadata, graphBuilder) {
         }
-
-        public new virtual Entity Metadata { get { return (Entity)base.Metadata; } }
 
         /// <summary>
         /// 
@@ -37,18 +35,18 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="baseLabels"></param>
+        /// <param name="name"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
         public virtual InternalEntityBuilder HasBaseType(
-            [CanBeNull] string[] baseLabels,
+            [CanBeNull] string name,
             ConfigurationSource configurationSource
         ) {
-            if (baseLabels is null) {
+            if (name is null) {
                 return HasBaseType((Entity)null, configurationSource);
             }
 
-            var builder = GraphBuilder.Entity(baseLabels, configurationSource);
+            var builder = GraphBuilder.Entity(name, configurationSource);
             return builder is null
                 ? null 
                 : HasBaseType(builder.Metadata, configurationSource);

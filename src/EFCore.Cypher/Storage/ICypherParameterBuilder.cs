@@ -24,7 +24,7 @@ namespace Microsoft.EntityFrameworkCore.Storage
         void AddParameter(
             [NotNull] string invariantName,
             [NotNull] string name,
-            [NotNull] INodeProperty property);
+            [NotNull] IProperty property);
 
         void AddCompositeParameter(
             [NotNull] string invariantName,
@@ -33,7 +33,7 @@ namespace Microsoft.EntityFrameworkCore.Storage
         void AddPropertyParameter(
             [NotNull] string invariantName,
             [NotNull] string name,
-            [NotNull] INodeProperty property);
+            [NotNull] IProperty property);
 
         void AddRawParameter(
             [NotNull] string invariantName,

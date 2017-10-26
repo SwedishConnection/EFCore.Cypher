@@ -1,286 +1,154 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
+using System.Diagnostics;
+using System.Linq;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore.Internal;
+using Microsoft.EntityFrameworkCore.Utilities;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 {
-    public abstract class Node : ConventionalAnnotatable, IMutableNode
+    public abstract class Node : ConventionalAnnotatable, IMutableTypeBase
     {
-        private readonly object _labelsOrType;
-
-        protected Node _baseType;
+        private readonly object _typeOrName;
 
         private ConfigurationSource _configurationSource;
 
-        private ConfigurationSource? _baseTypeConfigurationSource;
+        private readonly Dictionary<string, ConfigurationSource> _ignoredMembers = new Dictionary<string, ConfigurationSource>();
 
-        //private readonly SortedDictionary<string, NodeProperty> _properties;
+        protected Node([NotNull] string name, [NotNull] Graph graph, ConfigurationSource configurationSource) : this(graph, configurationSource) {
+            Check.NotEmpty(name, nameof(name));
+            Check.NotNull(graph, nameof(graph));
 
-        /// <summary>
-        /// Node by labels
-        /// </summary>
-        /// <param name="labels"></param>
-        /// <param name="graph"></param>
-        /// <param name="configurationSource"></param>
-        /// <returns></returns>
-        protected Node(
-            [NotNull] string[] labels, 
-            [NotNull] Graph graph, 
-            ConfigurationSource configurationSource
-        ): this(graph, configurationSource) {
-            _labelsOrType = labels;
+            _typeOrName = name;
         }
 
-        /// <summary>
-        /// Node by CLR type
-        /// </summary>
-        /// <param name="clrType"></param>
-        /// <param name="graph"></param>
-        /// <param name="configurationSource"></param>
-        /// <returns></returns>
-        protected Node(
-            [NotNull] Type clrType, 
-            [NotNull] Graph graph, 
-            ConfigurationSource configurationSource
-        ): this(graph, configurationSource) {
-            _labelsOrType = clrType;
+        protected Node([NotNull] Type clrType, [NotNull] Graph graph, ConfigurationSource configurationSource) : this(graph, configurationSource) {
+            Check.NotNull(clrType, nameof(clrType));
+            Check.NotNull(graph, nameof(graph));
+
+            _typeOrName = clrType;
         }
 
-    
-        /// <summary>
-        /// Set graph and configuration source
-        /// </summary>
-        /// <param name="graph"></param>
-        /// <param name="configurationSource"></param>
-        private Node(
-            [NotNull] Graph graph, 
-            ConfigurationSource configurationSource
-        ) {
+        private Node([NotNull] Graph graph, ConfigurationSource configurationSource) {
             Graph = graph;
             _configurationSource = configurationSource;
         }
 
         /// <summary>
-        /// Internal builder
+        /// Clr type
+        /// </summary>
+        public virtual Type ClrType => _typeOrName as Type;
+
+        /// <summary>
+        /// Name
         /// </summary>
         /// <returns></returns>
-        public virtual InternalNodeBuilder Builder { get; }
+        public virtual string Name
+            => ClrType != null ? ClrType.DisplayName() : (string)_typeOrName;
 
         /// <summary>
         /// Graph
         /// </summary>
         /// <returns></returns>
         public virtual Graph Graph { get; }
-
-        /// <summary>
-        /// Mutable Graph
-        /// </summary>
-        /// <returns></returns>
-        IMutableGraph IMutableNode.Graph { get => Graph; }
-
-        /// <summary>
-        /// Graph
-        /// </summary>
-        /// <returns></returns>
-        IGraph INode.Graph { get => Graph; }
-
-        /// <summary>
-        /// CLR Type
-        /// </summary>
-        public virtual Type ClrType => _labelsOrType as Type;
-
-        /// <summary>
-        /// CLR Type
-        /// </summary>
-        /// <returns></returns>
-        Type INode.ClrType { get => ClrType; }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        public virtual Node BaseType { get; }
-
-        /// <summary>
-        /// Base type
-        /// </summary>
-        IMutableNode IMutableNode.BaseType => BaseType;
-
-        /// <summary>
-        /// Base type
-        /// </summary>
-        INode INode.BaseType => BaseType;
-
-        /// <summary>
-        /// Labels
-        /// </summary>
-        /// <returns></returns>
-        public string[] Labels => ClrType != null
-            ? ClrType.DisplayLabels()
-            : (string[])_labelsOrType;
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="property"></param>
-        /// <returns></returns>
-        public IMutableConstraint AddExistConstraint([NotNull] IMutableNodeProperty property)
-        {
-            throw new NotImplementedException();
-        }
         
         /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="propertyType"></param>
-        /// <returns></returns>
-        public IMutableProperty AddProperty([NotNull] string name, [CanBeNull] Type propertyType)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
-        public IMutableNodeProperty FindProperty([NotNull] string name)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// 
+        /// Graph as model
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<IMutableConstraint> GetConstraints()
-        {
-            throw new NotImplementedException();
-        }
+        public IMutableModel Model { [DebuggerStepThrough] get => Graph; }
 
         /// <summary>
-        /// 
+        /// Graph as model
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<IMutableNodeProperty> GetProperties()
-        {
-            throw new NotImplementedException();
-        }
+        IModel ITypeBase.Model { [DebuggerStepThrough] get => Graph; }
 
         /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="property"></param>
-        /// <returns></returns>
-        public IMutableConstraint RemoveExistConstraint([NotNull] INodeProperty property)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
-        public IMutableProperty RemoveProperty([NotNull] string name)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="property"></param>
-        /// <returns></returns>
-        public IMutableConstraint RemoveUniqueConstraint([NotNull] INodeProperty property)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
-        INodeProperty INode.FindProperty(string name)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        IEnumerable<IConstraint> INode.GetConstraints()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        IEnumerable<INodeProperty> INode.GetProperties()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// 
+        /// Configuration source
         /// </summary>
         /// <returns></returns>
         public virtual ConfigurationSource GetConfigurationSource() => _configurationSource;
 
         /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        public virtual ConfigurationSource? GetBaseTypeConfigurationSource() => _baseTypeConfigurationSource;
-
-        /// <summary>
-        /// 
+        /// Update configuration source
         /// </summary>
         /// <param name="configurationSource"></param>
         public virtual void UpdateConfigurationSource(ConfigurationSource configurationSource)
             => _configurationSource = _configurationSource.Max(configurationSource);
 
         /// <summary>
-        /// 
+        /// Property metadata changed
         /// </summary>
-        /// <param name="configurationSource"></param>
-        private void UpdateBaseTypeConfigurationSource(ConfigurationSource configurationSource)
-            => _baseTypeConfigurationSource = configurationSource.Max(_baseTypeConfigurationSource);
+        public abstract void PropertyMetadataChanged();
 
         /// <summary>
-        /// 
+        /// Ignore
         /// </summary>
-        /// <param name="node"></param>
-        /// <returns></returns>
-        private bool InheritsFrom(Node node) {
-            var n = this;
+        /// <param name="name"></param>
+        /// <param name="configurationSource"></param>
+        public virtual void Ignore([NotNull] string name, ConfigurationSource configurationSource = ConfigurationSource.Explicit)
+        {
+            Check.NotNull(name, nameof(name));
 
-            do {
-                if (node == n) {
-                    return true;
-                }
+            if (_ignoredMembers.TryGetValue(name, out var existingIgnoredConfigurationSource))
+            {
+                _ignoredMembers[name] = configurationSource.Max(existingIgnoredConfigurationSource);
+                return;
             }
-            while (!((n = n.BaseType) is null));
 
-            return false;
+            _ignoredMembers[name] = configurationSource;
+
+            OnTypeMemberIgnored(name);
         }
 
         /// <summary>
-        /// 
+        /// When type member ignored
         /// </summary>
-        public void PropertyInfoChanged() {
-            foreach (var property in GetProperties()) {
-                
+        /// <param name="name"></param>
+        public abstract void OnTypeMemberIgnored([NotNull] string name);
+
+        /// <summary>
+        /// Ignored members
+        /// </summary>
+        /// <returns></returns>
+        public virtual IReadOnlyList<string> GetIgnoredMembers()
+            => _ignoredMembers.Keys.ToList();
+
+        /// <summary>
+        /// Find ignored member's configuration source
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public virtual ConfigurationSource? FindDeclaredIgnoredMemberConfigurationSource([NotNull] string name)
+        {
+            Check.NotEmpty(name, nameof(name));
+
+            if (_ignoredMembers.TryGetValue(name, out var ignoredConfigurationSource))
+            {
+                return ignoredConfigurationSource;
             }
 
-            // TODO: navigation
+            return null;
+        }
+
+        /// <summary>
+        /// Find ignored member's configuration source
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public virtual ConfigurationSource? FindIgnoredMemberConfigurationSource([NotNull] string name)
+            => FindDeclaredIgnoredMemberConfigurationSource(name);
+
+        /// <summary>
+        /// Take away ignore
+        /// </summary>
+        /// <param name="name"></param>
+        public virtual void Unignore([NotNull] string name)
+        {
+            Check.NotNull(name, nameof(name));
+            _ignoredMembers.Remove(name);
         }
     }
 }
