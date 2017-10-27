@@ -42,6 +42,8 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
             public virtual OnEntityIgnoredNode VisitOnEntityIgnored(OnEntityIgnoredNode node) => node;
 
             public virtual OnBaseEntityChangedNode VisitOnBaseEntityChanged(OnBaseEntityChangedNode node) => node;
+
+            public virtual OnPropertyAddedNode VisitOnPropertyAdded(OnPropertyAddedNode node) => node;
         }
 
         private class RunVisitor: CypherConventionVisitor {
@@ -66,6 +68,12 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
             public override OnBaseEntityChangedNode VisitOnBaseEntityChanged(OnBaseEntityChangedNode node)
             {
                 Dispatcher._immediateScope.OnBaseEntityChanged(node.EntityBuilder, node.Previous);
+                return null;
+            }
+
+            public override OnPropertyAddedNode VisitOnPropertyAdded(OnPropertyAddedNode node)
+            {
+                Dispatcher._immediateScope.OnPropertyAdded(node.PropertyBuilder);
                 return null;
             }
         }

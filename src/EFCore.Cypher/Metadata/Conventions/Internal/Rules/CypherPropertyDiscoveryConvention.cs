@@ -46,7 +46,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
                     .Where(IsCandidatePrimitiveProperty);
 
                 foreach (var primative in primatives) {
-                    //builder.Property(primative, ConfigurationSource.Convention);
+                    builder.Property(primative, ConfigurationSource.Convention);
                 }
             }
 

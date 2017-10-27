@@ -17,5 +17,8 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions
 
         public virtual IList<ICypherBaseEntityChangedConvention> BaseEntityChangedConventions { get; } = new List<ICypherBaseEntityChangedConvention>();
 
+        public virtual IList<ICypherPropertyAddedConvention> PropertyAddedConventions { get; } = new List<ICypherPropertyAddedConvention>();
+
+        public virtual IList<ICypherEntityIgnoredConvention> EntitIgnoredConventions { get; } = new List<ICypherEntityIgnoredConvention>();
     }
 }

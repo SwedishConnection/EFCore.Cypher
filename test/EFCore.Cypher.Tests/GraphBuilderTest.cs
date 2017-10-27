@@ -8,15 +8,16 @@ using Xunit;
 namespace Microsoft.EntityFrameworkCore {
 
     public class GraphBuilderTest {
-        private readonly CypherConventionSet _cypherConventionSet;
 
         public GraphBuilderTest() {
-            _cypherConventionSet = new CypherConventionSet();
         }
 
+        /// <summary>
+        /// Create with generics then find by name
+        /// </summary>
         [Fact]
         public void EntityWithType() {
-            GraphBuilder builder = new GraphBuilder(_cypherConventionSet);
+            GraphBuilder builder = new GraphBuilder(new CypherConventionSet());
             
             var entityBuilder = builder.Entity<Person>();
             IMutableEntityType entity = builder
@@ -26,16 +27,34 @@ namespace Microsoft.EntityFrameworkCore {
             Assert.Equal(entity.ClrType, typeof(Person));
         }
 
+        /// <summary>
+        /// Duplicate create with generics no side-effects
+        /// </summary>
         [Fact]
         public void DuplicatesSwallowed() {
-            GraphBuilder builder = new GraphBuilder(_cypherConventionSet);
+            GraphBuilder builder = new GraphBuilder(new CypherConventionSet());
 
             builder.Entity<Person>();
             builder.Entity<Person>();
         }
 
-        private class Person {
+        /// <summary>
+        /// Explicit
+        /// </summary>
+        [Fact]
+        public void CreateEvenIfIgnoring() {
+            GraphBuilder builder = new GraphBuilder(new CypherConventionSet());
 
+            var entityBuilder = builder.Ignore<Person>().Entity<Person>();
+            IMutableEntityType entity = builder
+                .Graph
+                .FindEntityType(typeof(Person).DisplayName());
+
+            Assert.Equal(entity.ClrType, typeof(Person));
+        }
+
+        private class Person {
+            public string Name { get; set; }
         }
     }
 }

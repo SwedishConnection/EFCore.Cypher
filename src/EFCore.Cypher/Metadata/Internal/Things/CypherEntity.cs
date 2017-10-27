@@ -24,8 +24,8 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 
         private readonly SortedDictionary<string, CypherProperty> _properties;
 
-        private readonly SortedDictionary<string, Navigation> _navigations
-            = new SortedDictionary<string, Navigation>(StringComparer.Ordinal);
+        private readonly SortedDictionary<string, CypherNavigation> _navigations
+            = new SortedDictionary<string, CypherNavigation>(StringComparer.Ordinal);
 
         private PropertyCounts _propertyCounts;
 
@@ -304,10 +304,135 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             throw new NotImplementedException();
         }
 
-        public IMutableProperty AddProperty(string name, Type propertyType)
-        {
-            throw new NotImplementedException();
+        /// <summary>
+        /// Add property
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="clrType"></param>
+        /// <param name="configurationSource"></param>
+        /// <param name="typeConfigurationSource"></param>
+        /// <returns></returns>
+        public virtual CypherProperty AddProperty(
+            [NotNull] string name,
+            [CanBeNull] Type clrType = null,
+            ConfigurationSource configurationSource = ConfigurationSource.Explicit,
+            ConfigurationSource? typeConfigurationSource = ConfigurationSource.Explicit
+        ) {
+            Check.NotNull(name, nameof(name));
+
+            ValidateCanAddProperty(name);
+
+            return AddProperty(
+                name, 
+                clrType, 
+                ClrType?.GetMembersInHierarchy(name).FirstOrDefault(), 
+                configurationSource, 
+                typeConfigurationSource
+            );
         }
+
+        /// <summary>
+        /// Add property
+        /// </summary>
+        /// <param name="memberInfo"></param>
+        /// <param name="configurationSource"></param>
+        /// <returns></returns>
+        public virtual CypherProperty AddProperty(
+            [NotNull] MemberInfo memberInfo,
+            ConfigurationSource configurationSource = ConfigurationSource.Explicit
+        ) {
+            Check.NotNull(memberInfo, nameof(memberInfo));
+
+            ValidateCanAddProperty(memberInfo.Name);
+
+            if (ClrType is null)
+            {
+                throw new InvalidOperationException(CoreStrings.ClrPropertyOnShadowEntity(memberInfo.Name, this.DisplayName()));
+            }
+
+            if (memberInfo.DeclaringType is null
+                || !memberInfo.DeclaringType.GetTypeInfo().IsAssignableFrom(ClrType.GetTypeInfo()))
+            {
+                throw new ArgumentException(
+                    CoreStrings.PropertyWrongEntityClrType(
+                        memberInfo.Name, this.DisplayName(), memberInfo.DeclaringType?.ShortDisplayName()));
+            }
+
+            return AddProperty(
+                memberInfo.Name, 
+                memberInfo.GetMemberType(), 
+                memberInfo, 
+                configurationSource, 
+                configurationSource
+            );
+        }
+
+        /// <summary>
+        /// Define property
+        /// </summary>
+        /// <remarks>Fire convention event</remarks>
+        /// <param name="name"></param>
+        /// <param name="clrType"></param>
+        /// <param name="memberInfo"></param>
+        /// <param name="configurationSource"></param>
+        /// <param name="typeConfigurationSource"></param>
+        /// <returns></returns>
+        private CypherProperty AddProperty(
+            string name,
+            Type clrType,
+            MemberInfo memberInfo,
+            ConfigurationSource configurationSource,
+            ConfigurationSource? typeConfigurationSource
+        ) {
+            Check.NotNull(name, nameof(name));
+
+            if (clrType == null)
+            {
+                if (memberInfo == null)
+                {
+                    throw new InvalidOperationException(CoreStrings.NoPropertyType(name, this.DisplayName()));
+                }
+
+                clrType = memberInfo.GetMemberType();
+            }
+            else
+            {
+                if (!(memberInfo is null) && clrType != memberInfo.GetMemberType())
+                {
+                    throw new InvalidOperationException(
+                        CoreStrings.PropertyWrongClrType(
+                            name,
+                            this.DisplayName(),
+                            memberInfo.GetMemberType().ShortDisplayName(),
+                            clrType.ShortDisplayName()
+                        )
+                    );
+                }
+            }
+
+            var property = new CypherProperty(
+                name, 
+                clrType, 
+                memberInfo as PropertyInfo, 
+                memberInfo as FieldInfo, 
+                this, 
+                configurationSource, 
+                typeConfigurationSource
+            );
+
+            _properties.Add(property.Name, property);
+            PropertyMetadataChanged();
+
+            return Graph.CypherConventionDispatcher.OnPropertyAdded(property.Builder)?.Metadata;
+        }
+
+        /// <summary>
+        /// Add property (mutable)
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="propertyType"></param>
+        /// <returns></returns>
+        public IMutableProperty AddProperty(string name, Type propertyType) => AddProperty(name, propertyType);
 
         /// <summary>
         /// Invalid operation
@@ -334,10 +459,30 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             throw new NotImplementedException();
         }
 
-        public IMutableProperty FindProperty(string name)
-        {
-            throw new NotImplementedException();
-        }
+        /// <summary>
+        /// Find property by info
+        /// </summary>
+        /// <param name="propertyInfo"></param>
+        /// <returns></returns>
+        public virtual CypherProperty FindProperty([NotNull] PropertyInfo propertyInfo) 
+            => FindProperty(propertyInfo.Name);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public virtual CypherProperty FindProperty([NotNull] string name)
+            => FindDeclaredProperty(Check.NotEmpty(name, nameof(name))) ?? _baseType?.FindProperty(name);
+
+        /// <summary>
+        /// Find (mutable) property
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        IMutableProperty IMutableEntityType.FindProperty(string name) => FindProperty(name);
+
+        IProperty IEntityType.FindProperty(string name) => FindProperty(name);
 
         /// <summary>
         /// Invalid operations
@@ -430,11 +575,6 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             throw new NotImplementedException();
         }
 
-        IProperty IEntityType.FindProperty(string name)
-        {
-            throw new NotImplementedException();
-        }
-
         /// <summary>
         /// Invalid operation
         /// </summary>
@@ -501,7 +641,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// Navigations
         /// </summary>
         /// <returns></returns>
-        public virtual IEnumerable<Navigation> GetNavigations()
+        public virtual IEnumerable<CypherNavigation> GetNavigations()
             => _baseType?.GetNavigations().Concat(_navigations.Values) ?? _navigations.Values;
 
         /// <summary>
@@ -529,6 +669,14 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         }
 
         /// <summary>
+        /// Find properties in hierachy
+        /// </summary>
+        /// <param name="propertyName"></param>
+        /// <returns></returns>
+        public virtual IEnumerable<CypherProperty> FindPropertiesInHierarchy([NotNull] string propertyName)
+            => ToEnumerable(FindProperty(propertyName)).Concat(FindDerivedProperties(propertyName));
+
+        /// <summary>
         /// Find devired properties by name
         /// </summary>
         /// <param name="name"></param>
@@ -541,7 +689,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        public virtual Navigation FindDeclaredNavigation([NotNull] string name)
+        public virtual CypherNavigation FindDeclaredNavigation([NotNull] string name)
             => _navigations.TryGetValue(Check.NotEmpty(name, nameof(name)), out var navigation)
                 ? navigation
                 : null;
@@ -551,7 +699,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        public virtual Navigation FindNavigation([NotNull] string name)
+        public virtual CypherNavigation FindNavigation([NotNull] string name)
         {
             Check.NotEmpty(name, nameof(name));
 
@@ -563,7 +711,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        public virtual IEnumerable<Navigation> FindDerivedNavigations([NotNull] string name)
+        public virtual IEnumerable<CypherNavigation> FindDerivedNavigations([NotNull] string name)
         {
             Check.NotNull(name, nameof(name));
 
@@ -577,7 +725,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        public virtual IEnumerable<Navigation> FindNavigationsInHierarchy([NotNull] string name)
+        public virtual IEnumerable<CypherNavigation> FindNavigationsInHierarchy([NotNull] string name)
             => ToEnumerable(FindNavigation(name)).Concat(FindDerivedNavigations(name));
 
         /// <summary>
@@ -588,5 +736,29 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         private static IEnumerable<T> ToEnumerable<T>(T element)
             where T : class
             => element == null ? Enumerable.Empty<T>() : new[] { element };
+
+        /// <summary>
+        /// Can add property
+        /// </summary>
+        /// <param name="name"></param>
+        private void ValidateCanAddProperty(string name)
+        {
+            var duplicateProperty = FindPropertiesInHierarchy(name).FirstOrDefault();
+            if (duplicateProperty != null)
+            {
+                throw new InvalidOperationException(
+                    CoreStrings.DuplicateProperty(
+                        name, this.DisplayName(), duplicateProperty.DeclaringEntityType.DisplayName()));
+            }
+
+            var duplicateNavigation = FindNavigationsInHierarchy(name).FirstOrDefault();
+            if (duplicateNavigation != null)
+            {
+                throw new InvalidOperationException(
+                    CoreStrings.ConflictingNavigation(
+                        name, this.DisplayName(),
+                        duplicateNavigation.DeclaringEntityType.DisplayName()));
+            }
+        }
     }
 }

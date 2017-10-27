@@ -61,6 +61,9 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
         public virtual CypherInternalEntityBuilder OnBaseEntityChanged([NotNull] CypherInternalEntityBuilder builder, [CanBeNull] CypherEntity previous)
             => _scope.OnBaseEntityChanged(Check.NotNull(builder, nameof(builder)), previous);
 
+        public virtual CypherInternalPropertyBuilder OnPropertyAdded([NotNull] CypherInternalPropertyBuilder propertyBuilder)
+            => _scope.OnPropertyAdded(Check.NotNull(propertyBuilder, nameof(propertyBuilder)));
+
         /// <summary>
         /// Started delayed scope
         /// </summary>

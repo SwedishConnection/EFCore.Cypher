@@ -1,6 +1,8 @@
 // Based on https://github.com/aspnet/EntityFrameworkCore
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace System
@@ -34,6 +36,20 @@ namespace System
 
             var underlyingEnumType = Enum.GetUnderlyingType(underlyingNonNullableType);
             return isNullable ? MakeNullable(underlyingEnumType) : underlyingEnumType;
+        }
+
+        public static IEnumerable<MemberInfo> GetMembersInHierarchy(this Type type, string name)
+        {
+            // Do the whole hierarchy for properties first since looking for fields is slower.
+            foreach (var propertyInfo in type.GetRuntimeProperties().Where(pi => pi.Name == name && !(pi.GetMethod ?? pi.SetMethod).IsStatic))
+            {
+                yield return propertyInfo;
+            }
+
+            foreach (var fieldInfo in type.GetRuntimeFields().Where(f => f.Name == name && !f.IsStatic))
+            {
+                yield return fieldInfo;
+            }
         }
     }
 }

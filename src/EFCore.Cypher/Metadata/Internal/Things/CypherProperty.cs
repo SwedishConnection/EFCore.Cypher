@@ -34,6 +34,8 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             ClrType = clrType;
             _configurationSource = configurationSource;
             _typeConfigurationSource = typeConfigurationSource;
+
+            Builder = new CypherInternalPropertyBuilder(this, declaringEntity.Graph.Builder);
         }
 
         /// <summary>
@@ -68,6 +70,15 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         public override Type ClrType { [DebuggerStepThrough] get; }
 
         /// <summary>
+        /// Builder
+        /// </summary>
+        /// <returns></returns>
+        public virtual CypherInternalPropertyBuilder Builder { 
+             [DebuggerStepThrough] get; 
+             [DebuggerStepThrough] [param: CanBeNull] set; 
+        }
+
+        /// <summary>
         /// Configuration source
         /// </summary>
         /// <returns></returns>
@@ -86,6 +97,19 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="configurationSource"></param>
         public virtual void SetConfigurationSource(ConfigurationSource configurationSource)
             => _configurationSource = configurationSource;
+
+        /// <summary>
+        /// Type configuraiton source
+        /// </summary>
+        /// <returns></returns>
+        public virtual ConfigurationSource? GetTypeConfigurationSource() => _typeConfigurationSource;
+
+        /// <summary>
+        /// Update type configuration source
+        /// </summary>
+        /// <param name="configurationSource"></param>
+        public virtual void UpdateTypeConfigurationSource(ConfigurationSource configurationSource)
+            => _typeConfigurationSource = _typeConfigurationSource.Max(configurationSource);
 
         /// <summary>
         /// Property indexes

@@ -90,7 +90,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         public abstract void PropertyMetadataChanged();
 
         /// <summary>
-        /// Ignore
+        /// Ignore member (property/field)
         /// </summary>
         /// <param name="name"></param>
         /// <param name="configurationSource"></param>
@@ -123,7 +123,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             => _ignoredMembers.Keys.ToList();
 
         /// <summary>
-        /// Find ignored member's configuration source
+        /// Find configuration source for ignored member (i.e. property/field)
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
@@ -140,7 +140,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         }
 
         /// <summary>
-        /// Find ignored member's configuration source
+        /// Find configuration source for ignored member (i.e. property/field)
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
@@ -151,7 +151,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// Take away ignore
         /// </summary>
         /// <param name="name"></param>
-        public virtual void Unignore([NotNull] string name)
+        public virtual void NotIgnore([NotNull] string name)
         {
             Check.NotNull(name, nameof(name));
             _ignoredMembers.Remove(name);

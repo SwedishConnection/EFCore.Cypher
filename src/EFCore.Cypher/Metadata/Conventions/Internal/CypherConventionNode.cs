@@ -133,6 +133,17 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
                 Add(new OnBaseEntityChangedNode(builder, previous));
                 return builder;
             }
+
+            /// <summary>
+            /// Property added
+            /// </summary>
+            /// <param name="propertyBuilder"></param>
+            /// <returns></returns>
+            public virtual CypherInternalPropertyBuilder OnPropertyAdded([NotNull] CypherInternalPropertyBuilder propertyBuilder)
+            {
+                Add(new OnPropertyAddedNode(propertyBuilder));
+                return propertyBuilder;
+            }
         }
 
         /// <summary>
@@ -202,6 +213,49 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
 
                 return builder;
             }
+
+            /// <summary>
+            /// When entity ignored
+            /// </summary>
+            /// <param name="builder"></param>
+            /// <param name="name"></param>
+            /// <param name="type"></param>
+            /// <returns></returns>
+            public override bool OnEntityIgnored(CypherInternalGraphBuilder builder, string name, Type type) {
+                foreach (var convention in _cypherConventionSet.EntitIgnoredConventions) {
+                    if (!convention.Apply(builder, name, type)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            /// <summary>
+            /// When property added
+            /// </summary>
+            /// <param name="propertyBuilder"></param>
+            /// <returns></returns>
+            public override CypherInternalPropertyBuilder OnPropertyAdded(CypherInternalPropertyBuilder propertyBuilder)
+            {
+                if (propertyBuilder.Metadata.Builder is null
+                    || propertyBuilder.Metadata.DeclaringEntityType.Builder is null)
+                {
+                    return null;
+                }
+
+                foreach (var propertyConvention in _cypherConventionSet.PropertyAddedConventions)
+                {
+                    propertyBuilder = propertyConvention.Apply(propertyBuilder);
+                    if (propertyBuilder?.Metadata.Builder is null
+                        || propertyBuilder.Metadata.DeclaringEntityType.Builder is null)
+                    {
+                        return null;
+                    }
+                }
+
+                return propertyBuilder;
+            }
         }
 
         /// <summary>
@@ -253,6 +307,21 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
             public CypherEntity Previous { get; }
 
             public override CypherConventionNode Accept(CypherConventionVisitor visitor) => visitor.VisitOnBaseEntityChanged(this);
+        }
+
+        /// <summary>
+        /// Delayed when property added
+        /// </summary>
+        private class OnPropertyAddedNode : CypherConventionNode
+        {
+            public OnPropertyAddedNode(CypherInternalPropertyBuilder propertyBuilder)
+            {
+                PropertyBuilder = propertyBuilder;
+            }
+
+            public CypherInternalPropertyBuilder PropertyBuilder { get; }
+
+            public override CypherConventionNode Accept(CypherConventionVisitor visitor) => visitor.VisitOnPropertyAdded(this);
         }
     }
 }
