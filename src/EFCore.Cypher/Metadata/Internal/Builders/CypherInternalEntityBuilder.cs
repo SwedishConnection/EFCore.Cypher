@@ -11,11 +11,11 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
     /// <summary>
     /// Internal entity builder
     /// </summary>
-    public class InternalEntityBuilder: InternalMetadataItemBuilder<Entity> {
+    public class CypherInternalEntityBuilder: CypherInternalMetadataItemBuilder<CypherEntity> {
 
-        public InternalEntityBuilder(
-            [NotNull] Entity metadata, 
-            [NotNull] InternalGraphBuilder graphBuilder
+        public CypherInternalEntityBuilder(
+            [NotNull] CypherEntity metadata, 
+            [NotNull] CypherInternalGraphBuilder graphBuilder
         ) : base(metadata, graphBuilder) {
         }
 
@@ -25,12 +25,12 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="baseClrType"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
-        public virtual InternalEntityBuilder HasBaseType(
+        public virtual CypherInternalEntityBuilder HasBaseType(
             [CanBeNull] Type baseClrType, 
             ConfigurationSource configurationSource
         ) {
             if (baseClrType == null) {
-                return HasBaseType((Entity)null, configurationSource);
+                return HasBaseType((CypherEntity)null, configurationSource);
             }
 
             var builder = GraphBuilder.Entity(baseClrType, configurationSource);
@@ -45,12 +45,12 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="name"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
-        public virtual InternalEntityBuilder HasBaseType(
+        public virtual CypherInternalEntityBuilder HasBaseType(
             [CanBeNull] string name,
             ConfigurationSource configurationSource
         ) {
             if (name is null) {
-                return HasBaseType((Entity)null, configurationSource);
+                return HasBaseType((CypherEntity)null, configurationSource);
             }
 
             var builder = GraphBuilder.Entity(name, configurationSource);
@@ -65,7 +65,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="baseType"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
-        public virtual InternalEntityBuilder HasBaseType([CanBeNull] Entity baseType, ConfigurationSource configurationSource) {
+        public virtual CypherInternalEntityBuilder HasBaseType([CanBeNull] CypherEntity baseType, ConfigurationSource configurationSource) {
             if (Metadata.BaseType == baseType) {
                 Metadata.HasBaseType(baseType, configurationSource);
                 return this;
@@ -75,8 +75,8 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
                 return null;
             }
 
-            using (Metadata.Graph.GraphConventionDispatcher.StartBatch()) {
-                PropertyBuildersSnapshot detachedProperties = null;
+            using (Metadata.Graph.CypherConventionDispatcher.StartBatch()) {
+                CypherPropertyBuildersSnapshot detachedProperties = null;
                 var configurationSourceForRemoval = ConfigurationSource.DataAnnotation.Max(configurationSource);
 
                 // when base is not null
@@ -127,6 +127,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             return this;
         }
 
+
         /// <summary>
         /// 
         /// </summary>
@@ -135,7 +136,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="canOverrideSameSource"></param>
         /// <returns></returns>
         private ConfigurationSource? RemoveProperty(
-            Property property,
+            CypherProperty property,
             ConfigurationSource configurationSource,
             bool canOverrideSameSource = true
         ) {
@@ -151,7 +152,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// </summary>
         /// <param name="propertiesToDetach"></param>
         /// <returns></returns>
-        private static PropertyBuildersSnapshot DetachProperties(IEnumerable<Property> propertiesToDetach)
+        private static CypherPropertyBuildersSnapshot DetachProperties(IEnumerable<CypherProperty> propertiesToDetach)
         {
             // TODO: Everything
             return null;

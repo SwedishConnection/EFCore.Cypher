@@ -8,13 +8,13 @@ using Microsoft.EntityFrameworkCore.Internal;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 {
-    public static class EntityExtensions {
+    public static class CypherEntityExtensions {
 
         /// <summary>
         /// Assert (i.e. throw if necessary) that the entity can be removed
         /// </summary>
         /// <param name="entity"></param>
-        public static void AssertCanRemove(this Entity entity) {
+        public static void AssertCanRemove(this CypherEntity entity) {
             // TODO: relationships
 
             var derived = entity.GetDirectlyDerivedTypes().FirstOrDefault();
@@ -35,7 +35,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="entity"></param>
         /// <param name="other"></param>
         /// <returns></returns>
-        public static bool InheritsFrom(this Entity entity, Entity other) {
+        public static bool InheritsFrom(this CypherEntity entity, CypherEntity other) {
             var curr = entity;
 
             do {
@@ -53,9 +53,9 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// </summary>
         /// <param name="entity"></param>
         /// <returns></returns>
-        public static IEnumerable<Entity> GetDerivedTypes(this Entity entity)
+        public static IEnumerable<CypherEntity> GetDerivedTypes(this CypherEntity entity)
         {
-            var derivedTypes = new List<Entity>();
+            var derivedTypes = new List<CypherEntity>();
             var type = entity;
             var currentTypeIndex = 0;
 

@@ -14,7 +14,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
     /// <summary>
     /// Node (<see cref="TypeBase" />)
     /// </summary>
-    public abstract class Node : ConventionalAnnotatable, IMutableTypeBase
+    public abstract class CypherNode : ConventionalAnnotatable, IMutableTypeBase
     {
         private readonly object _typeOrName;
 
@@ -22,21 +22,21 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 
         private readonly Dictionary<string, ConfigurationSource> _ignoredMembers = new Dictionary<string, ConfigurationSource>();
 
-        protected Node([NotNull] string name, [NotNull] Graph graph, ConfigurationSource configurationSource) : this(graph, configurationSource) {
+        protected CypherNode([NotNull] string name, [NotNull] CypherGraph graph, ConfigurationSource configurationSource) : this(graph, configurationSource) {
             Check.NotEmpty(name, nameof(name));
             Check.NotNull(graph, nameof(graph));
 
             _typeOrName = name;
         }
 
-        protected Node([NotNull] Type clrType, [NotNull] Graph graph, ConfigurationSource configurationSource) : this(graph, configurationSource) {
+        protected CypherNode([NotNull] Type clrType, [NotNull] CypherGraph graph, ConfigurationSource configurationSource) : this(graph, configurationSource) {
             Check.NotNull(clrType, nameof(clrType));
             Check.NotNull(graph, nameof(graph));
 
             _typeOrName = clrType;
         }
 
-        private Node([NotNull] Graph graph, ConfigurationSource configurationSource) {
+        private CypherNode([NotNull] CypherGraph graph, ConfigurationSource configurationSource) {
             Graph = graph;
             _configurationSource = configurationSource;
         }
@@ -57,7 +57,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// Graph
         /// </summary>
         /// <returns></returns>
-        public virtual Graph Graph { get; }
+        public virtual CypherGraph Graph { get; }
         
         /// <summary>
         /// Graph as model

@@ -12,16 +12,16 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
     /// <summary>
     /// Graph convention dispatcher
     /// </summary>
-    public partial class GraphConventionDispatcher {
+    public partial class CypherConventionDispatcher {
 
-        private GraphConventionScope _scope;
+        private CypherConventionScope _scope;
 
-        private readonly GraphImmediateConventionScope _immediateScope;
+        private readonly CypherImmediateConventionScope _immediateScope;
 
-        public GraphConventionDispatcher([NotNull] GraphConventionSet conventions) {
+        public CypherConventionDispatcher([NotNull] CypherConventionSet conventions) {
             Check.NotNull(conventions, nameof(conventions));
 
-            _immediateScope = new GraphImmediateConventionScope(conventions);
+            _immediateScope = new CypherImmediateConventionScope(conventions);
             _scope = _immediateScope;
         }
 
@@ -30,7 +30,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
         /// </summary>
         /// <param name="builder"></param>
         /// <returns></returns>
-        public virtual InternalGraphBuilder OnGraphInitialized([NotNull] InternalGraphBuilder builder) =>
+        public virtual CypherInternalGraphBuilder OnGraphInitialized([NotNull] CypherInternalGraphBuilder builder) =>
             _immediateScope.OnGraphInitialized(Check.NotNull(builder, nameof(builder)));
 
         /// <summary>
@@ -38,8 +38,9 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
         /// </summary>
         /// <param name="builder"></param>
         /// <returns></returns>
-        public virtual InternalEntityBuilder OnEntityAdded([NotNull] InternalEntityBuilder builder) =>
+        public virtual CypherInternalEntityBuilder OnEntityAdded([NotNull] CypherInternalEntityBuilder builder) =>
             _scope.OnEntityAdded(Check.NotNull(builder, nameof(builder)));
+            
 
         /// <summary>
         /// Ignore entity
@@ -48,24 +49,30 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
         /// <param name="name"></param>
         /// <param name="type"></param>
         /// <returns></returns>
-        public virtual bool OnEntityIgnored([NotNull] InternalGraphBuilder builder, [NotNull] string name, [CanBeNull] Type type)
+        public virtual bool OnEntityIgnored([NotNull] CypherInternalGraphBuilder builder, [NotNull] string name, [CanBeNull] Type type)
             => _scope.OnEntityIgnored(Check.NotNull(builder, nameof(builder)), Check.NotNull(name, nameof(name)), type);
 
-        public virtual InternalEntityBuilder OnBaseEntityChanged([NotNull] InternalEntityBuilder builder, [CanBeNull] Entity previous)
+        /// <summary>
+        /// Base entity changed
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <param name="previous"></param>
+        /// <returns></returns>
+        public virtual CypherInternalEntityBuilder OnBaseEntityChanged([NotNull] CypherInternalEntityBuilder builder, [CanBeNull] CypherEntity previous)
             => _scope.OnBaseEntityChanged(Check.NotNull(builder, nameof(builder)), previous);
 
         /// <summary>
         /// Started delayed scope
         /// </summary>
         /// <returns></returns>
-        public virtual IConventionBatch StartBatch() => new GraphConventionBatch(this);
+        public virtual IConventionBatch StartBatch() => new CypherConventionBatch(this);
 
         /// <summary>
         /// Batching (i.e. deferred scoping)
         /// </summary>
-        private class GraphConventionBatch : IConventionBatch
+        private class CypherConventionBatch : IConventionBatch
         {
-            private readonly GraphConventionDispatcher _dispatcher;
+            private readonly CypherConventionDispatcher _dispatcher;
 
             private int _runCount;
 
@@ -73,11 +80,11 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
             /// Lift the dispatcher's scope into a delayed scope
             /// </summary>
             /// <param name="dispatcher"></param>
-            public GraphConventionBatch(GraphConventionDispatcher dispatcher)
+            public CypherConventionBatch(CypherConventionDispatcher dispatcher)
             {
                 _dispatcher = dispatcher;
                 var currentScope = _dispatcher._scope;
-                dispatcher._scope = new GraphConventionScope(currentScope, children: null);
+                dispatcher._scope = new CypherConventionScope(currentScope, children: null);
 
                 if (currentScope != _dispatcher._immediateScope) {
                     currentScope.Add(dispatcher._scope);
@@ -112,8 +119,8 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
                     }
 
                     // Capture all nested convention invocations to unwind the stack
-                    _dispatcher._scope = new GraphConventionScope(_dispatcher._immediateScope, children: null);
-                    new RunVisitor(_dispatcher).VisitGraphConventionScope(currentScope);
+                    _dispatcher._scope = new CypherConventionScope(_dispatcher._immediateScope, children: null);
+                    new RunVisitor(_dispatcher).VisitCypherConventionScope(currentScope);
                 }
             }
 

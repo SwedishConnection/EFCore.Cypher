@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
 {
-    public interface IGraphInitializedConvention {
-        InternalGraphBuilder Apply([NotNull] InternalGraphBuilder modelBuilder);
+    public interface ICypherGraphInitializedConvention {
+        CypherInternalGraphBuilder Apply([NotNull] CypherInternalGraphBuilder modelBuilder);
     }
 }

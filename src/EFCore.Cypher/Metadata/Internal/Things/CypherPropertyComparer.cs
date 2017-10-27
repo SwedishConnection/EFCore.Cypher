@@ -11,10 +11,10 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
     /// Could have used the provided PropertyComparer if it worked off the 
     /// readable interface rather than the concrete thing
     /// </summary>
-    public class PropertyComparer: IComparer<string> {
+    public class CypherPropertyComparer: IComparer<string> {
         private readonly IEntityType _entityType;
 
-        public PropertyComparer(IEntityType entityType)
+        public CypherPropertyComparer(IEntityType entityType)
         {
             _entityType = entityType;
         }

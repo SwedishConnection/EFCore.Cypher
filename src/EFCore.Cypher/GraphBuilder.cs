@@ -15,17 +15,17 @@ namespace Microsoft.EntityFrameworkCore
     /// <summary>
     /// Graph builder similar to Entity Framework's model builder
     /// </summary>
-    public class GraphBuilder: IInfrastructure<InternalGraphBuilder> {
-        private readonly InternalGraphBuilder _builder;
+    public class GraphBuilder: IInfrastructure<CypherInternalGraphBuilder> {
+        private readonly CypherInternalGraphBuilder _builder;
 
         /// <summary>
         /// With graph conventions
         /// </summary>
         /// <param name="conventions"></param>
-        public GraphBuilder([NotNull] GraphConventionSet conventions) {
+        public GraphBuilder([NotNull] CypherConventionSet conventions) {
             Check.NotNull(conventions, nameof(conventions));
 
-            _builder = new InternalGraphBuilder(new Graph(conventions));
+            _builder = new CypherInternalGraphBuilder(new CypherGraph(conventions));
         }
 
         /// <summary>
@@ -36,25 +36,25 @@ namespace Microsoft.EntityFrameworkCore
         /// <summary>
         /// Internal builder being used to configure the graph
         /// </summary>
-        InternalGraphBuilder IInfrastructure<InternalGraphBuilder>.Instance => _builder;
+        CypherInternalGraphBuilder IInfrastructure<CypherInternalGraphBuilder>.Instance => _builder;
 
         /// <summary>
         /// Returns a builder used to configure the given entity in the graph
         /// </summary>
         /// <returns></returns>
-        public virtual EntityBuilder<TEntity> Entity<TEntity>() 
+        public virtual CypherEntityBuilder<TEntity> Entity<TEntity>() 
             where TEntity: class =>
-            new EntityBuilder<TEntity>(Builder.Entity(typeof(TEntity), ConfigurationSource.Explicit));
+            new CypherEntityBuilder<TEntity>(Builder.Entity(typeof(TEntity), ConfigurationSource.Explicit));
 
         /// <summary>
         /// Returns a builder used to configure the given entity in the graph
         /// </summary>
         /// <param name="clrType"></param>
         /// <returns></returns>
-        public virtual EntityBuilder Entity([NotNull] Type clrType) {
+        public virtual CypherEntityBuilder Entity([NotNull] Type clrType) {
             Check.NotNull(clrType, nameof(clrType));
 
-            return new EntityBuilder(Builder.Entity(clrType, ConfigurationSource.Explicit));
+            return new CypherEntityBuilder(Builder.Entity(clrType, ConfigurationSource.Explicit));
         }
 
         /// <summary>
@@ -81,6 +81,6 @@ namespace Microsoft.EntityFrameworkCore
         /// Builder
         /// </summary>
         /// <returns></returns>
-        private InternalGraphBuilder Builder => this.GetInfrastructure();
+        private CypherInternalGraphBuilder Builder => this.GetInfrastructure();
     }
 }

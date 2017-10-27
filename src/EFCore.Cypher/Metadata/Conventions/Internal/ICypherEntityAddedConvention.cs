@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
 {
-    public interface IEntityAddedConvention {
-        InternalEntityBuilder Apply([NotNull] InternalEntityBuilder builder);
+    public interface ICypherEntityAddedConvention {
+        CypherInternalEntityBuilder Apply([NotNull] CypherInternalEntityBuilder builder);
     }
 }

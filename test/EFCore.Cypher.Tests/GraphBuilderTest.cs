@@ -8,15 +8,15 @@ using Xunit;
 namespace Microsoft.EntityFrameworkCore {
 
     public class GraphBuilderTest {
-        private readonly GraphConventionSet _graphConventionSet;
+        private readonly CypherConventionSet _cypherConventionSet;
 
         public GraphBuilderTest() {
-            _graphConventionSet = new GraphConventionSet();
+            _cypherConventionSet = new CypherConventionSet();
         }
 
         [Fact]
         public void EntityWithType() {
-            GraphBuilder builder = new GraphBuilder(_graphConventionSet);
+            GraphBuilder builder = new GraphBuilder(_cypherConventionSet);
             
             var entityBuilder = builder.Entity<Person>();
             IMutableEntityType entity = builder
@@ -28,7 +28,7 @@ namespace Microsoft.EntityFrameworkCore {
 
         [Fact]
         public void DuplicatesSwallowed() {
-            GraphBuilder builder = new GraphBuilder(_graphConventionSet);
+            GraphBuilder builder = new GraphBuilder(_cypherConventionSet);
 
             builder.Entity<Person>();
             builder.Entity<Person>();

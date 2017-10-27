@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Utilities;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 {
-    public class Property : PropertyBase, IMutableProperty
+    public class CypherProperty : PropertyBase, IMutableProperty
     {
         private ConfigurationSource _configurationSource;
 
@@ -18,12 +18,12 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 
         private PropertyIndexes _indexes;
 
-        public Property(
+        public CypherProperty(
             [NotNull] string name,
             [NotNull] Type clrType,
             [CanBeNull] PropertyInfo propertyInfo,
             [CanBeNull] FieldInfo fieldInfo,
-            [NotNull] Entity declaringEntity,
+            [NotNull] CypherEntity declaringEntity,
             ConfigurationSource configurationSource,
             ConfigurationSource? typeConfigurationSource
         ) : base(name, propertyInfo, fieldInfo) {
@@ -40,13 +40,13 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// Declaring entity
         /// </summary>
         /// <returns></returns>
-        public virtual Entity DeclaringEntityType { [DebuggerStepThrough] get; }
+        public virtual CypherEntity DeclaringEntityType { [DebuggerStepThrough] get; }
 
         /// <summary>
         /// Declaring entity
         /// </summary>
         /// <returns></returns>
-        public new virtual Entity DeclaringType
+        public new virtual CypherEntity DeclaringType
         {
             [DebuggerStepThrough] get => DeclaringEntityType;
         }

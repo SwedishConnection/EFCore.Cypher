@@ -9,40 +9,40 @@ using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
 {
-    public partial class GraphConventionDispatcher
+    public partial class CypherConventionDispatcher
     {
         /// <summary>
         /// Delayed nodes
         /// </summary>
-        private abstract class GraphConventionNode
+        private abstract class CypherConventionNode
         {
-            public abstract GraphConventionNode Accept(GraphConventionVisitor visitor);
+            public abstract CypherConventionNode Accept(CypherConventionVisitor visitor);
         }
 
         /// <summary>
         /// Delayed scope
         /// </summary>
-        private class GraphConventionScope: GraphConventionNode {
-            private readonly List<GraphConventionNode> _children;
+        private class CypherConventionScope: CypherConventionNode {
+            private readonly List<CypherConventionNode> _children;
 
             private bool _readonly;
 
-            public GraphConventionScope(GraphConventionScope parent, List<GraphConventionNode> children) {
+            public CypherConventionScope(CypherConventionScope parent, List<CypherConventionNode> children) {
                 Parent = parent;
-                _children = children ?? new List<GraphConventionNode>();
+                _children = children ?? new List<CypherConventionNode>();
             }
 
             /// <summary>
             /// Parent scope
             /// </summary>
             /// <returns></returns>
-            public GraphConventionScope Parent { [DebuggerStepThrough] get; }
+            public CypherConventionScope Parent { [DebuggerStepThrough] get; }
 
             /// <summary>
             /// Delayed child nodes
             /// </summary>
             /// <returns></returns>
-            public IReadOnlyList<GraphConventionNode> Children
+            public IReadOnlyList<CypherConventionNode> Children
             {
                 [DebuggerStepThrough] get { return _children; }
             }
@@ -53,7 +53,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
             /// <returns></returns>
             public int GetLeafCount()
             {
-                var scopesToVisit = new Queue<GraphConventionScope>();
+                var scopesToVisit = new Queue<CypherConventionScope>();
                 scopesToVisit.Enqueue(this);
                 var leafCount = 0;
                 while (scopesToVisit.Count > 0)
@@ -61,7 +61,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
                     var scope = scopesToVisit.Dequeue();
                     foreach (var conventionNode in scope.Children)
                     {
-                        if (conventionNode is GraphConventionScope nextScope)
+                        if (conventionNode is CypherConventionScope nextScope)
                         {
                             scopesToVisit.Enqueue(nextScope);
                         }
@@ -84,7 +84,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
             /// Add node
             /// </summary>
             /// <param name="node"></param>
-            public void Add(GraphConventionNode node)
+            public void Add(CypherConventionNode node)
             {
                 if (_readonly)
                 {
@@ -98,14 +98,14 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
             /// </summary>
             /// <param name="visitor"></param>
             /// <returns></returns>
-            public override GraphConventionNode Accept(GraphConventionVisitor visitor) => visitor.VisitGraphConventionScope(this);
+            public override CypherConventionNode Accept(CypherConventionVisitor visitor) => visitor.VisitCypherConventionScope(this);
 
             /// <summary>
             /// Entity added
             /// </summary>
             /// <param name="entityBuilder"></param>
             /// <returns></returns>
-            public virtual InternalEntityBuilder OnEntityAdded([NotNull] InternalEntityBuilder builder) {
+            public virtual CypherInternalEntityBuilder OnEntityAdded([NotNull] CypherInternalEntityBuilder builder) {
                 Add(new OnEntityAddedNode(builder));
                 return builder;
             }
@@ -117,7 +117,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
             /// <param name="name"></param>
             /// <param name="type"></param>
             /// <returns></returns>
-            public virtual bool OnEntityIgnored([NotNull] InternalGraphBuilder builder, [NotNull] string name, [CanBeNull] Type type)
+            public virtual bool OnEntityIgnored([NotNull] CypherInternalGraphBuilder builder, [NotNull] string name, [CanBeNull] Type type)
             {
                 Add(new OnEntityIgnoredNode(builder, name, type));
                 return true;
@@ -129,7 +129,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
             /// <param name="builder"></param>
             /// <param name="previous"></param>
             /// <returns></returns>
-            public virtual InternalEntityBuilder OnBaseEntityChanged([NotNull] InternalEntityBuilder builder, [CanBeNull] Entity previous) {
+            public virtual CypherInternalEntityBuilder OnBaseEntityChanged([NotNull] CypherInternalEntityBuilder builder, [CanBeNull] CypherEntity previous) {
                 Add(new OnBaseEntityChangedNode(builder, previous));
                 return builder;
             }
@@ -138,19 +138,19 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
         /// <summary>
         /// Immediate scope
         /// </summary>
-        private class GraphImmediateConventionScope : GraphConventionScope
+        private class CypherImmediateConventionScope : CypherConventionScope
         {
-            private readonly GraphConventionSet _graphConventionSet;
+            private readonly CypherConventionSet _cypherConventionSet;
 
-            public GraphImmediateConventionScope([NotNull] GraphConventionSet graphConventionSet)
+            public CypherImmediateConventionScope([NotNull] CypherConventionSet cypherConventionSet)
                 : base(parent: null, children: null)
             {
-                _graphConventionSet = graphConventionSet;
+                _cypherConventionSet = cypherConventionSet;
                 MakeReadonly();
             }
 
-            public InternalGraphBuilder OnGraphInitialized([NotNull] InternalGraphBuilder builder) {
-                foreach (var convention in _graphConventionSet.GraphInitializedConventions) {
+            public CypherInternalGraphBuilder OnGraphInitialized([NotNull] CypherInternalGraphBuilder builder) {
+                foreach (var convention in _cypherConventionSet.GraphInitializedConventions) {
                     builder = convention.Apply(builder);
 
                     if (builder == null) {
@@ -166,13 +166,13 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
             /// </summary>
             /// <param name="builder"></param>
             /// <returns></returns>
-            public override InternalEntityBuilder OnEntityAdded(InternalEntityBuilder builder) {
+            public override CypherInternalEntityBuilder OnEntityAdded(CypherInternalEntityBuilder builder) {
                 if (builder.Metadata.Builder == null)
                 {
                     return null;
                 }
 
-                foreach (var convention in _graphConventionSet.EntityAddedConventions) {
+                foreach (var convention in _cypherConventionSet.EntityAddedConventions) {
                     builder = convention.Apply(builder);
 
                     if (builder?.Metadata.Builder == null) {
@@ -182,51 +182,77 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
 
                 return builder;
             }
+
+            /// <summary>
+            /// When base entity changed
+            /// </summary>
+            /// <param name="builder"></param>
+            /// <param name="previous"></param>
+            /// <returns></returns>
+            public override CypherInternalEntityBuilder OnBaseEntityChanged(CypherInternalEntityBuilder builder, CypherEntity previous) {
+                if (builder.Metadata.Builder is null) {
+                    return null;
+                }
+
+                foreach (var convention in _cypherConventionSet.BaseEntityChangedConventions) {
+                    if (!convention.Apply(builder, previous)) {
+                        return null;
+                    }
+                }
+
+                return builder;
+            }
         }
 
         /// <summary>
-        /// Delayed when entity type added
+        /// Delayed when entity added
         /// </summary>
-        private class OnEntityAddedNode : GraphConventionNode
+        private class OnEntityAddedNode : CypherConventionNode
         {
-            public OnEntityAddedNode(InternalEntityBuilder entityBuilder)
+            public OnEntityAddedNode(CypherInternalEntityBuilder entityBuilder)
             {
                 EntityBuilder = entityBuilder;
             }
 
-            public InternalEntityBuilder EntityBuilder { get; }
+            public CypherInternalEntityBuilder EntityBuilder { get; }
 
-            public override GraphConventionNode Accept(GraphConventionVisitor visitor) => visitor.VisitOnEntityAdded(this);
+            public override CypherConventionNode Accept(CypherConventionVisitor visitor) => visitor.VisitOnEntityAdded(this);
         }
 
-        private class OnEntityIgnoredNode : GraphConventionNode
+        /// <summary>
+        /// Delayed when entity ignored
+        /// </summary>
+        private class OnEntityIgnoredNode : CypherConventionNode
         {
-            public OnEntityIgnoredNode(InternalGraphBuilder builder, string name, Type type)
+            public OnEntityIgnoredNode(CypherInternalGraphBuilder builder, string name, Type type)
             {
                 GraphBuilder = builder;
                 Name = name;
                 Type = type;
             }
 
-            public InternalGraphBuilder GraphBuilder { get; }
+            public CypherInternalGraphBuilder GraphBuilder { get; }
             public string Name { get; }
             public Type Type { get; }
 
-            public override GraphConventionNode Accept(GraphConventionVisitor visitor) => visitor.VisitOnEntityIgnored(this);
+            public override CypherConventionNode Accept(CypherConventionVisitor visitor) => visitor.VisitOnEntityIgnored(this);
         }
 
-        private class OnBaseEntityChangedNode : GraphConventionNode
+        /// <summary>
+        /// Delayed when base entity changed
+        /// </summary>
+        private class OnBaseEntityChangedNode : CypherConventionNode
         {
-            public OnBaseEntityChangedNode(InternalEntityBuilder builder, Entity previous)
+            public OnBaseEntityChangedNode(CypherInternalEntityBuilder builder, CypherEntity previous)
             {
                 EntityBuilder = builder;
                 Previous = previous;
             }
 
-            public InternalEntityBuilder EntityBuilder { get; }
-            public Entity Previous { get; }
+            public CypherInternalEntityBuilder EntityBuilder { get; }
+            public CypherEntity Previous { get; }
 
-            public override GraphConventionNode Accept(GraphConventionVisitor visitor) => visitor.VisitOnBaseEntityChanged(this);
+            public override CypherConventionNode Accept(CypherConventionVisitor visitor) => visitor.VisitOnBaseEntityChanged(this);
         }
     }
 }

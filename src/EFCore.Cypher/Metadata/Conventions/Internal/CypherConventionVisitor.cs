@@ -5,19 +5,19 @@ using System.Collections.Generic;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
 {
-    public partial class GraphConventionDispatcher {
-        private abstract class GraphConventionVisitor
+    public partial class CypherConventionDispatcher {
+        private abstract class CypherConventionVisitor
         {
             /// <summary>
             /// Generic Visit calling the node's Accept
             /// </summary>
             /// <param name="node"></param>
             /// <returns></returns>
-            public virtual GraphConventionNode Visit(GraphConventionNode node) => node?.Accept(this);
+            public virtual CypherConventionNode Visit(CypherConventionNode node) => node?.Accept(this);
 
-            public virtual GraphConventionScope VisitGraphConventionScope(GraphConventionScope node)
+            public virtual CypherConventionScope VisitCypherConventionScope(CypherConventionScope node)
             {
-                List<GraphConventionNode> visitations = null;
+                List<CypherConventionNode> visitations = null;
 
                 foreach(var child in node.Children) {
                     var visited = Visit(child);
@@ -26,7 +26,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
                     }
 
                     if (visitations == null) {
-                        visitations = new List<GraphConventionNode>();
+                        visitations = new List<CypherConventionNode>();
                     }
 
                     visitations.Add(visited);
@@ -34,7 +34,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
 
                 return (visitations?.Count ?? 0) == 0
                     ? null
-                    : new GraphConventionScope(node.Parent, visitations);
+                    : new CypherConventionScope(node.Parent, visitations);
             }
 
             public virtual OnEntityAddedNode VisitOnEntityAdded(OnEntityAddedNode node) => node;
@@ -44,12 +44,12 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
             public virtual OnBaseEntityChangedNode VisitOnBaseEntityChanged(OnBaseEntityChangedNode node) => node;
         }
 
-        private class RunVisitor: GraphConventionVisitor {
-            public RunVisitor(GraphConventionDispatcher dispatcher) {
+        private class RunVisitor: CypherConventionVisitor {
+            public RunVisitor(CypherConventionDispatcher dispatcher) {
                 Dispatcher = dispatcher;   
             }
 
-            private GraphConventionDispatcher Dispatcher { get; }
+            private CypherConventionDispatcher Dispatcher { get; }
 
             public override OnEntityAddedNode VisitOnEntityAdded(OnEntityAddedNode node)
             {

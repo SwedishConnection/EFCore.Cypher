@@ -16,13 +16,13 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
     /// <summary>
     /// Entity (<see cref="EntityType" />)
     /// </summary>
-    public class Entity : Node, IMutableEntityType
+    public class CypherEntity : CypherNode, IMutableEntityType
     {
-        private Entity _baseType;
+        private CypherEntity _baseType;
 
         private ConfigurationSource? _baseTypeConfigurationSource;
 
-        private readonly SortedDictionary<string, Property> _properties;
+        private readonly SortedDictionary<string, CypherProperty> _properties;
 
         private readonly SortedDictionary<string, Navigation> _navigations
             = new SortedDictionary<string, Navigation>(StringComparer.Ordinal);
@@ -30,25 +30,25 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         private PropertyCounts _propertyCounts;
 
 
-        public Entity([NotNull] string name, [NotNull] Graph graph, ConfigurationSource configurationSource)
+        public CypherEntity([NotNull] string name, [NotNull] CypherGraph graph, ConfigurationSource configurationSource)
             : base(name, graph, configurationSource) 
         {
-            _properties = new SortedDictionary<string, Property>(new PropertyComparer(this));
-            Builder = new InternalEntityBuilder(this, graph.Builder);
+            _properties = new SortedDictionary<string, CypherProperty>(new CypherPropertyComparer(this));
+            Builder = new CypherInternalEntityBuilder(this, graph.Builder);
         }
 
-        public Entity([NotNull] Type clrType, [NotNull] Graph graph, ConfigurationSource configurationSource)
+        public CypherEntity([NotNull] Type clrType, [NotNull] CypherGraph graph, ConfigurationSource configurationSource)
             : base(clrType, graph, configurationSource)
         {
-            _properties = new SortedDictionary<string, Property>(new PropertyComparer(this));
-            Builder = new InternalEntityBuilder(this, graph.Builder);
+            _properties = new SortedDictionary<string, CypherProperty>(new CypherPropertyComparer(this));
+            Builder = new CypherInternalEntityBuilder(this, graph.Builder);
         }
 
-        public Entity(
+        public CypherEntity(
             [NotNull] string name,
-            [NotNull] Graph graph,
+            [NotNull] CypherGraph graph,
             [NotNull] string definingNavigationName,
-            [NotNull] Entity definingEntity,
+            [NotNull] CypherEntity definingEntity,
             ConfigurationSource configurationSource
         ) : this(name, graph, configurationSource)
         {
@@ -56,11 +56,11 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             DefiningEntityType = definingEntity;
         }
 
-        public Entity(
+        public CypherEntity(
             [NotNull] Type clrType,
-            [NotNull] Graph graph,
+            [NotNull] CypherGraph graph,
             [NotNull] string definingNavigationName,
-            [NotNull] Entity definingEntity,
+            [NotNull] CypherEntity definingEntity,
             ConfigurationSource configurationSource
         ) : this(clrType, graph, configurationSource)
         {
@@ -72,7 +72,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// Internal builder
         /// </summary>
         /// <returns></returns>
-        public virtual InternalEntityBuilder Builder { 
+        public virtual CypherInternalEntityBuilder Builder { 
             [DebuggerStepThrough] get; 
             [DebuggerStepThrough] [param: CanBeNull] set; 
         }
@@ -80,7 +80,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <summary>
         /// Base type
         /// </summary>
-        public virtual Entity BaseType => _baseType;
+        public virtual CypherEntity BaseType => _baseType;
 
         /// <summary>
         /// Base type (read)
@@ -93,7 +93,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <returns></returns>
         IMutableEntityType IMutableEntityType.BaseType {
             get => _baseType;
-            set => HasBaseType((Entity)value);
+            set => HasBaseType((CypherEntity)value);
         }
         
         /// <summary>
@@ -139,7 +139,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="entity"></param>
         /// <param name="configurationSource"></param>
         public virtual void HasBaseType(
-            [CanBeNull] Entity entity,
+            [CanBeNull] CypherEntity entity,
             ConfigurationSource configurationSource = ConfigurationSource.Explicit
         ) {
             if (_baseType == entity) {
@@ -230,7 +230,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
                 UpdateBaseTypeConfigurationSource(configurationSource);
                 entity?.UpdateBaseTypeConfigurationSource(configurationSource);
 
-                Graph.GraphConventionDispatcher.OnBaseEntityChanged(Builder, originalBaseType);
+                Graph.CypherConventionDispatcher.OnBaseEntityChanged(Builder, originalBaseType);
             }
         }
 
@@ -251,9 +251,9 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// Derived types
         /// </summary>
         /// <returns></returns>
-        public virtual IEnumerable<Entity> GetDerivedTypes()
+        public virtual IEnumerable<CypherEntity> GetDerivedTypes()
         {
-            var derivedTypes = new List<Entity>();
+            var derivedTypes = new List<CypherEntity>();
             var type = this;
             var currentTypeIndex = 0;
 
@@ -275,14 +275,14 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// Derived types (inclusive)
         /// </summary>
         /// <returns></returns>
-        public virtual IEnumerable<Entity> GetDerivedTypesInclusive()
+        public virtual IEnumerable<CypherEntity> GetDerivedTypesInclusive()
             => new[] { this }.Concat(GetDerivedTypes());
 
         /// <summary>
         /// Directly derived types
         /// </summary>
         /// <returns></returns>
-        private readonly SortedSet<Entity> _directlyDerivedTypes = new SortedSet<Entity>(EntityTypePathComparer.Instance);
+        private readonly SortedSet<CypherEntity> _directlyDerivedTypes = new SortedSet<CypherEntity>(EntityTypePathComparer.Instance);
 
         /// <summary>
         /// Invalid operation
@@ -360,7 +360,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// 
         /// </summary>
         /// <returns></returns>
-        public virtual IEnumerable<Property> GetProperties()
+        public virtual IEnumerable<CypherProperty> GetProperties()
             => _baseType?.GetProperties().Concat(_properties.Values) ?? _properties.Values;
 
         /// <summary>
@@ -480,7 +480,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// Declared properties
         /// </summary>
         /// <returns></returns>
-        public virtual IEnumerable<Property> GetDeclaredProperties() => _properties.Values;
+        public virtual IEnumerable<CypherProperty> GetDeclaredProperties() => _properties.Values;
 
         /// <summary>
         /// Property Counts
@@ -495,7 +495,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// Directly derived types
         /// </summary>
         /// <returns></returns>
-        public virtual ISet<Entity> GetDirectlyDerivedTypes() => _directlyDerivedTypes;
+        public virtual ISet<CypherEntity> GetDirectlyDerivedTypes() => _directlyDerivedTypes;
 
         /// <summary>
         /// Navigations
@@ -509,7 +509,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        public virtual Property FindDeclaredProperty([NotNull] string name)
+        public virtual CypherProperty FindDeclaredProperty([NotNull] string name)
             => _properties.TryGetValue(Check.NotEmpty(name, nameof(name)), out var property)
                 ? property
                 : null;
@@ -519,7 +519,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// </summary>
         /// <param name="propertyName"></param>
         /// <returns></returns>
-        public virtual IEnumerable<Property> FindDerivedProperties([NotNull] string name)
+        public virtual IEnumerable<CypherProperty> FindDerivedProperties([NotNull] string name)
         {
             Check.NotNull(name, nameof(name));
 
@@ -533,7 +533,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        public virtual IEnumerable<Property> FindDerivedPropertiesInclusive([NotNull] string name)
+        public virtual IEnumerable<CypherProperty> FindDerivedPropertiesInclusive([NotNull] string name)
             => ToEnumerable(FindDeclaredProperty(name)).Concat(FindDerivedProperties(name));
 
         /// <summary>

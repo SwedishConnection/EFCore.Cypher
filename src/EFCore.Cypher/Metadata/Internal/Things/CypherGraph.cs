@@ -16,16 +16,16 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
     /// <summary>
     /// Graph
     /// </summary>
-    public class Graph : ConventionalAnnotatable, IMutableModel
+    public class CypherGraph : ConventionalAnnotatable, IMutableModel
     {
-        private readonly SortedDictionary<string, Entity> _entities
-            = new SortedDictionary<string, Entity>();
+        private readonly SortedDictionary<string, CypherEntity> _entities
+            = new SortedDictionary<string, CypherEntity>();
 
-        private readonly IDictionary<Type, Entity> _clrTypeMap
-            = new Dictionary<Type, Entity>();
+        private readonly IDictionary<Type, CypherEntity> _clrTypeMap
+            = new Dictionary<Type, CypherEntity>();
 
-        private readonly SortedDictionary<string, SortedSet<Entity>> _entitiesWithDefiningNavigation
-            = new SortedDictionary<string, SortedSet<Entity>>();
+        private readonly SortedDictionary<string, SortedSet<CypherEntity>> _entitiesWithDefiningNavigation
+            = new SortedDictionary<string, SortedSet<CypherEntity>>();
 
         private readonly Dictionary<string, ConfigurationSource> _ignorables
             = new Dictionary<string, ConfigurationSource>();
@@ -33,7 +33,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <summary>
         /// With empty graph convention set
         /// </summary>
-        public Graph(): this(new GraphConventionSet()) {
+        public CypherGraph(): this(new CypherConventionSet()) {
 
         }
 
@@ -41,11 +41,11 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// With conventions
         /// </summary>
         /// <param name="conventions"></param>
-        public Graph([NotNull] GraphConventionSet conventions) {
-            var dispatcher = new GraphConventionDispatcher(conventions);
-            var builder = new InternalGraphBuilder(this);
+        public CypherGraph([NotNull] CypherConventionSet conventions) {
+            var dispatcher = new CypherConventionDispatcher(conventions);
+            var builder = new CypherInternalGraphBuilder(this);
 
-            GraphConventionDispatcher = dispatcher;
+            CypherConventionDispatcher = dispatcher;
             Builder = builder;
             dispatcher.OnGraphInitialized(builder);
         }
@@ -54,13 +54,13 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// Convention dispatcher
         /// </summary>
         /// <returns></returns>
-        public virtual GraphConventionDispatcher GraphConventionDispatcher { [DebuggerStepThrough] get; }
+        public virtual CypherConventionDispatcher CypherConventionDispatcher { [DebuggerStepThrough] get; }
 
         /// <summary>
         /// Builder
         /// </summary>
         /// <returns></returns>
-        public virtual InternalGraphBuilder Builder { [DebuggerStepThrough] get; }      
+        public virtual CypherInternalGraphBuilder Builder { [DebuggerStepThrough] get; }      
 
         /// <summary>
         /// Add entity 
@@ -68,13 +68,13 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="name"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
-        public virtual Entity AddEntity(
+        public virtual CypherEntity AddEntity(
             [NotNull] string name, 
             ConfigurationSource configurationSource = ConfigurationSource.Explicit
         ) {
             Check.NotEmpty(name, nameof(name));
 
-            var entity = new Entity(name, this, configurationSource);
+            var entity = new CypherEntity(name, this, configurationSource);
             return AddEntity(entity);
         }
 
@@ -91,13 +91,13 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="clrType"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
-        public virtual Entity AddEntity(
+        public virtual CypherEntity AddEntity(
             [NotNull] Type clrType,
             ConfigurationSource configurationSource = ConfigurationSource.Explicit
         ) {
             Check.NotNull(clrType, nameof(clrType));
 
-            var entity = new Entity(clrType, this, configurationSource);
+            var entity = new CypherEntity(clrType, this, configurationSource);
 
             _clrTypeMap[clrType] = entity;
             return AddEntity(entity);
@@ -117,7 +117,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <remarks>Fires convention event</remarks>
         /// <param name="entity"></param>
         /// <returns></returns>
-        private Entity AddEntity(Entity entity) {
+        private CypherEntity AddEntity(CypherEntity entity) {
             var name = entity.Name;
 
             if (entity.HasDefiningNavigation()) {
@@ -126,7 +126,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
                 }
 
                 if (!_entitiesWithDefiningNavigation.TryGetValue(name, out var withSameType)) {
-                    withSameType = new SortedSet<Entity>(EntityTypePathComparer.Instance);
+                    withSameType = new SortedSet<CypherEntity>(EntityTypePathComparer.Instance);
                     _entitiesWithDefiningNavigation[name] = withSameType;
                 }
 
@@ -144,7 +144,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
                 }
             }
 
-            return GraphConventionDispatcher.OnEntityAdded(entity.Builder)?.Metadata;
+            return CypherConventionDispatcher.OnEntityAdded(entity.Builder)?.Metadata;
         }
 
         /// <summary>
@@ -155,15 +155,15 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="definingEntity"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
-        public virtual Entity AddEntity(
+        public virtual CypherEntity AddEntity(
             [NotNull] string name,
             [NotNull] string definingNavigationName,
-            [NotNull] Entity definingEntity,
+            [NotNull] CypherEntity definingEntity,
             ConfigurationSource configurationSource = ConfigurationSource.Explicit
         ) {
             Check.NotEmpty(name, nameof(name));
 
-            var entity = new Entity(name, this, definingNavigationName, definingEntity, configurationSource);
+            var entity = new CypherEntity(name, this, definingNavigationName, definingEntity, configurationSource);
             return AddEntity(entity);
         }
 
@@ -175,7 +175,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="definingEntityType"></param>
         /// <returns></returns>
         IMutableEntityType IMutableModel.AddEntityType(string name, string definingNavigationName, IMutableEntityType definingEntityType) =>
-            AddEntity(name, definingNavigationName, (Entity)definingEntityType);
+            AddEntity(name, definingNavigationName, (CypherEntity)definingEntityType);
 
         /// <summary>
         /// Add entity through another
@@ -185,15 +185,15 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="definingEntity"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
-        public virtual Entity AddEntity(
+        public virtual CypherEntity AddEntity(
             [NotNull] Type clrType,
             [NotNull] string definingNavigationName,
-            [NotNull] Entity definingEntity,
+            [NotNull] CypherEntity definingEntity,
             ConfigurationSource configurationSource = ConfigurationSource.Explicit
         ) {
             Check.NotNull(clrType, nameof(clrType));
 
-            var entity = new Entity(clrType, this, definingNavigationName, definingEntity, configurationSource);
+            var entity = new CypherEntity(clrType, this, definingNavigationName, definingEntity, configurationSource);
             return AddEntity(entity);
         }
 
@@ -205,14 +205,14 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="definingEntityType"></param>
         /// <returns></returns>
         IMutableEntityType IMutableModel.AddEntityType(Type clrType, string definingNavigationName, IMutableEntityType definingEntityType) =>
-            AddEntity(clrType, definingNavigationName, (Entity)definingEntityType);
+            AddEntity(clrType, definingNavigationName, (CypherEntity)definingEntityType);
 
         /// <summary>
         /// Find entity by name
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        public virtual Entity FindEntity([NotNull] string name)
+        public virtual CypherEntity FindEntity([NotNull] string name)
             => _entities.TryGetValue(Check.NotEmpty(name, nameof(name)), out var entity)
                 ? entity
                 : null;
@@ -230,7 +230,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// </summary>
         /// <param name="clrType"></param>
         /// <returns></returns>
-        public virtual Entity FindEntity([NotNull] Type clrType)
+        public virtual CypherEntity FindEntity([NotNull] Type clrType)
             => _clrTypeMap.TryGetValue(Check.NotNull(clrType, nameof(clrType)), out var entityType)
                 ? entityType
                 : FindEntity(clrType.DisplayName());
@@ -242,10 +242,10 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="definingNavigationName"></param>
         /// <param name="definingEntity"></param>
         /// <returns></returns>
-        public virtual Entity FindEntity(
+        public virtual CypherEntity FindEntity(
             [NotNull] Type clrType,
             [NotNull] string definingNavigationName,
-            [NotNull] Entity definingEntity
+            [NotNull] CypherEntity definingEntity
         ) => FindEntity(clrType.DisplayName(), definingNavigationName, definingEntity);
 
         /// <summary>
@@ -255,10 +255,10 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="definingNavigationName"></param>
         /// <param name="definingEntity"></param>
         /// <returns></returns>
-        public virtual Entity FindEntity(
+        public virtual CypherEntity FindEntity(
             [NotNull] string name,
             [NotNull] string definingNavigationName,
-            [NotNull] Entity definingEntity
+            [NotNull] CypherEntity definingEntity
         ) {
             if (!_entitiesWithDefiningNavigation.TryGetValue(name, out var withSameType)) {
                 return null;
@@ -285,7 +285,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="definingEntityType"></param>
         /// <returns></returns>
         IMutableEntityType IMutableModel.FindEntityType(string name, string definingNavigationName, IMutableEntityType definingEntityType) =>
-            FindEntity(name, definingNavigationName, (Entity)definingEntityType);
+            FindEntity(name, definingNavigationName, (CypherEntity)definingEntityType);
 
         /// <summary>
         /// Find entity type by navigation
@@ -295,13 +295,13 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="definingEntityType"></param>
         /// <returns></returns>
         IEntityType IModel.FindEntityType(string name, string definingNavigationName, IEntityType definingEntityType) =>
-            FindEntity(name, definingNavigationName, (Entity)definingEntityType);
+            FindEntity(name, definingNavigationName, (CypherEntity)definingEntityType);
 
         /// <summary>
         /// Get entities
         /// </summary>
         /// <returns></returns>
-        public virtual IEnumerable<Entity> GetEntities() =>
+        public virtual IEnumerable<CypherEntity> GetEntities() =>
             _entities.Values.Concat(_entitiesWithDefiningNavigation.Values.SelectMany(e => e));
 
         /// <summary>
@@ -309,7 +309,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// </summary>
         /// <param name="clrType"></param>
         /// <returns></returns>
-        public virtual IReadOnlyCollection<Entity> GetEntities([NotNull] Type clrType) =>
+        public virtual IReadOnlyCollection<CypherEntity> GetEntities([NotNull] Type clrType) =>
             GetEntities(clrType.DisplayName());
 
         /// <summary>
@@ -317,14 +317,14 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        public virtual IReadOnlyCollection<Entity> GetEntities([NotNull] string name) {
+        public virtual IReadOnlyCollection<CypherEntity> GetEntities([NotNull] string name) {
             if (_entitiesWithDefiningNavigation.TryGetValue(name, out var withSameType)) {
                 return withSameType;
             }
 
             var entity = FindEntity(name);
             return entity is null
-                ? new Entity[0]
+                ? new CypherEntity[0]
                 : new[] { entity };
         }
 
@@ -345,7 +345,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// </summary>
         /// <param name="clrType"></param>
         /// <returns></returns>
-        public virtual Entity RemoveEntity([NotNull] Type clrType) =>
+        public virtual CypherEntity RemoveEntity([NotNull] Type clrType) =>
             RemoveEntity(FindEntity(clrType));
 
         /// <summary>
@@ -353,7 +353,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        public virtual Entity RemoveEntity([NotNull] string name) =>
+        public virtual CypherEntity RemoveEntity([NotNull] string name) =>
             RemoveEntity(FindEntity(name));
 
         /// <summary>
@@ -362,7 +362,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// </summary>
         /// <param name="entity"></param>
         /// <returns></returns>
-        public virtual Entity RemoveEntity([CanBeNull] Entity entity) {
+        public virtual CypherEntity RemoveEntity([CanBeNull] CypherEntity entity) {
             if (entity?.Builder is null) {
                 return null;
             }
@@ -399,10 +399,10 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="definingNavigationName"></param>
         /// <param name="definingEntity"></param>
         /// <returns></returns>
-        public virtual Entity RemoveEntity(
+        public virtual CypherEntity RemoveEntity(
             [NotNull] Type clrType,
             [NotNull] string definingNavigationName,
-            [NotNull] Entity definingEntity
+            [NotNull] CypherEntity definingEntity
         ) => RemoveEntity(FindEntity(clrType, definingNavigationName, definingEntity));
 
         /// <summary>
@@ -412,10 +412,10 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="definingNavigationName"></param>
         /// <param name="definingEntity"></param>
         /// <returns></returns>
-        public virtual Entity RemoveEntity(
+        public virtual CypherEntity RemoveEntity(
             [NotNull] string name,
             [NotNull] string definingNavigationName,
-            [NotNull] Entity definingEntity
+            [NotNull] CypherEntity definingEntity
         ) => RemoveEntity(FindEntity(name, definingNavigationName, definingEntity));
 
         /// <summary>
@@ -435,7 +435,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="definingEntityType"></param>
         /// <returns></returns>
         IMutableEntityType IMutableModel.RemoveEntityType(string name, string definingNavigationName, IMutableEntityType definingEntityType) =>
-            RemoveEntity(name, definingNavigationName, (Entity)definingEntityType);
+            RemoveEntity(name, definingNavigationName, (CypherEntity)definingEntityType);
 
         /// <summary>
         /// Ignore by type
@@ -478,7 +478,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 
             _ignorables[name] = configurationSource;
 
-            GraphConventionDispatcher.OnEntityIgnored(Builder, name, clrType);
+            CypherConventionDispatcher.OnEntityIgnored(Builder, name, clrType);
         }
 
         /// <summary>

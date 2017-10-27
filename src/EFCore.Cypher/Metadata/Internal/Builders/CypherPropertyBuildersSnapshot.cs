@@ -3,7 +3,7 @@
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 {
-    public class PropertyBuildersSnapshot {
+    public class CypherPropertyBuildersSnapshot {
 
     }
 }

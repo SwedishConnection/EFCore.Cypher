@@ -11,16 +11,16 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
     /// <summary>
     /// Internal graph builder
     /// </summary>
-    public class InternalGraphBuilder: InternalMetadataBuilder<Graph> {
+    public class CypherInternalGraphBuilder: CypherInternalMetadataBuilder<CypherGraph> {
         
-        public InternalGraphBuilder([NotNull] Graph metadata): base(metadata) {
+        public CypherInternalGraphBuilder([NotNull] CypherGraph metadata): base(metadata) {
 
         }
 
         /// <summary>
         /// Graph Builder
         /// </summary>
-        public override InternalGraphBuilder GraphBuilder => this;
+        public override CypherInternalGraphBuilder GraphBuilder => this;
 
         /// <summary>
         /// Entity builder from name
@@ -28,7 +28,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="name"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
-        public virtual InternalEntityBuilder Entity(
+        public virtual CypherInternalEntityBuilder Entity(
             [NotNull] string name, 
             ConfigurationSource configurationSource
         ) => Entity(new TypeIdentity(name), configurationSource);
@@ -39,7 +39,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="clrType"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
-        public virtual InternalEntityBuilder Entity(
+        public virtual CypherInternalEntityBuilder Entity(
             [NotNull] Type clrType, 
             ConfigurationSource configurationSource
         ) => Entity(new TypeIdentity(clrType), configurationSource);
@@ -50,7 +50,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="identity"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
-        private InternalEntityBuilder Entity(
+        private CypherInternalEntityBuilder Entity(
             TypeIdentity identity, 
             ConfigurationSource configurationSource
         ) {
@@ -88,10 +88,10 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="definingEntityType"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
-        public InternalEntityBuilder Entity(
+        public CypherInternalEntityBuilder Entity(
             [NotNull] string name,
             [NotNull] string definingNavigationName,
-            [NotNull] Entity definingEntityType,
+            [NotNull] CypherEntity definingEntityType,
             ConfigurationSource configurationSource
         ) => Entity(new TypeIdentity(name), definingNavigationName, definingEntityType, configurationSource);
 
@@ -103,10 +103,10 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="definingEntityType"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
-        public InternalEntityBuilder Entity(
+        public CypherInternalEntityBuilder Entity(
             [NotNull] Type clrType,
             [NotNull] string definingNavigationName,
-            [NotNull] Entity definingEntityType,
+            [NotNull] CypherEntity definingEntityType,
             ConfigurationSource configurationSource
         ) => Entity(new TypeIdentity(clrType), definingNavigationName, definingEntityType, configurationSource);
 
@@ -118,10 +118,10 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="definingEntityType"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
-        private InternalEntityBuilder Entity(
+        private CypherInternalEntityBuilder Entity(
             TypeIdentity identity,
             string definingNavigationName,
-            Entity definingEntityType,
+            CypherEntity definingEntityType,
             ConfigurationSource configurationSource
         ) {
             if (IsIgnoring(identity, configurationSource)) {
@@ -254,7 +254,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="entity"></param>
         /// <param name="configurationSource"></param>
         /// <returns></returns>
-        private bool Ignore(Entity entity, ConfigurationSource configurationSource)
+        private bool Ignore(CypherEntity entity, ConfigurationSource configurationSource)
         {
             var entityConfigurationSource = entity.GetConfigurationSource();
             if (!configurationSource.Overrides(entityConfigurationSource))
@@ -262,7 +262,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
                 return false;
             }
 
-            using (Metadata.GraphConventionDispatcher.StartBatch())
+            using (Metadata.CypherConventionDispatcher.StartBatch())
             {
                 if (entity.HasClrType())
                 {
@@ -284,7 +284,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="configurationSource"></param>
         /// <returns></returns>
         public virtual bool RemoveEntity(
-            [NotNull] Entity entity, 
+            [NotNull] CypherEntity entity, 
             ConfigurationSource configurationSource
         )
         {
@@ -297,7 +297,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 
             // wipe out the base type association
             var baseType = entity.BaseType;
-            entity.Builder.HasBaseType((Entity)null, configurationSource);
+            entity.Builder.HasBaseType((CypherEntity)null, configurationSource);
 
             // TODO: remove from relationships
 
@@ -310,7 +310,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             }
 
             // when a defining type
-            using (Metadata.GraphConventionDispatcher.StartBatch())
+            using (Metadata.CypherConventionDispatcher.StartBatch())
             {
                 foreach (var definedType in Metadata.GetEntities().Where(e => e.DefiningEntityType == entity).ToList())
                 {

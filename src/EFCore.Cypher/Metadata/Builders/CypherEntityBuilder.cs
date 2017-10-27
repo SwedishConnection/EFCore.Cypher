@@ -12,11 +12,11 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Builders
     /// <summary>
     /// Entity builer (<see cref="EntityTypeBuilder" />)
     /// </summary>
-    public class EntityBuilder : IInfrastructure<IMutableModel>, IInfrastructure<InternalEntityBuilder>
+    public class CypherEntityBuilder : IInfrastructure<IMutableModel>, IInfrastructure<CypherInternalEntityBuilder>
     {
-        private InternalEntityBuilder Builder { get; }
+        private CypherInternalEntityBuilder Builder { get; }
 
-        public EntityBuilder(InternalEntityBuilder builder) {
+        public CypherEntityBuilder(CypherInternalEntityBuilder builder) {
             Check.NotNull(builder, nameof(builder));
 
             Builder = builder;
@@ -25,7 +25,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Builders
         /// <summary>
         /// Internal builder being used to configure the entity
         /// </summary>
-        InternalEntityBuilder IInfrastructure<InternalEntityBuilder>.Instance => Builder;
+        CypherInternalEntityBuilder IInfrastructure<CypherInternalEntityBuilder>.Instance => Builder;
 
         /// <summary>
         /// Entity being configured
@@ -42,24 +42,24 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Builders
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        public virtual EntityBuilder HasBaseType([CanBeNull] string name)
-            => new EntityBuilder(Builder.HasBaseType(name, ConfigurationSource.Explicit));
+        public virtual CypherEntityBuilder HasBaseType([CanBeNull] string name)
+            => new CypherEntityBuilder(Builder.HasBaseType(name, ConfigurationSource.Explicit));
 
         /// <summary>
         /// Set the base node of this entity (inheritance hierarchy)
         /// </summary>
         /// <param name="clrType"></param>
         /// <returns></returns>
-        public virtual EntityBuilder HasBaseType([CanBeNull] Type clrType)
-            => new EntityBuilder(Builder.HasBaseType(clrType, ConfigurationSource.Explicit));
+        public virtual CypherEntityBuilder HasBaseType([CanBeNull] Type clrType)
+            => new CypherEntityBuilder(Builder.HasBaseType(clrType, ConfigurationSource.Explicit));
 
     }
 
     /// <summary>
     /// Entity builder (<see cref="EntityTypeBuilder" />)
     /// </summary>
-    public class EntityBuilder<TEntity>: EntityBuilder where TEntity: class {
-        public EntityBuilder([NotNull] InternalEntityBuilder builder): base(builder) {
+    public class CypherEntityBuilder<TEntity>: CypherEntityBuilder where TEntity: class {
+        public CypherEntityBuilder([NotNull] CypherInternalEntityBuilder builder): base(builder) {
         }
 
     }

@@ -5,11 +5,11 @@ using JetBrains.Annotations;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 {
-    public abstract class InternalMetadataItemBuilder<TMetadata>: InternalMetadataBuilder<TMetadata>
+    public abstract class CypherInternalMetadataItemBuilder<TMetadata>: CypherInternalMetadataBuilder<TMetadata>
         where TMetadata: ConventionalAnnotatable {
-            protected InternalMetadataItemBuilder(
+            protected CypherInternalMetadataItemBuilder(
                 [NotNull] TMetadata metadata, 
-                [NotNull] InternalGraphBuilder graphBuilder
+                [NotNull] CypherInternalGraphBuilder graphBuilder
             ): base(metadata) {
                 GraphBuilder = graphBuilder;
             }
@@ -18,6 +18,6 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             /// Graph builder
             /// </summary>
             /// <returns></returns>
-            public override InternalGraphBuilder GraphBuilder { get; }
+            public override CypherInternalGraphBuilder GraphBuilder { get; }
         }
 }
