@@ -53,14 +53,68 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Builders
         public virtual CypherEntityBuilder HasBaseType([CanBeNull] Type clrType)
             => new CypherEntityBuilder(Builder.HasBaseType(clrType, ConfigurationSource.Explicit));
 
+        /// <summary>
+        /// Has One
+        /// </summary>
+        /// <param name="clrType"></param>
+        /// <param name="navigationName"></param>
+        /// <returns></returns>
+        public virtual CypherReferenceNavigationBuilder HasOne(
+            [NotNull] Type clrType, 
+            [CanBeNull] string navigationName = null
+        ) {
+            Check.NotNull(clrType, nameof(clrType));
+            Check.NullButNotEmpty(navigationName, nameof(navigationName));
+
+            CypherEntity relatedEntity = Builder.Metadata.FindInDefinitionPath(clrType) ??
+                Builder.GraphBuilder.Entity(clrType, ConfigurationSource.Explicit).Metadata;
+
+            return new CypherReferenceNavigationBuilder(
+                Builder.Metadata,
+                relatedEntity,
+                navigationName,
+                Builder.Navigation(
+                    relatedEntity.Builder, 
+                    navigationName, 
+                    ConfigurationSource.Explicit,
+                    setTargetAsPrincipal: Builder.Metadata == relatedEntity
+                )
+            );
+        }
+
     }
 
     /// <summary>
     /// Entity builder (<see cref="EntityTypeBuilder" />)
     /// </summary>
     public class CypherEntityBuilder<TEntity>: CypherEntityBuilder where TEntity: class {
-        public CypherEntityBuilder([NotNull] CypherInternalEntityBuilder builder): base(builder) {
+        public CypherEntityBuilder([NotNull] CypherInternalEntityBuilder builder)
+            : base(builder) {
         }
 
+        private CypherInternalEntityBuilder Builder => this.GetInfrastructure<CypherInternalEntityBuilder>();
+
+        /// <summary>
+        /// Set base type
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public new virtual CypherEntityBuilder<TEntity> HasBaseType([CanBeNull] string name)
+            => new CypherEntityBuilder<TEntity>(Builder.HasBaseType(name, ConfigurationSource.Explicit));
+
+        /// <summary>
+        /// Set base type
+        /// </summary>
+        /// <param name="entityType"></param>
+        /// <returns></returns>
+        public new virtual CypherEntityBuilder<TEntity> HasBaseType([CanBeNull] Type entityType)
+            => new CypherEntityBuilder<TEntity>(Builder.HasBaseType(entityType, ConfigurationSource.Explicit));
+
+        /// <summary>
+        /// Set base type
+        /// </summary>
+        /// <returns></returns>
+        public virtual CypherEntityBuilder<TEntity> HasBaseType<TBaseType>()
+            => HasBaseType(typeof(TBaseType));
     }
 }

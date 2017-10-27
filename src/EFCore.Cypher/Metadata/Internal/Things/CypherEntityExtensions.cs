@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore.Internal;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Internal
@@ -71,5 +72,16 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 
             return derivedTypes;
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <param name="targetType"></param>
+        /// <returns></returns>
+        public static CypherEntity FindInDefinitionPath(
+            [NotNull] this CypherEntity entity, 
+            [NotNull] Type targetType
+        ) => (CypherEntity)((IEntityType)entity).FindInDefinitionPath(targetType);
     }
 }

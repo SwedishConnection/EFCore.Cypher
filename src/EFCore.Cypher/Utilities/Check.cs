@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using JetBrains.Annotations;
+using Microsoft.EntityFrameworkCore.Internal;
 
 namespace Microsoft.EntityFrameworkCore.Utilities
 {
@@ -48,6 +49,19 @@ namespace Microsoft.EntityFrameworkCore.Utilities
                 NotEmpty(parameterName, nameof(parameterName));
 
                 throw e;
+            }
+
+            return value;
+        }
+
+        public static string NullButNotEmpty(string value, [InvokerParameterName] [NotNull] string parameterName)
+        {
+            if (!ReferenceEquals(value, null)
+                && value.Length == 0)
+            {
+                NotEmpty(parameterName, nameof(parameterName));
+
+                throw new ArgumentException(CoreStrings.ArgumentIsEmpty(parameterName));
             }
 
             return value;

@@ -404,6 +404,143 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         }
 
         /// <summary>
+        /// Define navigation (a relationship with property identifiers and no inverser property)
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <param name="navigationName"></param>
+        /// <param name="configurationSource"></param>
+        /// <param name="setTargetAsPrincipal"></param>
+        /// <returns></returns>
+        public virtual CypherInternalRelationshipBuilder Navigation(
+            [NotNull] CypherInternalEntityBuilder builder,
+            [CanBeNull] string navigationName,
+            ConfigurationSource configurationSource,
+            bool setTargetAsPrincipal = false
+        ) => Relationship(
+            Check.NotNull(builder, nameof(builder)),
+            PropertyIdentity.Create(navigationName),
+            null,
+            setTargetAsPrincipal,
+            configurationSource
+        );
+
+        /// <summary>
+        /// Define navigation (a relationship with property identifiers and no inverser property)
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <param name="navigationProperty"></param>
+        /// <param name="configurationSource"></param>
+        /// <param name="setTargetAsPrincipal"></param>
+        /// <returns></returns>
+        public virtual CypherInternalRelationshipBuilder Navigation(
+            [NotNull] CypherInternalEntityBuilder builder,
+            [CanBeNull] PropertyInfo navigationProperty,
+            ConfigurationSource configurationSource,
+            bool setTargetAsPrincipal = false
+        ) => Relationship(
+            Check.NotNull(builder, nameof(builder)),
+            PropertyIdentity.Create(navigationProperty),
+            null,
+            setTargetAsPrincipal,
+            configurationSource
+        );
+
+        /// <summary>
+        /// Define relationship
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <param name="navigationToTargetName"></param>
+        /// <param name="inverseNavigationName"></param>
+        /// <param name="configurationSource"></param>
+        /// <param name="setTargetAsPrincipal"></param>
+        /// <returns></returns>
+        public virtual CypherInternalRelationshipBuilder Relationship(
+            [NotNull] CypherInternalEntityBuilder builder,
+            [CanBeNull] string navigationToTargetName,
+            [CanBeNull] string inverseNavigationName,
+            ConfigurationSource configurationSource,
+            bool setTargetAsPrincipal = false
+        ) => Relationship(
+                Check.NotNull(builder, nameof(builder)),
+                PropertyIdentity.Create(navigationToTargetName),
+                PropertyIdentity.Create(inverseNavigationName),
+                setTargetAsPrincipal,
+                configurationSource);
+
+        /// <summary>
+        /// Define relationship
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <param name="navigationToTarget"></param>
+        /// <param name="inverseNavigation"></param>
+        /// <param name="configurationSource"></param>
+        /// <param name="setTargetAsPrincipal"></param>
+        /// <returns></returns>
+        public virtual CypherInternalRelationshipBuilder Relationship(
+            [NotNull] CypherInternalEntityBuilder builder,
+            [CanBeNull] PropertyInfo navigationToTarget,
+            [CanBeNull] PropertyInfo inverseNavigation,
+            ConfigurationSource configurationSource,
+            bool setTargetAsPrincipal = false
+        ) => Relationship(builder, navigationToTarget, inverseNavigation, configurationSource, setTargetAsPrincipal);
+
+        private CypherInternalRelationshipBuilder Relationship(
+            CypherInternalEntityBuilder builder,
+            PropertyIdentity? navigationToTarget,
+            PropertyIdentity? inverseNavigation,
+            bool setTargetAsPrincipal,
+            ConfigurationSource configurationSource,
+            bool? required = null
+        ) {
+            Check.NotNull(builder, nameof(builder));
+
+            var navigationProperty = navigationToTarget?.Property;
+            // when no inverse and the navigating property isn't null or assignable from this entity then swap direction
+            if (inverseNavigation is null && 
+                !(navigationProperty is null) && 
+                !navigationProperty.PropertyType.GetTypeInfo().IsAssignableFrom(builder.Metadata.ClrType.GetTypeInfo())) {
+                    return builder.Relationship(
+                        this, 
+                        null, 
+                        navigationToTarget, 
+                        setTargetAsPrincipal, 
+                        configurationSource, 
+                        required
+                    );
+            }
+
+            // TODO: Find current relationship builder
+            CypherInternalRelationshipBuilder existing = null;
+            if (existing != null) {
+
+            } 
+
+            CypherInternalRelationshipBuilder relationship = null; // TODO: shouldn't be null
+            using (var batcher = Metadata.Graph.CypherConventionDispatcher.StartBatch()) {
+                if (!(existing is null)) {
+                    relationship = existing;
+                } else {
+                    if (setTargetAsPrincipal || builder.Metadata.DefiningEntityType != Metadata) {
+
+                    }
+                }
+
+                if (!(relationship is null))
+                {
+                    // TODO: 
+                    //relationship = batcher.Run(relationship);
+                }
+            }
+
+            if (relationship is null) {
+                
+                return null;
+            }
+
+            return relationship;
+        }
+
+        /// <summary>
         /// Remove property
         /// </summary>
         /// <param name="property"></param>
