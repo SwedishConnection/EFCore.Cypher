@@ -19,6 +19,16 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions
 
         public virtual IList<ICypherPropertyAddedConvention> PropertyAddedConventions { get; } = new List<ICypherPropertyAddedConvention>();
 
-        public virtual IList<ICypherEntityIgnoredConvention> EntitIgnoredConventions { get; } = new List<ICypherEntityIgnoredConvention>();
-    }
+        public virtual IList<ICypherEntityIgnoredConvention> EntityIgnoredConventions { get; } = new List<ICypherEntityIgnoredConvention>();
+
+        public virtual IList<ICypherForeignKeyUniqueChangedConvention> ForeignKeyUniqueChangedConventions { get; } = new List<ICypherForeignKeyUniqueChangedConvention>();
+
+        public virtual IList<ICypherPropertyNullabilityChangedConvention> PropertyNullabilityChangedConventions { get; } = new List<ICypherPropertyNullabilityChangedConvention>();
+
+        public virtual IList<ICypherForeignKeyOwnershipChangedConvention> ForeignKeyOwnershipChangedConventions { get; } = new List<ICypherForeignKeyOwnershipChangedConvention>();
+
+        public virtual IList<ICypherNavigationRemovedConvention> NavigationRemovedConventions { get; } = new List<ICypherNavigationRemovedConvention>();
+
+        public virtual IList<ICypherNavigationAddedConvention> NavigationAddedConventions { get; } = new List<ICypherNavigationAddedConvention>();
+     }
 }

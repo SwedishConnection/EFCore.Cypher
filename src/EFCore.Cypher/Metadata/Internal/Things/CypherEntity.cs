@@ -760,5 +760,117 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
                         duplicateNavigation.DeclaringEntityType.DisplayName()));
             }
         }
+
+        /// <summary>
+        /// Remove navigation
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public virtual CypherNavigation RemoveNavigation([NotNull] string name) {
+            Check.NotEmpty(name, nameof(name));
+
+            var navigation = FindDeclaredNavigation(name);
+            if (navigation is null) {
+                return null;
+            }
+
+            _navigations.Remove(name);
+            PropertyMetadataChanged();
+
+            return navigation;
+        }
+
+        /// <summary>
+        /// Add navigation
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="foreignKey"></param>
+        /// <param name="pointsToPrincipal"></param>
+        /// <returns></returns>
+        public virtual CypherNavigation AddNavigation(
+            [NotNull] string name,
+            [NotNull] CypherForeignKey foreignKey,
+            bool pointsToPrincipal
+        ) {
+            Check.NotEmpty(name, nameof(name));
+            Check.NotNull(foreignKey, nameof(foreignKey));
+
+            return AddNavigation(new PropertyIdentity(name), foreignKey, pointsToPrincipal);
+        }
+
+        /// <summary>
+        /// Add navigation
+        /// </summary>
+        /// <param name="navigationProperty"></param>
+        /// <param name="foreignKey"></param>
+        /// <param name="pointsToPrincipal"></param>
+        /// <returns></returns>
+        public virtual CypherNavigation AddNavigation(
+            [NotNull] PropertyInfo navigationProperty,
+            [NotNull] CypherForeignKey foreignKey,
+            bool pointsToPrincipal
+        ) {
+            Check.NotNull(navigationProperty, nameof(navigationProperty));
+            Check.NotNull(foreignKey, nameof(foreignKey));
+
+            return AddNavigation(new PropertyIdentity(navigationProperty), foreignKey, pointsToPrincipal);
+        }
+
+        /// <summary>
+        /// Add navigation
+        /// </summary>
+        /// <param name="identity"></param>
+        /// <param name="foreignKey"></param>
+        /// <param name="pointsToPrincipal"></param>
+        /// <returns></returns>
+        private CypherNavigation AddNavigation(
+            PropertyIdentity identity,
+            CypherForeignKey foreignKey,
+            bool pointsToPrincipal
+        ) {
+            var name = identity.Name;
+            var duplicateNavigation = FindNavigationsInHierarchy(name).FirstOrDefault();
+
+            if (!(duplicateNavigation is null)) {
+                if (duplicateNavigation.ForeignKey != foreignKey) {
+                    throw new InvalidOperationException(
+                        CoreStrings.NavigationForWrongForeignKey(
+                            duplicateNavigation.Name,
+                            duplicateNavigation.DeclaringEntityType.DisplayName(),
+                            Property.Format(foreignKey.Properties),
+                            Property.Format(duplicateNavigation.ForeignKey.Properties)));
+                }
+
+                throw new InvalidOperationException(
+                    CoreStrings.DuplicateNavigation(
+                        name, 
+                        this.DisplayName(), 
+                        duplicateNavigation.DeclaringEntityType.DisplayName()
+                    )
+                );
+            }
+
+            var duplicateProperty = FindPropertiesInHierarchy(name).FirstOrDefault();
+            if (!(duplicateProperty is null)) {
+                throw new InvalidOperationException(
+                    CoreStrings.ConflictingProperty(
+                        name, this.DisplayName(),
+                        duplicateProperty.DeclaringEntityType.DisplayName()
+                    )
+                );
+            }
+
+            var navigationProperty = identity.Property;
+            if (!(ClrType is null)) {
+
+            }
+
+            var navigation = new CypherNavigation(name, identity.Property, null, foreignKey);
+
+            _navigations.Add(name, navigation);
+            PropertyMetadataChanged();
+
+            return navigation;
+        }
     }
 }

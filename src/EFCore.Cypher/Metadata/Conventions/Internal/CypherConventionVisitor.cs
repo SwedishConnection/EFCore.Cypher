@@ -44,6 +44,16 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
             public virtual OnBaseEntityChangedNode VisitOnBaseEntityChanged(OnBaseEntityChangedNode node) => node;
 
             public virtual OnPropertyAddedNode VisitOnPropertyAdded(OnPropertyAddedNode node) => node;
+
+            public virtual OnForeignKeyUniqueChangedNode VisitOnForeignKeyUniqueChanged(OnForeignKeyUniqueChangedNode node) => node;
+
+            public virtual OnPropertyNullableChangedNode VisitOnPropertyNullableChanged(OnPropertyNullableChangedNode node) => node;
+
+            public virtual OnForeignKeyOwnershipChangedNode VisitOnForeignKeyOwnershipChanged(OnForeignKeyOwnershipChangedNode node) => node;
+
+            public virtual OnNavigationRemovedNode VisitOnNavigationRemoved(OnNavigationRemovedNode node) => node;
+
+            public virtual OnNavigationAddedNode VisitOnNavigationAdded(OnNavigationAddedNode node) => node;
         }
 
         private class RunVisitor: CypherConventionVisitor {
@@ -74,6 +84,31 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
             public override OnPropertyAddedNode VisitOnPropertyAdded(OnPropertyAddedNode node)
             {
                 Dispatcher._immediateScope.OnPropertyAdded(node.PropertyBuilder);
+                return null;
+            }
+
+            public override OnForeignKeyUniqueChangedNode VisitOnForeignKeyUniqueChanged(OnForeignKeyUniqueChangedNode node) {
+                Dispatcher._immediateScope.OnForeignKeyUniqueChanged(node.RelationshipBuilder);
+                return null;
+            }
+
+            public override OnPropertyNullableChangedNode VisitOnPropertyNullableChanged(OnPropertyNullableChangedNode node) {
+                Dispatcher._immediateScope.OnPropertyNullableChanged(node.PropertyBuilder);
+                return null;
+            }
+
+            public override OnForeignKeyOwnershipChangedNode VisitOnForeignKeyOwnershipChanged(OnForeignKeyOwnershipChangedNode node) {
+                Dispatcher._immediateScope.OnForeignKeyOwnershipChanged(node.RelationshipBuilder);
+                return null;
+            }
+
+            public override OnNavigationRemovedNode VisitOnNavigationRemoved(OnNavigationRemovedNode node) {
+                Dispatcher._immediateScope.OnNavigationRemoved(node.StartEntityBuilder, node.EndEntityBuilder, node.Name, node.PropertyInfo);
+                return null;
+            }
+
+            public override OnNavigationAddedNode VisitOnNavigationAdded(OnNavigationAddedNode node) {
+                Dispatcher._immediateScope.OnNavigationAdded(node.RelationshipBuilder, node.Navigation);
                 return null;
             }
         }

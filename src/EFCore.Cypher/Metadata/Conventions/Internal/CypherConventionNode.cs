@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Reflection;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
@@ -144,6 +145,61 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
                 Add(new OnPropertyAddedNode(propertyBuilder));
                 return propertyBuilder;
             }
+
+            /// <summary>
+            /// Foreign key unique changed
+            /// </summary>
+            /// <param name="builder"></param>
+            /// <returns></returns>
+            public virtual CypherInternalRelationshipBuilder OnForeignKeyUniqueChanged([NotNull] CypherInternalRelationshipBuilder builder) {
+                Add(new OnForeignKeyUniqueChangedNode(builder));
+                return builder;
+            }
+
+            /// <summary>
+            /// Property nullable changed
+            /// </summary>
+            /// <param name="builder"></param>
+            /// <returns></returns>
+            public virtual bool OnPropertyNullableChanged([NotNull] CypherInternalPropertyBuilder builder) {
+                Add(new OnPropertyNullableChangedNode(builder));
+                return true;
+            }
+
+            /// <summary>
+            /// Foreign key ownership changed
+            /// </summary>
+            /// <param name="builder"></param>
+            /// <returns></returns>
+            public virtual CypherInternalRelationshipBuilder OnForeignKeyOwnershipChanged([NotNull] CypherInternalRelationshipBuilder builder) {
+                Add(new OnForeignKeyOwnershipChangedNode(builder));
+                return builder;
+            }
+
+            /// <summary>
+            /// Navigation removed
+            /// </summary>
+            /// <param name="startEntityBuilder"></param>
+            /// <param name="endEntityBuilder"></param>
+            /// <param name="name"></param>
+            /// <param name="propertyInfo"></param>
+            public virtual void OnNavigationRemoved(
+                [NotNull] CypherInternalEntityBuilder startEntityBuilder,
+                [NotNull] CypherInternalEntityBuilder endEntityBuilder,
+                [NotNull] string name,
+                [CanBeNull] PropertyInfo propertyInfo
+            ) => Add(new OnNavigationRemovedNode(startEntityBuilder, endEntityBuilder, name, propertyInfo));
+
+            /// <summary>
+            /// When navigation added
+            /// </summary>
+            /// <param name="builder"></param>
+            /// <param name="navigation"></param>
+            /// <returns></returns>
+            public virtual CypherInternalRelationshipBuilder OnNavigationAdded([NotNull] CypherInternalRelationshipBuilder builder, [NotNull] CypherNavigation navigation) {
+                Add(new OnNavigationAddedNode(builder, navigation));
+                return builder;
+            }
         }
 
         /// <summary>
@@ -222,7 +278,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
             /// <param name="type"></param>
             /// <returns></returns>
             public override bool OnEntityIgnored(CypherInternalGraphBuilder builder, string name, Type type) {
-                foreach (var convention in _cypherConventionSet.EntitIgnoredConventions) {
+                foreach (var convention in _cypherConventionSet.EntityIgnoredConventions) {
                     if (!convention.Apply(builder, name, type)) {
                         return false;
                     }
@@ -255,6 +311,108 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
                 }
 
                 return propertyBuilder;
+            }
+
+            /// <summary>
+            /// When foreign key unique change
+            /// </summary>
+            /// <param name="builder"></param>
+            /// <returns></returns>
+            public override CypherInternalRelationshipBuilder OnForeignKeyUniqueChanged(CypherInternalRelationshipBuilder builder) {
+                if (builder.Metadata.Builder is null) {
+                    return null;
+                }
+
+                foreach (var convention in _cypherConventionSet.ForeignKeyUniqueChangedConventions) {
+                    builder = convention.Apply(builder);
+
+                    if (builder?.Metadata.Builder is null) {
+                        return null;
+                    }
+                }
+
+                return builder;
+            }
+
+            /// <summary>
+            /// When property nullable changed
+            /// </summary>
+            /// <param name="builder"></param>
+            /// <returns></returns>
+            public override bool OnPropertyNullableChanged(CypherInternalPropertyBuilder builder) {
+                if (builder.Metadata.Builder is null || builder.Metadata.DeclaringEntityType.Builder == null) {
+                    return false;
+                }
+
+                foreach (var convention in _cypherConventionSet.PropertyNullabilityChangedConventions) {
+                    if (!convention.Apply(builder)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            /// <summary>
+            /// When foreign key ownership changed
+            /// </summary>
+            /// <param name="builder"></param>
+            /// <returns></returns>
+            public override CypherInternalRelationshipBuilder OnForeignKeyOwnershipChanged(CypherInternalRelationshipBuilder builder) {
+                if (builder.Metadata.Builder == null) {
+                    return null;
+                }
+
+                foreach (var convention in _cypherConventionSet.ForeignKeyOwnershipChangedConventions) {
+                    builder = convention.Apply(builder);
+
+                    if (builder?.Metadata.Builder == null) {
+                        return null;
+                    }
+                }
+
+                return builder;
+            }
+
+            /// <summary>
+            /// When navigation removed
+            /// </summary>
+            /// <param name="startEntityBuilder"></param>
+            /// <param name="endEntityBuilder"></param>
+            /// <param name="name"></param>
+            /// <param name="propertyInfo"></param>
+            public override void OnNavigationRemoved(CypherInternalEntityBuilder startEntityBuilder, CypherInternalEntityBuilder endEntityBuilder, string name, PropertyInfo propertyInfo) {
+                if (startEntityBuilder.Metadata.Builder is null) {
+                    return;
+                }
+
+                foreach (var convention in _cypherConventionSet.NavigationRemovedConventions) {
+                    if (convention.Apply(startEntityBuilder, endEntityBuilder, name, propertyInfo)) {
+                        break;
+                    }
+                }
+            }
+
+            /// <summary>
+            /// When navigation added
+            /// </summary>
+            /// <param name="relationshipBuilder"></param>
+            /// <param name="navigation"></param>
+            /// <returns></returns>
+            public override CypherInternalRelationshipBuilder OnNavigationAdded(CypherInternalRelationshipBuilder relationshipBuilder, CypherNavigation navigation) {
+                if (relationshipBuilder.Metadata.Builder is null) {
+                    return null;
+                }
+
+                foreach (var convention in _cypherConventionSet.NavigationAddedConventions) {
+                    relationshipBuilder = convention.Apply(relationshipBuilder, navigation);
+
+                    if (relationshipBuilder?.Metadata.Builder is null) {
+                        return null;
+                    }
+                }
+
+                return relationshipBuilder;
             }
         }
 
@@ -322,6 +480,89 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
             public CypherInternalPropertyBuilder PropertyBuilder { get; }
 
             public override CypherConventionNode Accept(CypherConventionVisitor visitor) => visitor.VisitOnPropertyAdded(this);
+        }
+
+        /// <summary>
+        /// Delayed foreign key unique changed
+        /// </summary>
+        private class OnForeignKeyUniqueChangedNode : CypherConventionNode {
+            public OnForeignKeyUniqueChangedNode(CypherInternalRelationshipBuilder builder) {
+                RelationshipBuilder = builder;
+            }
+
+            public CypherInternalRelationshipBuilder RelationshipBuilder { get; }
+
+            public override CypherConventionNode Accept(CypherConventionVisitor visitor) => visitor.VisitOnForeignKeyUniqueChanged(this);
+        }
+
+        /// <summary>
+        /// Delayed property nullable changed
+        /// </summary>
+        private class OnPropertyNullableChangedNode : CypherConventionNode {
+            public OnPropertyNullableChangedNode(CypherInternalPropertyBuilder builder) {
+                PropertyBuilder = builder;
+            }
+
+            public CypherInternalPropertyBuilder PropertyBuilder { get; }
+
+            public override CypherConventionNode Accept(CypherConventionVisitor visitor) => visitor.VisitOnPropertyNullableChanged(this);
+        }
+
+        /// <summary>
+        /// Delayed foreign key ownership changed
+        /// </summary>
+        private class OnForeignKeyOwnershipChangedNode: CypherConventionNode {
+            public OnForeignKeyOwnershipChangedNode(CypherInternalRelationshipBuilder builder) {
+                RelationshipBuilder = builder;
+            }
+
+            public CypherInternalRelationshipBuilder RelationshipBuilder { get; }
+
+            public override CypherConventionNode Accept(CypherConventionVisitor visitor) => visitor.VisitOnForeignKeyOwnershipChanged(this);
+        }
+
+        /// <summary>
+        /// Delayed navigation removed
+        /// </summary>
+        private class OnNavigationRemovedNode: CypherConventionNode {
+            public OnNavigationRemovedNode(
+                CypherInternalEntityBuilder startEntityBuilder,
+                CypherInternalEntityBuilder endEntityBuilder,
+                string name,
+                PropertyInfo propertyInfo
+            ) {
+                StartEntityBuilder = startEntityBuilder;
+                EndEntityBuilder = endEntityBuilder;
+                Name = name;
+                PropertyInfo = propertyInfo;
+            } 
+
+            public CypherInternalEntityBuilder StartEntityBuilder { get; }
+
+            public CypherInternalEntityBuilder EndEntityBuilder { get; }
+
+            public string Name { get; }
+
+            public PropertyInfo PropertyInfo { get; }
+
+            public override CypherConventionNode Accept(CypherConventionVisitor visitor) => visitor.VisitOnNavigationRemoved(this);
+        }
+
+        /// <summary>
+        /// Delayed navigation added
+        /// </summary>
+        private class OnNavigationAddedNode: CypherConventionNode {
+
+            public OnNavigationAddedNode(CypherInternalRelationshipBuilder builder, CypherNavigation navigation) {
+                RelationshipBuilder = builder;
+                Navigation = navigation;
+            }
+
+            public CypherInternalRelationshipBuilder RelationshipBuilder { get; }
+
+            public CypherNavigation Navigation { get; }
+
+            public override CypherConventionNode Accept(CypherConventionVisitor visitor) => visitor.VisitOnNavigationAdded(this);
         }
     }
 }

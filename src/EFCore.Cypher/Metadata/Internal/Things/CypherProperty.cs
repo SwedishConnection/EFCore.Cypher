@@ -12,9 +12,13 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 {
     public class CypherProperty : PropertyBase, IMutableProperty
     {
+        private bool? _isNullable;
+
         private ConfigurationSource _configurationSource;
 
         private ConfigurationSource? _typeConfigurationSource;
+
+        private ConfigurationSource? _isNullableConfigurationSource;
 
         private PropertyIndexes _indexes;
 
@@ -136,7 +140,52 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             }
         }
 
-        public bool IsNullable { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
+        /// <summary>
+        /// Is nullable
+        /// </summary>
+        /// <returns></returns>
+        public virtual bool IsNullable
+        {
+            get => _isNullable ?? ClrType.IsNullableType();
+            set => SetIsNullable(value, ConfigurationSource.Explicit);
+        }
+
+        /// <summary>
+        /// Set is nullable
+        /// </summary>
+        /// <param name="nullable"></param>
+        /// <param name="configurationSource"></param>
+        public virtual void SetIsNullable(bool nullable, ConfigurationSource configurationSource) {
+            if (nullable) {
+                if (!ClrType.IsNullableType()) {
+                    throw new InvalidOperationException(CoreStrings.CannotBeNullable(Name, DeclaringEntityType.DisplayName(), ClrType.ShortDisplayName()));
+                }
+            }
+
+            UpdateIsNullableConfigurationSource(configurationSource);
+
+            var isChanging = IsNullable != nullable;
+            _isNullable = nullable;
+
+            if (isChanging) {
+                DeclaringEntityType.Graph.CypherConventionDispatcher.OnPropertyNullableChanged(Builder);
+            }
+        }
+
+        /// <summary>
+        /// Get is nullable configuration source
+        /// </summary>
+        /// <returns></returns>
+        public virtual ConfigurationSource? GetIsNullableConfigurationSource() => _isNullableConfigurationSource;
+
+        /// <summary>
+        /// Update is nullable configuration source
+        /// </summary>
+        /// <param name="configurationSource"></param>
+        private void UpdateIsNullableConfigurationSource(ConfigurationSource configurationSource)
+
+            => _isNullableConfigurationSource = configurationSource.Max(_isNullableConfigurationSource);
+
         public ValueGenerated ValueGenerated { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
         public PropertySaveBehavior BeforeSaveBehavior { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
         public PropertySaveBehavior AfterSaveBehavior { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }

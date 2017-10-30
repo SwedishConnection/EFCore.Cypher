@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Reflection;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
@@ -61,8 +62,66 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
         public virtual CypherInternalEntityBuilder OnBaseEntityChanged([NotNull] CypherInternalEntityBuilder builder, [CanBeNull] CypherEntity previous)
             => _scope.OnBaseEntityChanged(Check.NotNull(builder, nameof(builder)), previous);
 
+        /// <summary>
+        /// Property added
+        /// </summary>
+        /// <param name="propertyBuilder"></param>
+        /// <returns></returns>
         public virtual CypherInternalPropertyBuilder OnPropertyAdded([NotNull] CypherInternalPropertyBuilder propertyBuilder)
             => _scope.OnPropertyAdded(Check.NotNull(propertyBuilder, nameof(propertyBuilder)));
+
+        /// <summary>
+        /// Foreign key unqiue changed
+        /// </summary>
+        /// <param name="relationshipBuilder"></param>
+        /// <returns></returns>
+        public virtual CypherInternalRelationshipBuilder OnForeignKeyUniqueChanged([NotNull] CypherInternalRelationshipBuilder relationshipBuilder)
+            => _scope.OnForeignKeyUniqueChanged(Check.NotNull(relationshipBuilder, nameof(relationshipBuilder)));
+
+        /// <summary>
+        /// Property nullable changed
+        /// </summary>
+        /// <param name="propertyBuilder"></param>
+        /// <returns></returns>
+        public virtual bool OnPropertyNullableChanged([NotNull] CypherInternalPropertyBuilder propertyBuilder) 
+            => _scope.OnPropertyNullableChanged(Check.NotNull(propertyBuilder, nameof(propertyBuilder)));
+
+        /// <summary>
+        /// Foreign key ownership changed
+        /// </summary>
+        /// <param name="relationshipBuilder"></param>
+        /// <returns></returns>
+        public virtual CypherInternalRelationshipBuilder OnForeignKeyOwnershipChanged([NotNull] CypherInternalRelationshipBuilder relationshipBuilder)
+            => _scope.OnForeignKeyOwnershipChanged(Check.NotNull(relationshipBuilder, nameof(relationshipBuilder)));
+
+        /// <summary>
+        /// Navigation removed
+        /// </summary>
+        /// <param name="startEntityBuilder"></param>
+        /// <param name="endEntityBuilder"></param>
+        /// <param name="name"></param>
+        /// <param name="propertyInfo"></param>
+        /// <returns></returns>
+        public virtual void OnNavigationRemoved(
+            [NotNull] CypherInternalEntityBuilder startEntityBuilder,
+            [NotNull] CypherInternalEntityBuilder endEntityBuilder,
+            [NotNull] string name,
+            [CanBeNull] PropertyInfo propertyInfo
+        ) => _scope.OnNavigationRemoved(
+            Check.NotNull(startEntityBuilder, nameof(startEntityBuilder)),
+            Check.NotNull(endEntityBuilder, nameof(endEntityBuilder)),
+            Check.NotNull(name, nameof(name)),
+            propertyInfo
+        );
+
+        /// <summary>
+        /// Navigation added
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <param name="navigation"></param>
+        /// <returns></returns>
+        public virtual CypherInternalRelationshipBuilder OnNavigationAdded([NotNull] CypherInternalRelationshipBuilder builder, [NotNull] CypherNavigation navigation)
+            => _scope.OnNavigationAdded(Check.NotNull(builder, nameof(builder)), Check.NotNull(navigation, nameof(navigation)));
 
         /// <summary>
         /// Started delayed scope

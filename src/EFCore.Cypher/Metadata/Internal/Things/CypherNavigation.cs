@@ -15,7 +15,8 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         public CypherNavigation(
             [NotNull] string name,
             [CanBeNull] PropertyInfo propertyInfo,
-            [CanBeNull] FieldInfo fieldInfo
+            [CanBeNull] FieldInfo fieldInfo,
+            [NotNull] CypherForeignKey foreignKey
         ): base(name, propertyInfo, fieldInfo) {
             
         }
@@ -72,6 +73,112 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
                     NonCapturingLazyInitializer.EnsureInitialized(ref _indexes, value);
                 }
             }
+        }
+
+        /// <summary>
+        /// Is compatible
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="propertyInfo"></param>
+        /// <param name="start"></param>
+        /// <param name="end"></param>
+        /// <param name="shouldBeCollection"></param>
+        /// <param name="shouldThrow"></param>
+        /// <returns></returns>
+        public static bool IsCompatible(
+            [NotNull] string name,
+            [CanBeNull] PropertyInfo propertyInfo,
+            [NotNull] CypherEntity start,
+            [NotNull] CypherEntity end,
+            bool? shouldBeCollection,
+            bool shouldThrow
+        ) {
+            var endClrType = end.ClrType;
+            if (endClrType is null) {
+                if (shouldThrow) {
+                    throw new InvalidOperationException(
+                        CoreStrings.NavigationToShadowEntity(
+                            name, 
+                            start.DisplayName(), 
+                            end.DisplayName()
+                        )
+                    );
+                }
+
+                return false;
+            }
+
+            return propertyInfo is null 
+                || IsCompatible(propertyInfo, start.ClrType, endClrType, shouldBeCollection, shouldThrow);
+        }
+
+        /// <summary>
+        /// Is compatible
+        /// </summary>
+        /// <param name="propertyInfo"></param>
+        /// <param name="startClrType"></param>
+        /// <param name="endClrType"></param>
+        /// <param name="shouldBeCollection"></param>
+        /// <param name="shouldThrow"></param>
+        /// <returns></returns>
+        public static bool IsCompatible(
+            [NotNull] PropertyInfo propertyInfo,
+            [NotNull] Type startClrType,
+            [NotNull] Type endClrType,
+            bool? shouldBeCollection,
+            bool shouldThrow
+        ) {
+            if (!propertyInfo.DeclaringType.GetTypeInfo().IsAssignableFrom(startClrType.GetTypeInfo())) {
+                if (shouldThrow) {
+                    throw new InvalidOperationException(
+                        CoreStrings.NoClrNavigation(
+                            propertyInfo.Name, 
+                            startClrType.ShortDisplayName()
+                        )
+                    );
+                }
+
+                return false;
+            }
+
+            var navigationEndClrType = propertyInfo.PropertyType.TryGetSequenceType();
+            if (shouldBeCollection == false
+                || navigationEndClrType is null
+                || !navigationEndClrType.GetTypeInfo().IsAssignableFrom(endClrType.GetTypeInfo()))
+            {
+                if (shouldBeCollection == true)
+                {
+                    if (shouldThrow)
+                    {
+                        throw new InvalidOperationException(
+                            CoreStrings.NavigationCollectionWrongClrType(
+                                propertyInfo.Name,
+                                startClrType.ShortDisplayName(),
+                                propertyInfo.PropertyType.ShortDisplayName(),
+                                endClrType.ShortDisplayName()
+                            )
+                        );
+                    }
+                    return false;
+                }
+
+                if (!propertyInfo.PropertyType.GetTypeInfo().IsAssignableFrom(endClrType.GetTypeInfo()))
+                {
+                    if (shouldThrow)
+                    {
+                        throw new InvalidOperationException(
+                            CoreStrings.NavigationSingleWrongClrType(
+                                propertyInfo.Name,
+                                startClrType.ShortDisplayName(),
+                                propertyInfo.PropertyType.ShortDisplayName(),
+                                endClrType.ShortDisplayName()));
+                    }
+
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }

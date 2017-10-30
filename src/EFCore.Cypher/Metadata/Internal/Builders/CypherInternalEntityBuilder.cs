@@ -520,6 +520,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
                 if (!(existing is null)) {
                     relationship = existing;
                 } else {
+                    // if target and this entity isn't defining the passed builder's entity
                     if (setTargetAsPrincipal || builder.Metadata.DefiningEntityType != Metadata) {
 
                     }
