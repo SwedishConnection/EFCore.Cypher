@@ -4,15 +4,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore.Internal;
+using Microsoft.EntityFrameworkCore.Utilities;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 {
     public static class CypherEntityExtensions {
 
         /// <summary>
-        /// Assert (i.e. throw if necessary) that the entity can be removed
+        /// Throw if necessary that the entity can be removed (originally an instance member)
         /// </summary>
         /// <param name="entity"></param>
         public static void AssertCanRemove(this CypherEntity entity) {
@@ -31,7 +33,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         }
 
         /// <summary>
-        /// Does entity inherit from the other entity
+        /// Does entity inherit from another entity (originally an instance member)
         /// </summary>
         /// <param name="entity"></param>
         /// <param name="other"></param>
@@ -50,31 +52,15 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         }
 
         /// <summary>
-        /// Dervied entities
+        /// Find defining navigation (concrete)
         /// </summary>
         /// <param name="entity"></param>
         /// <returns></returns>
-        public static IEnumerable<CypherEntity> GetDerivedTypes(this CypherEntity entity)
-        {
-            var derivedTypes = new List<CypherEntity>();
-            var type = entity;
-            var currentTypeIndex = 0;
-
-            while (type != null)
-            {
-                derivedTypes.AddRange(type.GetDirectlyDerivedTypes());
-                type = derivedTypes.Count > currentTypeIndex
-                    ? derivedTypes[currentTypeIndex]
-                    : null;
-
-                currentTypeIndex++;
-            }
-
-            return derivedTypes;
-        }
+        public static CypherNavigation FindDefiningNavigation([NotNull] this CypherEntity entity)
+            => (CypherNavigation)((IEntityType)entity).FindDefiningNavigation();
 
         /// <summary>
-        /// 
+        /// Find in definitipm path (concrete)
         /// </summary>
         /// <param name="entity"></param>
         /// <param name="targetType"></param>
@@ -83,5 +69,38 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             [NotNull] this CypherEntity entity, 
             [NotNull] Type targetType
         ) => (CypherEntity)((IEntityType)entity).FindInDefinitionPath(targetType);
+
+        /// <summary>
+        /// Least derived type (concrete)
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <param name="other"></param>
+        /// <returns></returns>
+        public static CypherEntity LeastDerivedType([NotNull] this CypherEntity entity, [NotNull] CypherEntity other)
+            => (CypherEntity)((IEntityType)entity).LeastDerivedType(other);
+
+        /// <summary>
+        /// Property counts (concrete)
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <returns></returns>
+        public static PropertyCounts GetCounts([NotNull] this CypherEntity entity)
+            => entity.Counts;
+
+        /// <summary>
+        /// Declared keys (concrete)
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <returns></returns>
+        public static IEnumerable<IKey> GetDeclaredKeys([NotNull] this CypherEntity entity)
+            => entity.GetDeclaredKeys();
+
+        /// <summary>
+        /// Declared foreign keys (concrete)
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <returns></returns>
+        public static IEnumerable<IForeignKey> GetDeclaredForeignKeys([NotNull] this CypherEntity entity)
+            => entity.GetDeclaredForeignKeys();
     }
 }

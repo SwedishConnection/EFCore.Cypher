@@ -20,30 +20,63 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
     {
         private CypherEntity _baseType;
 
+        private CypherKey _primaryKey;
+
         private ConfigurationSource? _baseTypeConfigurationSource;
 
+         private ConfigurationSource? _primaryKeyConfigurationSource;
+
         private readonly SortedDictionary<string, CypherProperty> _properties;
+
+        private readonly SortedSet<CypherForeignKey> _foreignKeys
+            = new SortedSet<CypherForeignKey>(ForeignKeyComparer.Instance);
 
         private readonly SortedDictionary<string, CypherNavigation> _navigations
             = new SortedDictionary<string, CypherNavigation>(StringComparer.Ordinal);
 
         private PropertyCounts _propertyCounts;
 
-
-        public CypherEntity([NotNull] string name, [NotNull] CypherGraph graph, ConfigurationSource configurationSource)
-            : base(name, graph, configurationSource) 
+        /// <summary>
+        /// Construct by name
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="graph"></param>
+        /// <param name="configurationSource"></param>
+        public CypherEntity(
+            [NotNull] string name, 
+            [NotNull] CypherGraph graph, 
+            ConfigurationSource configurationSource
+        ) : base(name, graph, configurationSource) 
         {
             _properties = new SortedDictionary<string, CypherProperty>(new CypherPropertyComparer(this));
             Builder = new CypherInternalEntityBuilder(this, graph.Builder);
         }
 
-        public CypherEntity([NotNull] Type clrType, [NotNull] CypherGraph graph, ConfigurationSource configurationSource)
-            : base(clrType, graph, configurationSource)
+        /// <summary>
+        /// Construct by Clr type
+        /// </summary>
+        /// <param name="clrType"></param>
+        /// <param name="graph"></param>
+        /// <param name="configurationSource"></param>
+        public CypherEntity(
+            [NotNull] Type clrType, 
+            [NotNull] CypherGraph graph, 
+            ConfigurationSource configurationSource
+        ) : base(clrType, graph, configurationSource)
         {
             _properties = new SortedDictionary<string, CypherProperty>(new CypherPropertyComparer(this));
             Builder = new CypherInternalEntityBuilder(this, graph.Builder);
         }
 
+        /// <summary>
+        /// Construct with defining navigation name
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="graph"></param>
+        /// <param name="definingNavigationName"></param>
+        /// <param name="definingEntity"></param>
+        /// <param name="configurationSource"></param>
+        /// <returns></returns>
         public CypherEntity(
             [NotNull] string name,
             [NotNull] CypherGraph graph,
@@ -56,6 +89,15 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             DefiningEntityType = definingEntity;
         }
 
+        /// <summary>
+        /// Construct with defining navigation entity
+        /// </summary>
+        /// <param name="clrType"></param>
+        /// <param name="graph"></param>
+        /// <param name="definingNavigationName"></param>
+        /// <param name="definingEntity"></param>
+        /// <param name="configurationSource"></param>
+        /// <returns></returns>
         public CypherEntity(
             [NotNull] Type clrType,
             [NotNull] CypherGraph graph,
@@ -83,12 +125,12 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         public virtual CypherEntity BaseType => _baseType;
 
         /// <summary>
-        /// Base type (read)
+        /// Read-only base type 
         /// </summary>
         IEntityType IEntityType.BaseType => _baseType;
 
         /// <summary>
-        /// Base type (mutable)
+        /// Mutable base type
         /// </summary>
         /// <returns></returns>
         IMutableEntityType IMutableEntityType.BaseType {
@@ -226,12 +268,15 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
                     );
                 }
 
-                PropertyMetadataChanged();
-                UpdateBaseTypeConfigurationSource(configurationSource);
-                entity?.UpdateBaseTypeConfigurationSource(configurationSource);
-
-                Graph.CypherConventionDispatcher.OnBaseEntityChanged(Builder, originalBaseType);
+                _baseType = entity;
+                _baseType._directlyDerivedTypes.Add(this);
             }
+
+            PropertyMetadataChanged();
+            UpdateBaseTypeConfigurationSource(configurationSource);
+            entity?.UpdateBaseTypeConfigurationSource(configurationSource);
+
+            Graph.CypherConventionDispatcher.OnBaseEntityChanged(Builder, originalBaseType);
         }
 
         /// <summary>
@@ -248,7 +293,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             => _baseTypeConfigurationSource = configurationSource.Max(_baseTypeConfigurationSource);
 
         /// <summary>
-        /// Derived types
+        /// Derived types (shadows any extension method)
         /// </summary>
         /// <returns></returns>
         public virtual IEnumerable<CypherEntity> GetDerivedTypes()
@@ -284,15 +329,170 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <returns></returns>
         private readonly SortedSet<CypherEntity> _directlyDerivedTypes = new SortedSet<CypherEntity>(EntityTypePathComparer.Instance);
 
+        public virtual CypherForeignKey AddForeignKey(
+            [NotNull] IReadOnlyList<CypherProperty> properties,
+            [NotNull] CypherEntity principalEntity,
+            ConfigurationSource? configurationSource = ConfigurationSource.Explicit
+        ) {
+            // TODO: 
+            throw new NotImplementedException();
+        }
+
         /// <summary>
-        /// Invalid operation
+        /// Add foreign key (ignores the principle key)
         /// </summary>
         /// <param name="properties"></param>
         /// <param name="principalKey"></param>
         /// <param name="principalEntityType"></param>
         /// <returns></returns>
-        public IMutableForeignKey AddForeignKey(IReadOnlyList<IMutableProperty> properties, IMutableKey principalKey, IMutableEntityType principalEntityType)
-            => throw new InvalidOperationException("Graph entities do not have foreign keys");
+        public IMutableForeignKey AddForeignKey(
+            IReadOnlyList<IMutableProperty> properties, 
+            IMutableKey principalKey, 
+            IMutableEntityType principalEntityType
+        ) => AddForeignKey(properties.Cast<CypherProperty>().ToList(), (CypherEntity)principalEntityType);
+
+        /// <summary>
+        /// Declared foreign keys
+        /// </summary>
+        /// <returns></returns>
+        public virtual IEnumerable<CypherForeignKey> GetDeclaredForeignKeys() => _foreignKeys;
+
+        /// <summary>
+        /// Foreign keys matching properties
+        /// </summary>
+        /// <param name="properties"></param>
+        /// <returns></returns>
+        public virtual IEnumerable<CypherForeignKey> FindDeclaredForeignKeys([NotNull] IReadOnlyList<IProperty> properties) {
+            Check.NotEmpty(properties, nameof(properties));
+
+            return _foreignKeys.Where(
+                fk => PropertyListComparer.Instance.Equals(fk.Properties, properties)
+            );
+        }
+
+        /// <summary>
+        /// Find declared foreign key for a particular principal
+        /// </summary>
+        /// <param name="properties"></param>
+        /// <param name="principalEntity"></param>
+        /// <returns></returns>
+        public virtual CypherForeignKey FindDeclaredForeignKey(
+            [NotNull] IReadOnlyList<IProperty> properties,
+            [NotNull] IEntityType principalEntity
+        ) {
+            Check.NotEmpty(properties, nameof(properties));
+            Check.NotNull(principalEntity, nameof(principalEntity));
+
+            return FindDeclaredForeignKeys(properties)
+                .SingleOrDefault(fk =>
+                    StringComparer.Ordinal.Equals(fk.PrincipalEntityType.Name, principalEntity.Name)
+                );
+        }
+
+        /// <summary>
+        /// Foreign keys of derived types by properties
+        /// </summary>
+        /// <param name="properties"></param>
+        /// <returns></returns>
+        public virtual IEnumerable<CypherForeignKey> FindDerivedForeignKeys(
+            [NotNull] IReadOnlyList<IProperty> properties
+        ) => GetDerivedTypes().SelectMany(e => e.FindDeclaredForeignKeys(properties));
+
+        /// <summary>
+        /// Foreign keys (not null) from derived types
+        /// </summary>
+        /// <param name="properties"></param>
+        /// <param name="principalEntity"></param>
+        /// <returns></returns>
+        public virtual IEnumerable<CypherForeignKey> FindDerivedForeignKeys(
+            [NotNull] IReadOnlyList<IProperty> properties,
+            [NotNull] IEntityType principalEntity
+        ) => GetDerivedTypes()
+            .Select(e => e.FindDeclaredForeignKey(properties, principalEntity))
+            .Where(fk => !(fk is null));
+
+        public virtual IEnumerable<CypherForeignKey> FindForeignKeysInHierachy(
+            [NotNull] IReadOnlyList<IProperty> properties
+        ) => FindForeignKeysInHierachy(properties)
+            .Concat(FindDerivedForeignKeys(properties));
+
+        public virtual IEnumerable<CypherForeignKey> FindForeignKeysInHierachy(
+            [NotNull] IReadOnlyList<IProperty> properties,
+            [NotNull] IEntityType principalEntity
+        ) => ToEnumerable(FindForeignKey(properties, principalEntity))
+            .Concat(FindDerivedForeignKeys(properties, principalEntity));
+
+        /// <summary>
+        /// Find foreign keys by properties
+        /// </summary>
+        /// <param name="properties"></param>
+        /// <returns></returns>
+        public virtual IEnumerable<CypherForeignKey> FindForeignKeys([NotNull] IReadOnlyList<IProperty> properties) {
+            Check.HasNoNulls(properties, nameof(properties));
+            Check.NotEmpty(properties, nameof(properties));
+
+            return _baseType?
+                .FindForeignKeys(properties)?
+                .Concat(FindDeclaredForeignKeys(properties)) ?? FindDeclaredForeignKeys(properties);
+        }
+
+        /// <summary>
+        /// Find foreign key by property and principal
+        /// </summary>
+        /// <param name="property"></param>
+        /// <param name="principalEntity"></param>
+        /// <returns></returns>
+        public virtual CypherForeignKey FindForeignKey(
+            [NotNull] IProperty property,
+            [NotNull] IEntityType principalEntity
+        ) => FindForeignKey(new[] { property }, principalEntity);
+
+        /// <summary>
+        /// Find foreign key by properties and prinicipal
+        /// </summary>
+        /// <param name="properties"></param>
+        /// <param name="principalEntity"></param>
+        /// <returns></returns>
+        public virtual CypherForeignKey FindForeignKey(
+            [NotNull] IReadOnlyList<IProperty> properties,
+            [NotNull] IEntityType principalEntity
+        ) {
+            Check.HasNoNulls(properties, nameof(properties));
+            Check.NotEmpty(properties, nameof(properties));
+            Check.NotNull(principalEntity, nameof(principalEntity));
+
+            return FindDeclaredForeignKey(properties,  principalEntity)
+                   ?? _baseType?.FindForeignKey(properties, principalEntity);
+        }
+
+        /// <summary>
+        /// Foreign keys from derived types
+        /// </summary>
+        /// <returns></returns>
+        public virtual IEnumerable<CypherForeignKey> GetDerivedForeignKeys()
+            => GetDerivedTypes().SelectMany(e => e.GetDeclaredForeignKeys());
+
+        /// <summary>
+        /// Referencing foreign keys
+        /// </summary>
+        /// <returns></returns>
+        public virtual IEnumerable<CypherForeignKey> GetReferencingForeignKeys()
+            => _baseType?
+                .GetReferencingForeignKeys()
+                .Concat(GetDeclaredReferencingForeignKeys()) ?? GetDeclaredReferencingForeignKeys();
+
+        /// <summary>
+        /// Get decleared refencing foreign keys
+        /// </summary>
+        /// <returns></returns>
+        public virtual IEnumerable<CypherForeignKey> GetDeclaredReferencingForeignKeys()
+            => DeclaredReferencingForeignKeys ?? Enumerable.Empty<CypherForeignKey>();
+
+        /// <summary>
+        /// Declared referencing foroeign keys
+        /// </summary>
+        /// <returns></returns>
+        private SortedSet<CypherForeignKey> DeclaredReferencingForeignKeys { get; set; }
 
         public IMutableIndex AddIndex(IReadOnlyList<IMutableProperty> properties)
         {
@@ -432,7 +632,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <param name="name"></param>
         /// <param name="propertyType"></param>
         /// <returns></returns>
-        public IMutableProperty AddProperty(string name, Type propertyType) => AddProperty(name, propertyType);
+        IMutableProperty IMutableEntityType.AddProperty(string name, Type propertyType) => AddProperty(name, propertyType);
 
         /// <summary>
         /// Invalid operation
@@ -454,10 +654,53 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             throw new NotImplementedException();
         }
 
-        public IMutableKey FindPrimaryKey()
-        {
-            throw new NotImplementedException();
+        /// <summary>
+        /// Declared primary key
+        /// </summary>
+        /// <returns></returns>
+        public virtual CypherKey FindDeclaredPrimaryKey() => _primaryKey;
+
+        /// <summary>
+        /// Find primary key
+        /// </summary>
+        /// <param name="properties"></param>
+        /// <returns></returns>
+        public virtual CypherKey FindPrimaryKey([CanBeNull] IReadOnlyList<CypherProperty> properties) {
+            Check.HasNoNulls(properties, nameof(properties));
+            Check.NotEmpty(properties, nameof(properties));
+
+            if (_baseType != null)
+            {
+                return _baseType.FindPrimaryKey(properties);
+            }
+
+            if (_primaryKey != null
+                && PropertyListComparer.Instance.Compare(_primaryKey.Properties, properties) == 0)
+            {
+                return _primaryKey;
+            }
+
+            return null;
         }
+
+        /// <summary>
+        /// Find primary key (either from base or the declaring)
+        /// </summary>
+        /// <returns></returns>
+        public virtual CypherKey FindPrimaryKey()
+            => _baseType?.FindPrimaryKey() ?? FindDeclaredPrimaryKey();
+
+        /// <summary>
+        /// Mutable primary key
+        /// </summary>
+        /// <returns></returns>
+        IMutableKey IMutableEntityType.FindPrimaryKey() => FindPrimaryKey();
+
+        /// <summary>
+        /// Read-only primary key
+        /// </summary>
+        /// <returns></returns>
+        IKey IEntityType.FindPrimaryKey() => FindPrimaryKey();
 
         /// <summary>
         /// Find property by info
@@ -489,7 +732,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// </summary>
         /// <returns></returns>
         public IEnumerable<IMutableForeignKey> GetForeignKeys()
-            => throw new InvalidOperationException("Graph entities do not have foreign keys");
+            => throw new NotImplementedException();
 
         public IEnumerable<IMutableIndex> GetIndexes()
         {
@@ -502,14 +745,14 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         }
 
         /// <summary>
-        /// 
+        /// Base properties with self properties else just self properties
         /// </summary>
         /// <returns></returns>
         public virtual IEnumerable<CypherProperty> GetProperties()
             => _baseType?.GetProperties().Concat(_properties.Values) ?? _properties.Values;
 
         /// <summary>
-        /// 
+        /// Mutable properties
         /// </summary>
         /// <returns></returns>
         IEnumerable<IMutableProperty> IMutableEntityType.GetProperties() => GetProperties();
@@ -570,11 +813,6 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             throw new NotImplementedException();
         }
 
-        IKey IEntityType.FindPrimaryKey()
-        {
-            throw new NotImplementedException();
-        }
-
         /// <summary>
         /// Invalid operation
         /// </summary>
@@ -625,11 +863,13 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <summary>
         /// Property Counts
         /// </summary>
-        /// <param name="_counts"></param>
-        /// <param name="entityType.CalculateCounts("></param>
         /// <returns></returns>
         public virtual PropertyCounts Counts
-            => NonCapturingLazyInitializer.EnsureInitialized(ref _propertyCounts, this, entity => entity.CalculateCounts());
+            => NonCapturingLazyInitializer.EnsureInitialized(
+                ref _propertyCounts, 
+                this, 
+                entity => entity.CalculateCounts()
+            );
 
         /// <summary>
         /// Directly derived types

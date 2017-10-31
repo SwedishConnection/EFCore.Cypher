@@ -10,7 +10,7 @@ using JetBrains.Annotations;
 
 namespace Microsoft.EntityFrameworkCore.Metadata.Internal
 {
-    public class CypherForeignKey : ConventionalAnnotatable, IMutableForeignKey
+    public class CypherForeignKey : CypherNode, IMutableForeignKey
     {
         private bool? _isUnique;
 
@@ -31,11 +31,10 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         public CypherForeignKey(
             [NotNull] string name,
             [NotNull] CypherProperty endProperty,
-            [NotNull] CypherProperty startProperty,
             [NotNull] CypherEntity end,
             [NotNull] CypherEntity start,
             ConfigurationSource configurationSource
-        ) {
+        ): base(name, end.Graph, configurationSource) {
             PrincipalEntityType = start;
             DeclaringEntityType = end;
             Properties = new[] { endProperty };
@@ -45,11 +44,14 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         public CypherForeignKey(
             [NotNull] Type clrType,
             [NotNull] CypherProperty endProperty,
-            [NotNull] CypherProperty startProperty,
             [NotNull] CypherEntity end,
-            [NotNull] CypherEntity start
-        ) {
-
+            [NotNull] CypherEntity start,
+            ConfigurationSource configurationSource
+        ): base(clrType, end.Graph, configurationSource) {
+            PrincipalEntityType = start;
+            DeclaringEntityType = end;
+            Properties = new[] { endProperty };
+            _configurationSource = configurationSource;
         }
 
         /// <summary>
@@ -62,16 +64,23 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         }
 
         /// <summary>
-        /// Configuration source
+        /// 
         /// </summary>
-        /// <returns></returns>
-        public virtual ConfigurationSource GetConfigurationSource() => _configurationSource;
+        /// <param name="name"></param>
+        public override void OnTypeMemberIgnored(string name)
+            => throw new NotImplementedException();
+
+        /// <summary>
+        /// Todo:
+        /// </summary>
+        public override void PropertyMetadataChanged()
+            => throw new NotImplementedException();
 
         /// <summary>
         /// Update configuration source (effects start and end configurations)
         /// </summary>
         /// <param name="configurationSource"></param>
-        public virtual void UpdateConfigurationSource(ConfigurationSource configurationSource)
+        public new void UpdateConfigurationSource(ConfigurationSource configurationSource)
         {
             _configurationSource = _configurationSource.Max(configurationSource);
 

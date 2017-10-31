@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore.Internal;
 
@@ -27,6 +28,21 @@ namespace Microsoft.EntityFrameworkCore.Utilities
                 NotEmpty(parameterName, nameof(parameterName));
 
                 throw new ArgumentException(/** TODO: */);
+            }
+
+            return value;
+        }
+
+        public static IReadOnlyList<T> HasNoNulls<T>(IReadOnlyList<T> value, [InvokerParameterName] [NotNull] string parameterName)
+            where T : class
+        {
+            NotNull(value, parameterName);
+
+            if (value.Any(e => e == null))
+            {
+                NotEmpty(parameterName, nameof(parameterName));
+
+                throw new ArgumentException(parameterName);
             }
 
             return value;

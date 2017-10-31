@@ -63,9 +63,14 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         protected override void PropertyMetadataChanged() => DeclaringType.PropertyMetadataChanged();
 
         /// <summary>
-        /// Declaring entity (mutable)
+        /// Mutable declaring entity
         /// </summary>
         IMutableEntityType IMutableProperty.DeclaringEntityType => DeclaringEntityType;
+
+        /// <summary>
+        /// Read-only declaring entity
+        /// </summary>
+        IEntityType IProperty.DeclaringEntityType => DeclaringEntityType;
 
         /// <summary>
         /// Clr type
@@ -121,8 +126,13 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <returns></returns>
         public virtual PropertyIndexes PropertyIndexes
         {
-            get => NonCapturingLazyInitializer.EnsureInitialized(ref _indexes, this,
-                property => property.DeclaringType.CalculateIndexes(property));
+            get => CypherNonCapturingLazyInitializer.EnsureInitialized(
+                ref _indexes, 
+                this,
+                property => {
+                    var _ = (property.DeclaringType as CypherEntity)?.Counts;
+                }
+            );
 
             [param: CanBeNull]
             set
@@ -193,8 +203,6 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         public bool IsReadOnlyAfterSave { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
         public bool IsStoreGeneratedAlways { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
         public bool IsConcurrencyToken { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-
-        IEntityType IProperty.DeclaringEntityType => throw new System.NotImplementedException();
 
         bool IProperty.IsNullable => throw new System.NotImplementedException();
 
