@@ -9,7 +9,7 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
     {
         private readonly CypherQueryModelVisitor _queryModelVisitor;
 
-        private readonly ICypherTypeMapper _cypherTypeMapper;
+        private readonly IRelationalTypeMapper _relationalTypeMapper;
         
         public CypherTranslatingExpressionVisitor(
             [NotNull] CypherTranslatingExpressionVisitorDependencies dependencies,
@@ -17,7 +17,7 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
         )
         {
             _queryModelVisitor = queryModelVisitor;
-            _cypherTypeMapper = dependencies.CypherTypeMapper;            
+            _relationalTypeMapper = dependencies.RelationalTypeMapper;            
         }
 
         protected override Exception CreateUnhandledItemException<T>(T unhandledItem, string visitMethod)

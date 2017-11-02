@@ -12,7 +12,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher {
         /// <param name="IReadOnlyDictionary<string"></param>
         /// <param name="parameterValues"></param>
         /// <returns></returns>
-        ICypherCommand GenerateCypher([NotNull] IReadOnlyDictionary<string, object> parameterValues);
+        IRelationalCommand GenerateCypher([NotNull] IReadOnlyDictionary<string, object> parameterValues);
 
         /// <summary>
         /// Is Cypher cachable

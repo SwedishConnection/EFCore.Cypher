@@ -7,12 +7,12 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
     public sealed class CypherTranslatingExpressionVisitorDependencies {
         
         public CypherTranslatingExpressionVisitorDependencies(
-            [NotNull] ICypherTypeMapper cypherTypeMapper
+            [NotNull] IRelationalTypeMapper relationalTypeMapper
             // TODO: Add translators (i.e. database function calls)
         ) {
-            CypherTypeMapper = cypherTypeMapper;
+            RelationalTypeMapper = relationalTypeMapper;
         }
 
-        public ICypherTypeMapper CypherTypeMapper { get; }
+        public IRelationalTypeMapper RelationalTypeMapper { get; }
     }
 }

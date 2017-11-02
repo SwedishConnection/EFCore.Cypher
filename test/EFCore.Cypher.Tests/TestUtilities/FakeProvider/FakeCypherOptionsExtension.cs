@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.EntityFrameworkCore.TestUtilities.FakeProvider
 {
-    public class FakeCypherOptionsExtension: CypherOptionsExtension {
+    public class FakeCypherOptionsExtension: RelationalOptionsExtension {
         public FakeCypherOptionsExtension()
         {
         }
@@ -34,7 +34,7 @@ namespace Microsoft.EntityFrameworkCore.TestUtilities.FakeProvider
             return services;
         }
 
-        protected override CypherOptionsExtension Clone()
+        protected override RelationalOptionsExtension Clone()
             => new FakeCypherOptionsExtension(this);
     }
 }

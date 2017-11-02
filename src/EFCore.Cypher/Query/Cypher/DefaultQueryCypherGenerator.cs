@@ -25,7 +25,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
 
         public virtual bool IsCachable { get; private set; }
 
-        public ICypherCommand GenerateCypher([NotNull] IReadOnlyDictionary<string, object> parameterValues)
+        public IRelationalCommand GenerateCypher([NotNull] IReadOnlyDictionary<string, object> parameterValues)
         {
             throw new NotImplementedException();
         }

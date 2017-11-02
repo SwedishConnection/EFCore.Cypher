@@ -7,17 +7,17 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
     {
         public QueryCypherGeneratorDependencies(
             [NotNull] ICypherCommandBuilderFactory commandBuilderFactory,
-            [NotNull] ICypherTypeMapper cypherTypeMapper,
-            [NotNull] ICypherGenerationHelper cypherGenerationHelper
+            [NotNull] IRelationalTypeMapper relationalTypeMapper,
+            [NotNull] ISqlGenerationHelper sqlGenerationHelper
         ) {
             CommandBuilderFactory = commandBuilderFactory;
-            CypherTypeMapper = cypherTypeMapper;
-            CypherGenerationHelper = cypherGenerationHelper;
+            RelationalTypeMapper = relationalTypeMapper;
+            CypherGenerationHelper = sqlGenerationHelper;
         }
 
-        public ICypherTypeMapper CypherTypeMapper { get; }
+        public IRelationalTypeMapper RelationalTypeMapper { get; }
 
-        public ICypherGenerationHelper CypherGenerationHelper { get; }
+        public ISqlGenerationHelper CypherGenerationHelper { get; }
 
         public ICypherCommandBuilderFactory CommandBuilderFactory { get; }
     }
