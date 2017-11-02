@@ -21,7 +21,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata
             => CypherTestHelpers.Instance.CreateConventionBuilder();
 
         protected virtual ModelBuilder CreateModelBuilder() =>
-            new ModelBuilder(new ConventionSet());
+            new ModelBuilder(TestCypherConventionSetBuilder.Build());
 
         /// <summary>
         /// Set labels (with generics)
@@ -103,14 +103,102 @@ namespace Microsoft.EntityFrameworkCore.Metadata
             );
         }
 
+        [Fact]
+        public void Can_set_labels_override() {
+            // TODO: Replace with convention builder
+            var modelBuilder = CreateModelBuilder();
+
+            // labels from data annotation
+            var entityBuilder = modelBuilder
+                .Entity<Order>();
+
+            var entityType = modelBuilder
+                .Model
+                .FindEntityType(typeof(Order));
+
+            Assert.Equal("Order", entityType.DisplayName());
+            Assert.Equal("Custom Ordering", entityType.Cypher().Labels.Single());
+
+            // explicit trumfs data annotation
+            entityBuilder
+                .HasLabels(new[] { "Overrider" });
+
+            Assert.Equal("Order", entityType.DisplayName());
+            Assert.Equal("Overrider", entityType.Cypher().Labels.Single());
+        }
+
+        [Fact]
+        public void Can_inherit_labels() {
+            // TODO: Replace with convention builder
+            var modelBuilder = CreateModelBuilder();
+
+            // labels from data annotation
+            var entityBuilder = modelBuilder
+                .Entity<International>();
+
+            var entityType = modelBuilder
+                .Model
+                .FindEntityType(typeof(International));
+
+            Assert.Equal("International", entityType.DisplayName());
+            string[] labels = entityType.Cypher().Labels;
+            Assert.True(new [] { "Customer", "International" }.SequenceEqual(labels));
+        }
+
+        [Fact]
+        public void Can_set_labels_from_defining_navigation() {
+            // TODO: Replace with convention builder
+            var modelBuilder = CreateModelBuilder();
+
+            // labels from data annotation
+            var entityBuilder = modelBuilder
+                .Entity<Customer>();
+
+            var entityType = modelBuilder
+                .Model
+                .FindEntityType(typeof(OrderDetails));
+
+            Assert.Equal("OrderDetails", entityType.DisplayName());
+            string[] labels = entityType.Cypher().Labels;
+            Assert.True(entityType.HasDefiningNavigation());
+            Assert.NotEmpty(labels);
+        }
+
+        [Fact]
+        public void ForeignKey_expectation_1() {
+            // TODO: Replace with convention builder
+            var modelBuilder = CreateModelBuilder();
+
+            var entityBuilder = modelBuilder
+                .Entity<Customer>();
+
+            var entityType = modelBuilder
+                .Model
+                .FindEntityType(typeof(Customer));
+
+            var keys = entityType.GetKeys();
+            var fks = entityType.GetForeignKeys();
+            var props = entityType.GetProperties();
+            var navs = entityType.GetNavigations();
+
+            // the key is a shadow along with the forth property and fk of the navigation
+            Assert.Equal(1, keys.Count());
+            Assert.Empty(fks);
+            Assert.Equal(4, props.Count());
+            Assert.Equal(1, navs.Count());
+        }
+
         private class Customer
         {
-            public int Id { get; set; }
             public string Name { get; set; }
             public short SomeShort { get; set; }
             public MyEnum EnumValue { get; set; }
 
             public IEnumerable<Order> Orders { get; set; }
+        }
+
+        private class International: Customer {
+
         }
 
         private enum MyEnum : ulong
@@ -120,11 +208,9 @@ namespace Microsoft.EntityFrameworkCore.Metadata
             Tue
         }
 
+        [Labels(new string[] { "Custom Ordering" })]
         private class Order
         {
-            public int OrderId { get; set; }
-
-            public int CustomerId { get; set; }
             public Customer Customer { get; set; }
 
             public OrderDetails Details { get; set; }
@@ -132,9 +218,6 @@ namespace Microsoft.EntityFrameworkCore.Metadata
 
         private class OrderDetails
         {
-            public int Id { get; set; }
-
-            public int OrderId { get; set; }
             public Order Order { get; set; }
         }
     }

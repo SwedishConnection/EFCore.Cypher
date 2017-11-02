@@ -17,5 +17,16 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             [NotNull] this InternalEntityTypeBuilder builder,
             ConfigurationSource configurationSource
         ) => new CypherEntityTypeBuilderAnnotations(builder, configurationSource);
+
+        /// <summary>
+        /// Wrap the internal property type builder
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <param name="configurationSource"></param>
+        /// <returns></returns>
+        public static CypherPropertyBuilderAnnotations Cypher(
+            [NotNull] this InternalPropertyBuilder builder,
+            ConfigurationSource configurationSource)
+            => new CypherPropertyBuilderAnnotations(builder, configurationSource);
     }
 }

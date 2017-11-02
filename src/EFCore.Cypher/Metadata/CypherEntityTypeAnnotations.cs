@@ -50,11 +50,18 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         /// <returns></returns>
         public virtual string[] Labels {
             get => !(EntityType.BaseType is null)
-                ? GetAnnotations(EntityType.RootType()).Labels
-                : ((string[])Annotations.Metadata[CypherAnnotationNames.Labels] ?? GetDefaultLabels());
+                ? GetAnnotations(EntityType.RootType()).Labels.Concat(GetLabels()).ToArray()
+                : GetLabels();
 
             set => SetLabels(value);
         }
+
+        /// <summary>
+        /// Labels
+        /// </summary>
+        /// <returns></returns>
+        private string[] GetLabels() =>
+            ((string[])Annotations.Metadata[CypherAnnotationNames.Labels] ?? GetDefaultLabels());
 
         /// <summary>
         /// Default labels

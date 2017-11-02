@@ -14,5 +14,15 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         /// Labels
         /// </summary>
         public const string Labels = Prefix + "Labels";
+
+        /// <summary>
+        /// Storage name for properties
+        /// </summary>
+        public const string PropertyStorageName = Prefix + "PropertyStorageName";
+
+        /// <summary>
+        /// Storage type for properties
+        /// </summary>
+        public const string PropertyColumnType = Prefix + "PropertyStorageType";
     }
 }
