@@ -31,5 +31,28 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// </summary>
         /// <returns></returns>
         public virtual InternalMetadataBuilder MetadataBuilder { get; }
+
+        /// <summary>
+        /// Defers to the metadata builder using the instance configuration source 
+        /// </summary>
+        /// <param name="relationalAnnotationName"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public override bool SetAnnotation(
+            string annotationName,
+            object value)
+            => MetadataBuilder.HasAnnotation(annotationName, value, ConfigurationSource);
+
+        /// <summary>
+        /// Defers to the metadata builder which when the value differs 
+        /// the configuration source must override the existing
+        /// </summary>
+        /// <param name="relationalAnnotationName"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public override bool CanSetAnnotation(
+            string annotationName,
+            object value)
+            => MetadataBuilder.CanSetAnnotation(annotationName, value, ConfigurationSource);
     }
 }

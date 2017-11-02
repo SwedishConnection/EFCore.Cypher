@@ -1,3 +1,6 @@
+// Based on https://github.com/aspnet/EntityFrameworkCore
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +10,11 @@ using Microsoft.EntityFrameworkCore.Internal;
 namespace Microsoft.EntityFrameworkCore.Utilities
 {
     internal static class Check {
-        public static T NotNull<T>([NoEnumeration] T value, [InvokerParameterName] [NotNull] string parameterName)
+        [ContractAnnotation("value:null => halt")]
+        public static T NotNull<T>(
+            [NoEnumeration] T value, 
+            [InvokerParameterName] [NotNull] string parameterName
+        )
         {
             if (ReferenceEquals(value, null))
             {
@@ -19,7 +26,11 @@ namespace Microsoft.EntityFrameworkCore.Utilities
             return value;
         }
 
-        public static IReadOnlyList<T> NotEmpty<T>(IReadOnlyList<T> value, [InvokerParameterName] [NotNull] string parameterName)
+        [ContractAnnotation("value:null => halt")]
+        public static IReadOnlyList<T> NotEmpty<T>(
+            IReadOnlyList<T> value, 
+            [InvokerParameterName] [NotNull] string parameterName
+        )
         {
             NotNull(value, parameterName);
 
@@ -27,14 +38,42 @@ namespace Microsoft.EntityFrameworkCore.Utilities
             {
                 NotEmpty(parameterName, nameof(parameterName));
 
-                throw new ArgumentException(/** TODO: */);
+                throw new ArgumentException(CoreStrings.CollectionArgumentIsEmpty(parameterName));
             }
 
             return value;
         }
 
-        public static IReadOnlyList<T> HasNoNulls<T>(IReadOnlyList<T> value, [InvokerParameterName] [NotNull] string parameterName)
-            where T : class
+        [ContractAnnotation("value:null => halt")]
+        public static string NotEmpty(
+            string value, 
+            [InvokerParameterName] [NotNull] string parameterName
+        )
+        {
+            Exception e = null;
+            if (ReferenceEquals(value, null))
+            {
+                e = new ArgumentNullException(parameterName);
+            }
+            else if (value.Trim().Length == 0)
+            {
+                e = new ArgumentException(CoreStrings.ArgumentIsEmpty(parameterName));
+            }
+
+            if (e != null)
+            {
+                NotEmpty(parameterName, nameof(parameterName));
+
+                throw e;
+            }
+
+            return value;
+        }
+
+        public static IReadOnlyList<T> HasNoNulls<T>(
+            IReadOnlyList<T> value, 
+            [InvokerParameterName] [NotNull] string parameterName
+        ) where T : class
         {
             NotNull(value, parameterName);
 
@@ -48,32 +87,29 @@ namespace Microsoft.EntityFrameworkCore.Utilities
             return value;
         }
 
-        public static string NotEmpty(string value, [InvokerParameterName] [NotNull] string parameterName)
+        public static string NullButNotEmpty(
+            string value, 
+            [InvokerParameterName] [NotNull] string parameterName
+        )
         {
-            Exception e = null;
-            if (ReferenceEquals(value, null))
-            {
-                e = new ArgumentNullException(parameterName);
-            }
-            else if (value.Trim().Length == 0)
-            {
-                e = new ArgumentException(/** TODO: */);
-            }
-
-            if (e != null)
+            if (!ReferenceEquals(value, null)
+                && value.Length == 0)
             {
                 NotEmpty(parameterName, nameof(parameterName));
 
-                throw e;
+                throw new ArgumentException(CoreStrings.ArgumentIsEmpty(parameterName));
             }
 
             return value;
         }
 
-        public static string NullButNotEmpty(string value, [InvokerParameterName] [NotNull] string parameterName)
+        public static IReadOnlyList<T> NullButNotEmpty<T>(
+            IReadOnlyList<T> value, 
+            [InvokerParameterName] [NotNull] string parameterName
+        ) where T : class
         {
             if (!ReferenceEquals(value, null)
-                && value.Length == 0)
+                && value.Count == 0)
             {
                 NotEmpty(parameterName, nameof(parameterName));
 

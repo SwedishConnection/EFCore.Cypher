@@ -19,10 +19,10 @@ namespace Microsoft.EntityFrameworkCore
         /// <returns></returns>
         public static EntityTypeBuilder HasLabels(
             [NotNull] this EntityTypeBuilder entityTypeBuilder,
-            [NotNull] string[] labels
+            [CanBeNull] string[] labels
         ) {
             Check.NotNull(entityTypeBuilder, nameof(entityTypeBuilder));
-            Check.NotEmpty(labels, nameof(labels));
+            Check.NullButNotEmpty(labels, nameof(labels));
 
             entityTypeBuilder.GetInfrastructure<InternalEntityTypeBuilder>()
                 .Cypher(ConfigurationSource.Explicit)

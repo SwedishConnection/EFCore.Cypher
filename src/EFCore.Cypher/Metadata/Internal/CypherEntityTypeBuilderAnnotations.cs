@@ -21,8 +21,8 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// </summary>
         /// <param name="labels"></param>
         /// <returns></returns>
-        public virtual bool HasLabels([NotNull] string[] labels) {
-            Check.NotEmpty(labels, nameof(labels));
+        public virtual bool HasLabels([CanBeNull] string[] labels) {
+            Check.NullButNotEmpty(labels, nameof(labels));
 
             return SetLabels(labels);
         }
