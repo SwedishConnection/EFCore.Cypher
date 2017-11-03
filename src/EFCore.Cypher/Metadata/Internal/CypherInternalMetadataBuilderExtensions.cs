@@ -28,5 +28,16 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
             [NotNull] this InternalPropertyBuilder builder,
             ConfigurationSource configurationSource)
             => new CypherPropertyBuilderAnnotations(builder, configurationSource);
+
+        /// <summary>
+        /// Wrap the internal relationship builder
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <param name="configurationSource"></param>
+        /// <returns></returns>
+        public static CypherForeignKeyBuilderAnnotations Cypher(
+            [NotNull] this InternalRelationshipBuilder builder,
+            ConfigurationSource configurationSource)
+            => new CypherForeignKeyBuilderAnnotations(builder, configurationSource);
     }
 }

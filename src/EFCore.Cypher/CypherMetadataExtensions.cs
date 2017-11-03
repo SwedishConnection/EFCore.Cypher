@@ -31,7 +31,7 @@ namespace Microsoft.EntityFrameworkCore
         ) => new CypherEntityTypeAnnotations(Check.NotNull(entityType, nameof(entityType)));
 
         /// <summary>
-        /// Cypher specific metata for a mutable property
+        /// Cypher specific metadata for a mutable property
         /// </summary>
         /// <param name="property"></param>
         /// <returns></returns>
@@ -40,12 +40,30 @@ namespace Microsoft.EntityFrameworkCore
         ) => (CypherPropertyAnnotations)Cypher((IProperty)property);
 
         /// <summary>
-        /// Cypher specific metata for a read-only property
+        /// Cypher specific metadata for a read-only property
         /// </summary>
         /// <param name="property"></param>
         /// <returns></returns>
         public static CypherPropertyAnnotations Cypher(
             [NotNull] this IProperty property
         ) => new CypherPropertyAnnotations(Check.NotNull(property, nameof(property)));
+
+        /// <summary>
+        /// Cypher specific metadata for mutable foreign key
+        /// </summary>
+        /// <param name="foreignKey"></param>
+        /// <returns></returns>
+        public static CypherForeignKeyAnnotations Cypher(
+            [NotNull] this IMutableForeignKey foreignKey
+        ) => (CypherForeignKeyAnnotations)Cypher((IForeignKey)foreignKey);
+
+        /// <summary>
+        /// Cypher specific metadata for read-only foreign key
+        /// </summary>
+        /// <param name="foreignKey"></param>
+        /// <returns></returns>
+        public static ICypherForeignKeyAnnotations Cypher(
+            [NotNull] this IForeignKey foreignKey
+        ) => new CypherForeignKeyAnnotations(Check.NotNull(foreignKey, nameof(foreignKey)));
     }
 }
