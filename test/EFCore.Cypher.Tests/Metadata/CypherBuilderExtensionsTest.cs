@@ -133,6 +133,8 @@ namespace Microsoft.EntityFrameworkCore.Metadata
             var modelBuilder = CreateModelBuilder();
 
             // labels from data annotation
+            modelBuilder.Entity<International>();
+
             var entityType = modelBuilder
                 .Model
                 .FindEntityType(typeof(International));

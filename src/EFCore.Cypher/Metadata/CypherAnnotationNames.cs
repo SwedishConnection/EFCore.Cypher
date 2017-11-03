@@ -24,5 +24,20 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         /// Storage type for properties
         /// </summary>
         public const string PropertyColumnType = Prefix + "PropertyStorageType";
+
+        /// <summary>
+        /// Default storage (property) constraint
+        /// </summary>
+        public const string DefaultStorageConstraint = Prefix + "DefaultStorageConstraint";
+
+        /// <summary>
+        /// Default storage (property) value
+        /// </summary>
+        public const string DefaultValue = Prefix + "DefaultValue";
+
+        /// <summary>
+        /// Computed storage (property) constraint
+        /// </summary>
+        public const string ComputedStorageConstraint = Prefix + "ComputedStorageConstraint";
     }
 }
