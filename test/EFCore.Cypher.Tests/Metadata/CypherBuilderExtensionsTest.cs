@@ -133,9 +133,6 @@ namespace Microsoft.EntityFrameworkCore.Metadata
             var modelBuilder = CreateModelBuilder();
 
             // labels from data annotation
-            var entityBuilder = modelBuilder
-                .Entity<International>();
-
             var entityType = modelBuilder
                 .Model
                 .FindEntityType(typeof(International));
@@ -160,32 +157,52 @@ namespace Microsoft.EntityFrameworkCore.Metadata
 
             Assert.Equal("OrderDetails", entityType.DisplayName());
             string[] labels = entityType.Cypher().Labels;
-            Assert.True(entityType.HasDefiningNavigation());
             Assert.NotEmpty(labels);
         }
 
         [Fact]
-        public void ForeignKey_expectation_1() {
+        public void Expectation_1() {
             // TODO: Replace with convention builder
             var modelBuilder = CreateModelBuilder();
 
             var entityBuilder = modelBuilder
                 .Entity<Customer>();
 
-            var entityType = modelBuilder
+            var customer = modelBuilder
                 .Model
                 .FindEntityType(typeof(Customer));
 
-            var keys = entityType.GetKeys();
-            var fks = entityType.GetForeignKeys();
-            var props = entityType.GetProperties();
-            var navs = entityType.GetNavigations();
+            var order = modelBuilder
+                .Model
+                .FindEntityType(typeof(Order));
+
+            var keys = customer.GetKeys();
+            var fks = customer.GetForeignKeys();
+            var props = customer.GetProperties();
+            var navs = customer.GetNavigations();
 
             // the key is a shadow along with the forth property and fk of the navigation
             Assert.Equal(1, keys.Count());
             Assert.Empty(fks);
             Assert.Equal(4, props.Count());
             Assert.Equal(1, navs.Count());
+            // order has no defining navigation (i.e. a clr type is defined)
+            Assert.False(order.HasDefiningNavigation());
+        }
+
+        [Fact]
+        public void Expectation_2() {
+            IMutableModel model = new Model();
+
+            // with defining navigation only when the add entity type conventions aren't present!
+            var customer = model.AddEntityType(typeof(Customer));
+            var order = model.AddEntityType(typeof(Order), nameof(Customer.Orders), customer);
+            Assert.True(order.HasDefiningNavigation());
+
+            Assert.Empty(order.GetKeys());
+            Assert.Empty(order.GetForeignKeys());
+            Assert.Empty(order.GetProperties());
+            Assert.Empty(order.GetNavigations());
         }
 
         private class Customer
@@ -206,6 +223,10 @@ namespace Microsoft.EntityFrameworkCore.Metadata
             Sun,
             Mon,
             Tue
+        }
+
+        private class BaseType {
+
         }
 
         [Labels(new string[] { "Custom Ordering" })]

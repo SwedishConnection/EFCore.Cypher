@@ -66,6 +66,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         /// <summary>
         /// Default labels
         /// </summary>
+        /// <remarks>Defining navigations are nuked by entity added conventions</remarks> 
         /// <returns></returns>
         private string[] GetDefaultLabels()
             => EntityType.HasDefiningNavigation()
