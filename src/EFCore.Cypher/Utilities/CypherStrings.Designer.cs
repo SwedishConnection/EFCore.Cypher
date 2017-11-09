@@ -27,6 +27,28 @@ namespace Microsoft.EntityFrameworkCore.Internal
                 existingConfiguration
             );
 
+        /// <summary>
+        ///     Duplicate relationship attribute on '{declaringEntity}.{declaringProperty}' and '{principalEntity}.{principalProperty}'
+        /// </summary>
+        public static string DuplicateRelationshipAttribute(
+            [NotNull] object declaringEntity, 
+            [NotNull] object declaringProperty,
+            [NotNull] object principalEntity, 
+            [NotNull] object principalProperty
+        ) => string.Format(
+                GetString(
+                    "DuplicateRelationshipAttribute", 
+                    nameof(declaringEntity), 
+                    nameof(declaringProperty),
+                    nameof(principalEntity),
+                    nameof(principalProperty)
+                ),
+                declaringEntity, 
+                declaringProperty,
+                principalEntity,
+                principalProperty
+            );
+
         private static string GetString(string name, params string[] formatterNames)
         {
             var value = _resourceManager.GetString(name);
@@ -36,5 +58,6 @@ namespace Microsoft.EntityFrameworkCore.Internal
             }
             return value;
         }
+
     }
 }

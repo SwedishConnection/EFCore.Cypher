@@ -63,4 +63,7 @@
   <data name="ConflictingStorageServerGeneration" xml:space="preserve">
     <value>{conflictingConfiguration} cannot be set for '{property}', because {existingConfiguration} is already set.</value>
   </data>
+  <data name="DuplicateRelationshipAttribute" xml:space="preserve">
+    <value>Duplicate relationship attribute on '{declaringEntity}.{declaringProperty}' and '{principalEntity}.{principalProperty}'</value>
+  </data>
 </root>

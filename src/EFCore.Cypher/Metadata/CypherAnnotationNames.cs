@@ -41,7 +41,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         public const string ComputedStorageConstraint = Prefix + "ComputedStorageConstraint";
 
         /// <summary>
-        /// Relationshipo on foreign key
+        /// Relationship on foreign key
         /// </summary>
         public const string Relationship = Prefix + "Relationship";
     }

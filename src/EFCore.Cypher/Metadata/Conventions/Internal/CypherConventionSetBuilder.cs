@@ -48,7 +48,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
             conventionSet.ModelBuiltConventions.Add(new RelationalTypeMappingConvention(Dependencies.TypeMapper));
             conventionSet.ModelAnnotationChangedConventions.Add(new RelationalDbFunctionConvention());
 
-            conventionSet.ForeignKeyAddedConventions.Add(new CypherRelationshipAttributeConvention());
+            conventionSet.ForeignKeyAddedConventions.Add(new CypherRelationshipAttributeConvention(Dependencies.TypeMapper));
 
             return conventionSet;
         }

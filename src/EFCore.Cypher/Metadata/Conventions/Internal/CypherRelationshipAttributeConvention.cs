@@ -2,9 +2,11 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using JetBrains.Annotations;
+using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Utilities;
@@ -26,58 +28,69 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
             
             var fk = relationshipBuilder.Metadata;
 
-            var startProperty = FindRelationshipAttributeOnProperty(
+            var fromDeclaring = FindRelationshipAttributeOnProperty(
+                fk.DeclaringEntityType, 
+                fk.DependentToPrincipal?.Name
+            );
+
+            var fromPrincipal = FindRelationshipAttributeOnProperty(
                 fk.PrincipalEntityType, 
                 fk.PrincipalToDependent?.Name
             );
 
+            if (!(fromDeclaring is null) && !(fromPrincipal is null)) {
+                throw new InvalidOperationException(
+                    CypherStrings.DuplicateRelationshipAttribute(
+                        fk.DeclaringEntityType.DisplayName(), 
+                        fk.DependentToPrincipal?.Name,
+                        fk.PrincipalEntityType.DisplayName(),
+                        fk.PrincipalToDependent?.Name
+                    )
+                );
+            }
+            
+            if (!(fromDeclaring is null)) {
+                relationshipBuilder
+                    .Cypher(ConfigurationSource.DataAnnotation)
+                    .HasRelationship(
+                        fromDeclaring.Name ?? fromDeclaring.Type.DisplayName(),
+                        fk.DeclaringEntityType.Name ?? fk.DeclaringEntityType.ClrType.DisplayName()
+                    );
+            }
+
+            if (!(fromPrincipal is null)) {
+                relationshipBuilder
+                    .Cypher(ConfigurationSource.DataAnnotation)
+                    .HasRelationship(
+                        fromPrincipal.Name ?? fromPrincipal.Type.DisplayName(),
+                        fk.PrincipalEntityType.Name ?? fk.PrincipalEntityType.ClrType.DisplayName()
+                    );
+            }
+
             return relationshipBuilder;
         }
 
-        private string FindRelationshipAttributeOnProperty(EntityType entityType, string navigationName)
+        /// <summary>
+        /// Candiate property 
+        /// </summary>
+        /// <param name="entityType"></param>
+        /// <param name="navigationName"></param>
+        /// <returns></returns>
+        private RelationshipAttribute FindRelationshipAttributeOnProperty(EntityType entityType, string navigationName)
         {
             if (string.IsNullOrWhiteSpace(navigationName) || !entityType.HasClrType()) {
                 return null;
             }
 
-            string candidateProperty = null;
-
-            foreach (var mi in entityType
+            var member = entityType
                 .ClrType
                 .GetRuntimeProperties()
                 .Cast<MemberInfo>()
-                .Concat(entityType.ClrType.GetRuntimeFields())) {
-                if (mi is PropertyInfo pi && FindCandidateNavigationPropertyType(pi) != null) {
-                    continue;
-                }
+                .Concat(entityType.ClrType.GetRuntimeFields())
+                .SingleOrDefault(mi => mi.Name == navigationName);
 
-                var attr = mi.GetCustomAttribute<RelationshipAttribute>(true);
-
-                if (attr != null) {
-                    candidateProperty = mi.Name;
-                }
-            }
-
-            if (!(candidateProperty is null)) {
-                var attr = GetRelationshipAttribute(entityType, navigationName);
-                // TODO: Finish off
-            }
-
-            return null;
+            return member?.GetCustomAttribute<RelationshipAttribute>(true);
         }  
 
-        public virtual Type FindCandidateNavigationPropertyType([NotNull] PropertyInfo pi)
-        {
-            Check.NotNull(pi, nameof(pi));
-
-            return pi.FindCandidateNavigationPropertyType(_typeMapper.IsTypeMapped);
-        }
-
-        private static RelationshipAttribute GetRelationshipAttribute(TypeBase entityType, string propertyName)
-        {
-            return entityType.ClrType?.GetRuntimeProperties()
-                .FirstOrDefault(p => string.Equals(p.Name, propertyName, StringComparison.OrdinalIgnoreCase))
-                ?.GetCustomAttribute<RelationshipAttribute>(true);
-        }
     }
 }

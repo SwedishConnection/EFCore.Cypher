@@ -20,22 +20,68 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Internal
         /// <returns></returns>
         protected new virtual CypherAnnotationsBuilder Annotations => (CypherAnnotationsBuilder)base.Annotations;
 
-        public virtual bool HasRelationship([CanBeNull] string value) 
-            => SetRelationship(
-                Annotations
-                    .MetadataBuilder
-                    .ModelBuilder
-                    .Metadata
-                    .GetOrAddEntityType(value)
-            );
+        /// <summary>
+        /// Model
+        /// </summary>
+        protected virtual Model Model => Annotations
+            .MetadataBuilder
+            .ModelBuilder
+            .Metadata;
 
-        public virtual bool HasRelationship([CanBeNull] Type clrType)
-            => SetRelationship(
-                Annotations
-                    .MetadataBuilder
-                    .ModelBuilder
-                    .Metadata
-                    .GetOrAddEntityType(clrType)
-            );
+        /// <summary>
+        /// Set relationship by name with the starting Clr type
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="startingClrType"></param>
+        /// <returns></returns>
+        public virtual bool HasRelationship(
+            [CanBeNull] string name,
+            [CanBeNull] Type startingClrType
+        ) => SetRelationship(
+            Model.GetOrAddEntityType(name),
+            Model.FindEntityType(startingClrType)
+        );
+
+        /// <summary>
+        /// Set relationship by name with the starting (shadow) name
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="startingName"></param>
+        /// <returns></returns>
+        public virtual bool HasRelationship(
+            [CanBeNull] string name,
+            [CanBeNull] string startingName
+        ) => SetRelationship(
+            Model.GetOrAddEntityType(name),
+            Model.FindEntityType(startingName)
+        );
+
+        /// <summary>
+        /// Set relationship by Clr type with the starting Clr type
+        /// </summary>
+        /// <param name="clrType"></param>
+        /// <param name="direction"></param>
+        /// <returns></returns>
+        public virtual bool HasRelationship(
+            [CanBeNull] Type clrType,
+            [CanBeNull] Type startingClrType
+        ) => SetRelationship(
+            Model.GetOrAddEntityType(clrType),
+            Model.FindEntityType(startingClrType)
+        );
+
+        /// <summary>
+        /// Set relationship by Clr type with the starting (shadow) name
+        /// </summary>
+        /// <param name="clrType"></param>
+        /// <param name="startingName"></param>
+        /// <returns></returns>
+        public virtual bool HasRelationship(
+            [CanBeNull] Type clrType,
+            [CanBeNull] string startingName
+        ) => SetRelationship(
+            Model.GetOrAddEntityType(clrType),
+            Model.FindEntityType(startingName)
+        );
     }
 }

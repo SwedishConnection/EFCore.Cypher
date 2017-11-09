@@ -10,132 +10,132 @@ using Microsoft.EntityFrameworkCore.Utilities;
 
 namespace Microsoft.EntityFrameworkCore
 {
-    public static class CypherReferenceReferenceBuilderExtensions
+    public static class CypherReferenceCollectionBuilderExtensions
     {
         /// <summary>
         /// Relationship by name without properties
         /// </summary>
-        /// <param name="referenceReferenceBuilder"></param>
+        /// <param name="ReferenceCollectionBuilder"></param>
         /// <param name="name"></param>
         /// <param name="startingClrType"></param>
         /// <returns></returns>
-        public static ReferenceReferenceBuilder HasRelationship(
-            [NotNull] this ReferenceReferenceBuilder referenceReferenceBuilder,
+        public static ReferenceCollectionBuilder HasRelationship(
+            [NotNull] this ReferenceCollectionBuilder referenceCollectionBuilder,
             [CanBeNull] string name,
             [CanBeNull] Type startingClrType
         )
         {
-            Check.NotNull(referenceReferenceBuilder, nameof(referenceReferenceBuilder));
+            Check.NotNull(referenceCollectionBuilder, nameof(ReferenceCollectionBuilder));
             Check.NullButNotEmpty(name, nameof(name));
 
-            referenceReferenceBuilder.GetInfrastructure<InternalRelationshipBuilder>()
+            referenceCollectionBuilder.GetInfrastructure<InternalRelationshipBuilder>()
                 .Cypher(ConfigurationSource.Explicit)
                 .HasRelationship(name, startingClrType);
 
-            return referenceReferenceBuilder;
+            return referenceCollectionBuilder;
         }
 
         /// <summary>
         /// Relationship by name without properties
         /// </summary>
-        /// <param name="referenceReferenceBuilder"></param>
+        /// <param name="ReferenceCollectionBuilder"></param>
         /// <param name="name"></param>
         /// <param name="startingName"></param>
         /// <returns></returns>
-        public static ReferenceReferenceBuilder HasRelationship(
-            [NotNull] this ReferenceReferenceBuilder referenceReferenceBuilder,
+        public static ReferenceCollectionBuilder HasRelationship(
+            [NotNull] this ReferenceCollectionBuilder referenceCollectionBuilder,
             [CanBeNull] string name,
             [CanBeNull] string startingName
         ) {
-            Check.NotNull(referenceReferenceBuilder, nameof(referenceReferenceBuilder));
+            Check.NotNull(referenceCollectionBuilder, nameof(referenceCollectionBuilder));
             Check.NullButNotEmpty(name, nameof(name));
 
-            referenceReferenceBuilder.GetInfrastructure<InternalRelationshipBuilder>()
+            referenceCollectionBuilder.GetInfrastructure<InternalRelationshipBuilder>()
                 .Cypher(ConfigurationSource.Explicit)
                 .HasRelationship(name, startingName);
 
-            return referenceReferenceBuilder;
+            return referenceCollectionBuilder;
         }
-
 
         /// <summary>
         /// Relationship by name without properties where the declaring entity
         /// is the start of the relationship
         /// </summary>
-        /// <param name="referenceReferenceBuilder"></param>
+        /// <param name="ReferenceCollectionBuilder<TEntity"></param>
+        /// <param name="ReferenceCollectionBuilder"></param>
         /// <param name="name"></param>
         /// <returns></returns>
-        public static ReferenceReferenceBuilder<TEntity, TRelatedEntity> HasRelationship<TEntity, TRelatedEntity>(
-            [NotNull] this ReferenceReferenceBuilder<TEntity, TRelatedEntity> referenceReferenceBuilder,
+        public static ReferenceCollectionBuilder<TEntity, TRelatedEntity> HasRelationship<TEntity, TRelatedEntity>(
+            [NotNull] this ReferenceCollectionBuilder<TEntity, TRelatedEntity> referenceCollectionBuilder,
             [CanBeNull] string name)
             where TEntity : class
             where TRelatedEntity : class
             => HasRelationship(
-                (ReferenceReferenceBuilder)referenceReferenceBuilder, 
+                (ReferenceCollectionBuilder)referenceCollectionBuilder, 
                 name,
                 typeof(TEntity)
-            ) as ReferenceReferenceBuilder<TEntity, TRelatedEntity>;
+            ) as ReferenceCollectionBuilder<TEntity, TRelatedEntity>;
 
         /// <summary>
         /// Relationship by Clr type
         /// </summary>
-        /// <param name="referenceReferenceBuilder"></param>
+        /// <param name="ReferenceCollectionBuilder"></param>
         /// <param name="clrType"></param>
         /// <param name="startingClrType"></param>
         /// <returns></returns>
-        public static ReferenceReferenceBuilder HasRelationship(
-            [NotNull] this ReferenceReferenceBuilder referenceReferenceBuilder,
+        public static ReferenceCollectionBuilder HasRelationship(
+            [NotNull] this ReferenceCollectionBuilder referenceCollectionBuilder,
             [CanBeNull] Type clrType,
             [CanBeNull] Type startingClrType
         )
         {
-            Check.NotNull(referenceReferenceBuilder, nameof(referenceReferenceBuilder));
+            Check.NotNull(referenceCollectionBuilder, nameof(referenceCollectionBuilder));
 
-            referenceReferenceBuilder.GetInfrastructure<InternalRelationshipBuilder>()
+            referenceCollectionBuilder.GetInfrastructure<InternalRelationshipBuilder>()
                 .Cypher(ConfigurationSource.Explicit)
                 .HasRelationship(clrType, startingClrType);
 
-            return referenceReferenceBuilder;
+            return referenceCollectionBuilder;
         }
 
         /// <summary>
         /// Relationship by Clr type
         /// </summary>
-        /// <param name="referenceReferenceBuilder"></param>
+        /// <param name="referenceCollectionBuilder"></param>
         /// <param name="clrType"></param>
         /// <param name="startingName"></param>
         /// <returns></returns>
-        public static ReferenceReferenceBuilder HasRelationship(
-            [NotNull] this ReferenceReferenceBuilder referenceReferenceBuilder,
+        public static ReferenceCollectionBuilder HasRelationship(
+            [NotNull] this ReferenceCollectionBuilder referenceCollectionBuilder,
             [CanBeNull] Type clrType,
             [CanBeNull] string startingName
         )
         {
-            Check.NotNull(referenceReferenceBuilder, nameof(referenceReferenceBuilder));
+            Check.NotNull(referenceCollectionBuilder, nameof(referenceCollectionBuilder));
 
-            referenceReferenceBuilder.GetInfrastructure<InternalRelationshipBuilder>()
+            referenceCollectionBuilder.GetInfrastructure<InternalRelationshipBuilder>()
                 .Cypher(ConfigurationSource.Explicit)
                 .HasRelationship(clrType, startingName);
 
-            return referenceReferenceBuilder;
+            return referenceCollectionBuilder;
         }
 
         /// <summary>
         /// Relationship by Clr type where the declaring type
         /// is the start of the relationship
         /// </summary>
-        /// <param name="referenceReferenceBuilder"></param>
+        /// <param name="referenceCollectionBuilder"</param>
         /// <param name="clrType"></param>
         /// <returns></returns>
-        public static ReferenceReferenceBuilder<TEntity, TRelatedEntity> HasRelationship<TEntity, TRelatedEntity>(
-            [NotNull] this ReferenceReferenceBuilder<TEntity, TRelatedEntity> referenceReferenceBuilder,
+        public static ReferenceCollectionBuilder<TEntity, TRelatedEntity> HasRelationship<TEntity, TRelatedEntity>(
+            [NotNull] this ReferenceCollectionBuilder<TEntity, TRelatedEntity> referenceCollectionBuilder,
             [CanBeNull] Type clrType)
             where TEntity : class
             where TRelatedEntity : class
             => HasRelationship(
-                (ReferenceReferenceBuilder)referenceReferenceBuilder, 
+                (ReferenceCollectionBuilder)referenceCollectionBuilder, 
                 clrType,
                 typeof(TEntity)
-            ) as ReferenceReferenceBuilder<TEntity, TRelatedEntity>;
+            ) as ReferenceCollectionBuilder<TEntity, TRelatedEntity>;
     }
 }
