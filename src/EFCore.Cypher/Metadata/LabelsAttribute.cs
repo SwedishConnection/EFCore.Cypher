@@ -11,7 +11,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata
     /// <summary>
     /// Labels for nodes and relationships (singular)
     /// </summary>
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     [SuppressMessage("Microsoft.Performance", "CA1813:AvoidUnsealedAttributes", Justification = "We want users to be able to extend this class")]
     public class LabelsAttribute: Attribute {
         

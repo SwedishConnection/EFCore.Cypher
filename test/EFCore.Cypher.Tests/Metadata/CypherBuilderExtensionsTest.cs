@@ -68,7 +68,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata
 
         /// <summary>
         /// When labels are not defined, are null or not null 
-        /// but empty
+        /// but empty then the entity's short name is used
         /// </summary>
         [Fact]
         public void Can_get_labels_negative() {
@@ -104,6 +104,10 @@ namespace Microsoft.EntityFrameworkCore.Metadata
             );
         }
 
+        /// <summary>
+        /// Set labels first via a data annotation
+        /// then override with explicit
+        /// </summary>
         [Fact]
         public void Can_set_labels_override() {
             // TODO: Replace with convention builder
@@ -128,8 +132,12 @@ namespace Microsoft.EntityFrameworkCore.Metadata
             Assert.Equal("Overrider", entityType.Cypher().Labels.Single());
         }
 
+        /// <summary>
+        /// Inherit default label (the Customer entity 
+        /// is registered thanks to foreign keys)
+        /// </summary>
         [Fact]
-        public void Can_inherit_labels() {
+        public void Can_inherit_default_labels() {
             // TODO: Replace with convention builder
             var modelBuilder = CreateModelBuilder();
 
@@ -140,65 +148,214 @@ namespace Microsoft.EntityFrameworkCore.Metadata
                 .Model
                 .FindEntityType(typeof(International));
 
+            var registeredThanksToForeignKeys = modelBuilder
+                .Model
+                .FindEntityType(typeof(Customer));
+
+            Assert.NotNull(registeredThanksToForeignKeys);
             Assert.Equal("International", entityType.DisplayName());
             string[] labels = entityType.Cypher().Labels;
             Assert.True(new [] { "Customer", "International" }.SequenceEqual(labels));
         }
 
+        /// <summary>
+        /// If an entity type is ignored then labels are not inherited
+        /// </summary>
         [Fact]
-        public void Can_set_labels_from_defining_navigation() {
+        public void Inheritance_labels_when_ignored() { 
             // TODO: Replace with convention builder
             var modelBuilder = CreateModelBuilder();
 
-            // labels from data annotation
-            var entityBuilder = modelBuilder
-                .Entity<Customer>();
+            modelBuilder.Entity<A>();
+            modelBuilder.Ignore<B>();
+            modelBuilder.Entity<C>();
 
             var entityType = modelBuilder
                 .Model
-                .FindEntityType(typeof(OrderDetails));
+                .FindEntityType(typeof(C));
 
-            Assert.Equal("OrderDetails", entityType.DisplayName());
+            Assert.Equal("C", entityType.DisplayName());
             string[] labels = entityType.Cypher().Labels;
-            Assert.NotEmpty(labels);
+            Assert.True(new [] { "Public", "C" }.SequenceEqual(labels));
+
+            modelBuilder.Entity<B>();
+            Assert.True(
+                new [] { "Public", "Undercover", "C" }
+                    .SequenceEqual(entityType.Cypher().Labels)
+            );
         }
 
+        /// <summary>
+        /// If an entity type is not registered then labels are not inherited
+        /// </summary>
         [Fact]
-        public void Can_set_relationship_without_annotations() {
+        public void Inheritance_labels_when_not_registered() { 
+            // TODO: Replace with convention builder
+            var modelBuilder = CreateModelBuilder();
+
+            modelBuilder.Entity<A>();
+            // base types are only available if the entiy is registered
+            modelBuilder.Entity<C>();
+
+            var entityType = modelBuilder
+                .Model
+                .FindEntityType(typeof(C));
+            
+            var notRegistered = modelBuilder
+                .Model
+                .FindEntityType(typeof(B));
+
+            Assert.Null(notRegistered);
+            Assert.Equal("C", entityType.DisplayName());
+            string[] labels = entityType.Cypher().Labels;
+            Assert.True(new [] { "Public", "C" }.SequenceEqual(labels));
+        }
+
+        /// <summary>
+        /// The entity starting relationship builder is the 
+        /// starting endpoint in the underlying relationship
+        /// </summary>
+        [Fact]
+        public void Can_set_relationship_overriding_annotations() {
             // TODO: Replace with convention builder
             var modelBuilder = CreateModelBuilder();
 
             modelBuilder.Entity<Owner>()
                 .HasMany(e => e.Things)
-                .WithOne(e => e.TheMan)
-                .HasRelationship("Mine");
+                .HasRelationship("Mine")
+                .WithOne(e => e.TheMan);
 
             var owner = modelBuilder
                 .Model
                 .FindEntityType(typeof(Owner));
 
+            // Stuff will always be the declaring entity (note: 
+            // the direction of the foreign key can never be 
+            // inverted explicitly with the relation builders)
             var stuff = modelBuilder
                 .Model
                 .FindEntityType(typeof(Stuff));
 
-            ICypherRelationship rel = stuff
+            IForeignKey fk =  stuff
                 .GetForeignKeys()
-                .First()
+                .First();
+
+            Assert.Equal(stuff, fk.DeclaringEntityType);
+            Assert.Equal(owner, fk.PrincipalEntityType);
+
+            ICypherRelationship rel = fk
                 .Cypher()
                 .Relationship;
 
             Assert.Equal("Mine", rel.Relation.Name);
-            Assert.True(rel.Starting == owner);
-            Assert.True(rel.Ending == stuff);
+            Assert.Equal(owner, rel.Starting);
+            Assert.Equal(stuff, rel.Ending);
 
+            // Find the same relationships through the model
             rel = modelBuilder
                 .Model
                 .Starting(owner.ClrType)
                 .Single();
 
             Assert.Equal("Mine", rel.Relation.Name);
-            Assert.True(rel.Starting == owner);
-            Assert.True(rel.Ending == stuff);
+            Assert.Null(rel.Relation.ClrType);
+            Assert.Equal(owner, rel.Starting);
+            Assert.Equal(stuff, rel.Ending);
+        }
+
+        /// <summary>
+        /// Data annotations 
+        /// </summary>
+        [Fact]
+        public void Can_set_relationship_with_annotations() {
+            // TODO: Replace with convention builder
+            var modelBuilder = CreateModelBuilder();
+
+            modelBuilder.Entity<Owner>();
+
+            var stuff = modelBuilder
+                .Model
+                .FindEntityType(typeof(Stuff));
+
+            var owner = modelBuilder
+                .Model
+                .FindEntityType(typeof(Owner));
+
+            var beforehand = stuff
+                .GetForeignKeys()
+                .First()
+                .Cypher()
+                .Relationship;
+
+            Assert.Equal("Not Mine", beforehand.Relation.Name);
+            Assert.Equal(owner, beforehand.Starting);
+
+            // change the direction and name of the relationship
+            modelBuilder.Entity<Stuff>()
+                .HasOne(e => e.TheMan)
+                .HasRelationship("Mine")
+                .WithMany(e => e.Things);
+
+            var afterwards = stuff
+                .GetForeignKeys()
+                .First()
+                .Cypher()
+                .Relationship;
+
+            Assert.Equal("Mine", afterwards.Relation.Name);
+            Assert.Equal(stuff, afterwards.Starting);
+        }
+
+        /// <summary>
+        /// Fail if the starting entity is not a member of the 
+        /// foreign key
+        /// </summary>
+        [Fact]
+        public void Fail_if_starting_is_not_a_member() {
+            Assert.Throws<InvalidOperationException>(
+                () => {
+                // TODO: Replace with convention builder
+                var modelBuilder = CreateModelBuilder();
+
+                modelBuilder.Entity<A>();
+
+                modelBuilder.Entity<Owner>()
+                    .HasMany(e => e.Things)
+                    .HasRelationship("What", typeof(A))
+                    .WithOne();
+            });
+        }
+
+        /// <summary>
+        /// Fail if the starting entity is not registered
+        /// </summary>
+        [Fact]
+        public void Fail_if_starting_is_not_registered() {
+            Assert.Throws<ArgumentNullException>(
+                () => {
+                // TODO: Replace with convention builder
+                var modelBuilder = CreateModelBuilder();
+
+                modelBuilder.Entity<Owner>()
+                    .HasMany(e => e.Things)
+                    .HasRelationship("What", typeof(A))
+                    .WithOne();
+            });
+        }
+
+        /// <summary>
+        /// Fail if both navigations endpoints on a foreign 
+        /// key have the a relationship attribute
+        /// </summary>
+        [Fact]
+        public void Fail_if_data_annotations_on_both_endpoints() {
+            Assert.Throws<InvalidOperationException>(
+                () => {
+                // TODO: Replace with convention builder
+                var modelBuilder = CreateModelBuilder();
+
+                modelBuilder.Entity<Gary>();
+            });
         }
 
         private class Customer
@@ -253,7 +410,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         private class Owner {
             public string Name { get; set; }
 
-            [Relationship("Mine")]
+            [Relationship("Not Mine")]
             public IEnumerable<Stuff> Things { get; set; }
         }
 
@@ -261,6 +418,30 @@ namespace Microsoft.EntityFrameworkCore.Metadata
             public int Id { get; set; }
 
             public Owner TheMan { get; set; }
+        }
+
+        [Labels(new[] {"Public"})]
+        private class A {
+            public int TopClass { get; set; }
+        }
+
+        [Labels(new[] {"Undercover"})]
+        private class B: A {
+            public string Secret { get; set; }
+        }
+
+        private class C: B {
+            public string TheRealSecret { get; set; }
+        }
+
+        private class Gary {
+            [Relationship("Wedding")]
+            public Mitch BestMan { get; set; }
+        }
+
+        private class Mitch {
+            [Relationship("Wedding")]
+            public Gary TheOtherGuy { get; set; }
         }
     }
 }

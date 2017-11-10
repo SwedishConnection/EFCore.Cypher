@@ -52,9 +52,14 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         private bool SetRelationship(
             [CanBeNull] ICypherRelationship relationship
         ) {
-            // TODO: Should a relation be segregated from the rest of the entity type pool?
-            AssertMember(relationship.Starting);
-            AssertMember(relationship.Ending);
+            if (!(relationship is null)) {
+                Check.NotNull(relationship.Starting, nameof(relationship.Starting));
+                Check.NotNull(relationship.Ending, nameof(relationship.Ending));
+
+                // TODO: Should a relation be segregated from the rest of the entity type pool?
+                AssertMember(relationship.Starting);
+                AssertMember(relationship.Ending);
+            }
 
             return Annotations.SetAnnotation(
                 CypherAnnotationNames.Relationship,

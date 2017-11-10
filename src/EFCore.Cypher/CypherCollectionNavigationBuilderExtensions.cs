@@ -10,131 +10,132 @@ using Microsoft.EntityFrameworkCore.Utilities;
 
 namespace Microsoft.EntityFrameworkCore
 {
-    public static class CypherReferenceOwnershipBuilderExtensions
+    public static class CypherCollectionNavigationBuilderExtensions
     {
         /// <summary>
         /// Relationship by name without properties
         /// </summary>
-        /// <param name="referenceOwnershipBuilder"></param>
+        /// <param name="collectionNavigationBuilder"></param>
         /// <param name="name"></param>
         /// <param name="startingClrType"></param>
         /// <returns></returns>
-        public static ReferenceOwnershipBuilder HasRelationship(
-            [NotNull] this ReferenceOwnershipBuilder referenceOwnershipBuilder,
+        public static CollectionNavigationBuilder HasRelationship(
+            [NotNull] this CollectionNavigationBuilder collectionNavigationBuilder,
             [CanBeNull] string name,
             [CanBeNull] Type startingClrType
         )
         {
-            Check.NotNull(referenceOwnershipBuilder, nameof(referenceOwnershipBuilder));
+            Check.NotNull(collectionNavigationBuilder, nameof(collectionNavigationBuilder));
             Check.NullButNotEmpty(name, nameof(name));
 
-            referenceOwnershipBuilder.GetInfrastructure<InternalRelationshipBuilder>()
+            collectionNavigationBuilder.GetInfrastructure<InternalRelationshipBuilder>()
                 .Cypher(ConfigurationSource.Explicit)
                 .HasRelationship(name, startingClrType);
 
-            return referenceOwnershipBuilder;
+            return collectionNavigationBuilder;
         }
 
         /// <summary>
         /// Relationship by name without properties
         /// </summary>
-        /// <param name="referenceOwnershipBuilder"></param>
+        /// <param name="collectionNavigationBuilder"></param>
         /// <param name="name"></param>
         /// <param name="startingName"></param>
         /// <returns></returns>
-        public static ReferenceOwnershipBuilder HasRelationship(
-            [NotNull] this ReferenceOwnershipBuilder referenceOwnershipBuilder,
+        public static CollectionNavigationBuilder HasRelationship(
+            [NotNull] this CollectionNavigationBuilder collectionNavigationBuilder,
             [CanBeNull] string name,
             [CanBeNull] string startingName
         ) {
-            Check.NotNull(referenceOwnershipBuilder, nameof(referenceOwnershipBuilder));
+            Check.NotNull(collectionNavigationBuilder, nameof(collectionNavigationBuilder));
             Check.NullButNotEmpty(name, nameof(name));
 
-            referenceOwnershipBuilder.GetInfrastructure<InternalRelationshipBuilder>()
+            collectionNavigationBuilder.GetInfrastructure<InternalRelationshipBuilder>()
                 .Cypher(ConfigurationSource.Explicit)
                 .HasRelationship(name, startingName);
 
-            return referenceOwnershipBuilder;
+            return collectionNavigationBuilder;
         }
 
         /// <summary>
         /// Relationship by name without properties where the declaring entity
         /// is the start of the relationship
         /// </summary>
-        /// <param name="referenceOwnershipBuilder"></param>
+        /// <param name="collectionNavigationBuilder"></param>
         /// <param name="name"></param>
         /// <returns></returns>
-        public static ReferenceOwnershipBuilder<TEntity, TRelatedEntity> HasRelationship<TEntity, TRelatedEntity>(
-            [NotNull] this ReferenceOwnershipBuilder<TEntity, TRelatedEntity> referenceOwnershipBuilder,
+        public static CollectionNavigationBuilder<TEntity, TRelatedEntity> HasRelationship<TEntity, TRelatedEntity>(
+            [NotNull] this CollectionNavigationBuilder<TEntity, TRelatedEntity> collectionNavigationBuilder,
             [CanBeNull] string name)
             where TEntity : class
             where TRelatedEntity : class
             => HasRelationship(
-                (ReferenceOwnershipBuilder)referenceOwnershipBuilder, 
+                (CollectionNavigationBuilder)collectionNavigationBuilder, 
                 name,
                 typeof(TEntity)
-            ) as ReferenceOwnershipBuilder<TEntity, TRelatedEntity>;
+            ) as CollectionNavigationBuilder<TEntity, TRelatedEntity>;
 
         /// <summary>
         /// Relationship by Clr type
         /// </summary>
-        /// <param name="referenceOwnershipBuilder"></param>
+        /// <param name="collectionNavigationBuilder"></param>
         /// <param name="clrType"></param>
         /// <param name="startingClrType"></param>
         /// <returns></returns>
-        public static ReferenceOwnershipBuilder HasRelationship(
-            [NotNull] this ReferenceOwnershipBuilder referenceOwnershipBuilder,
+        public static CollectionNavigationBuilder HasRelationship(
+            [NotNull] this CollectionNavigationBuilder collectionNavigationBuilder,
             [CanBeNull] Type clrType,
             [CanBeNull] Type startingClrType
         )
         {
-            Check.NotNull(referenceOwnershipBuilder, nameof(referenceOwnershipBuilder));
+            Check.NotNull(collectionNavigationBuilder, nameof(collectionNavigationBuilder));
 
-            referenceOwnershipBuilder.GetInfrastructure<InternalRelationshipBuilder>()
+            collectionNavigationBuilder.GetInfrastructure<InternalRelationshipBuilder>()
                 .Cypher(ConfigurationSource.Explicit)
                 .HasRelationship(clrType, startingClrType);
 
-            return referenceOwnershipBuilder;
+            return collectionNavigationBuilder;
         }
 
         /// <summary>
         /// Relationship by Clr type
         /// </summary>
-        /// <param name="referenceOwnershipBuilder"></param>
+        /// <param name="collectionNavigationBuilder"></param>
         /// <param name="clrType"></param>
         /// <param name="startingName"></param>
         /// <returns></returns>
-        public static ReferenceOwnershipBuilder HasRelationship(
-            [NotNull] this ReferenceOwnershipBuilder referenceOwnershipBuilder,
+        public static CollectionNavigationBuilder HasRelationship(
+            [NotNull] this CollectionNavigationBuilder collectionNavigationBuilder,
             [CanBeNull] Type clrType,
             [CanBeNull] string startingName
         )
         {
-            Check.NotNull(referenceOwnershipBuilder, nameof(referenceOwnershipBuilder));
+            Check.NotNull(collectionNavigationBuilder, nameof(collectionNavigationBuilder));
 
-            referenceOwnershipBuilder.GetInfrastructure<InternalRelationshipBuilder>()
+            collectionNavigationBuilder.GetInfrastructure<InternalRelationshipBuilder>()
                 .Cypher(ConfigurationSource.Explicit)
                 .HasRelationship(clrType, startingName);
 
-            return referenceOwnershipBuilder;
+            return collectionNavigationBuilder;
         }
 
         /// <summary>
         /// Relationship by Clr type where the declaring type
         /// is the start of the relationship
         /// </summary>
-        /// <param name="referenceOwnershipBuilder"></param>
+        /// <param name="collectionNavigationBuilder"></param>
         /// <param name="clrType"></param>
         /// <returns></returns>
-        public static ReferenceOwnershipBuilder<TEntity, TRelatedEntity> HasRelationship<TEntity, TRelatedEntity>(
-            [NotNull] this ReferenceOwnershipBuilder<TEntity, TRelatedEntity> referenceOwnershipBuilder,
+        public static CollectionNavigationBuilder<TEntity, TRelatedEntity> HasRelationship<TEntity, TRelatedEntity>(
+            [NotNull] this CollectionNavigationBuilder<TEntity, TRelatedEntity> collectionNavigationBuilder,
             [CanBeNull] Type clrType)
             where TEntity : class
             where TRelatedEntity : class
             => HasRelationship(
-                (ReferenceOwnershipBuilder)referenceOwnershipBuilder, 
+                (CollectionNavigationBuilder)collectionNavigationBuilder, 
                 clrType,
                 typeof(TEntity)
-            ) as ReferenceOwnershipBuilder<TEntity, TRelatedEntity>;
+            ) as CollectionNavigationBuilder<TEntity, TRelatedEntity>;
+
     }
 }

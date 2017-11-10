@@ -50,7 +50,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         /// <returns></returns>
         public virtual string[] Labels {
             get => !(EntityType.BaseType is null)
-                ? GetAnnotations(EntityType.RootType()).Labels.Concat(GetLabels()).ToArray()
+                ? GetAnnotations(EntityType.BaseType).Labels.Concat(GetLabels()).ToArray()
                 : GetLabels();
 
             set => SetLabels(value);
