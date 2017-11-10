@@ -2,11 +2,14 @@ using System.Reflection;
 using System.Resources;
 using JetBrains.Annotations;
 
-namespace Microsoft.EntityFrameworkCore.Internal
+namespace Microsoft.EntityFrameworkCore.Utilities
 {
     public static class CypherStrings {
         private static readonly ResourceManager _resourceManager
-            = new ResourceManager("CypherStrings", typeof(CypherStrings).GetTypeInfo().Assembly);
+            = new ResourceManager(
+                typeof(CypherStrings).GetTypeInfo().Assembly.GetName().Name + ".Utilities.CypherStrings", 
+                typeof(CypherStrings).GetTypeInfo().Assembly
+            );
         
         /// <summary>
         ///     {conflictingConfiguration} cannot be set for '{property}', because {existingConfiguration} is already set.
@@ -48,6 +51,25 @@ namespace Microsoft.EntityFrameworkCore.Internal
                 principalEntity,
                 principalProperty
             );
+
+        /// <summary>
+        ///    {entity} is not a foreign key member [declaring entity: {declaringEntity}, principal entity: {principalEntity}]
+        /// </summary>
+        public static string NotAForeignKeyMember(
+            [NotNull] object entity,
+            [NotNull] object declaringEntity,
+            [NotNull] object principalEntity
+        ) => string.Format(
+            GetString(
+                "NotAForeignKeyMember",
+                nameof(entity),
+                nameof(declaringEntity),
+                nameof(principalEntity)
+            ),
+            entity,
+            declaringEntity,
+            principalEntity
+        );
 
         private static string GetString(string name, params string[] formatterNames)
         {

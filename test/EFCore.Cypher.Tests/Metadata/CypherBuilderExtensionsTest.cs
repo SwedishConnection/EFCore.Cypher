@@ -164,107 +164,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         }
 
         [Fact]
-        public void Expectation_1() {
-            // TODO: Replace with convention builder
-            var modelBuilder = CreateModelBuilder();
-
-            var entityBuilder = modelBuilder
-                .Entity<Customer>();
-
-            var customer = modelBuilder
-                .Model
-                .FindEntityType(typeof(Customer));
-
-            var order = modelBuilder
-                .Model
-                .FindEntityType(typeof(Order));
-
-            var details = modelBuilder
-                .Model
-                .FindEntityType(typeof(OrderDetails));
-
-            var weird = modelBuilder
-                .Model
-                .FindEntityType(typeof(Weird));
-
-
-            // the key is a shadow along with the forth property and fk of the navigation
-            Assert.Equal(1, customer.GetKeys().Count());
-            Assert.Equal(2, customer.GetForeignKeys().Count());
-            Assert.Equal(6, customer.GetProperties().Count());
-            Assert.Equal(3, customer.GetNavigations().Count());
-
-            // neither order or weird has a defining navigation (i.e. a clr type is defined)
-            Assert.False(order.HasDefiningNavigation());
-            Assert.False(weird.HasDefiningNavigation());
-
-            // foreign keys are only one-way
-            Assert.Empty(details.GetForeignKeys());
-            Assert.Equal(1, details.GetReferencingForeignKeys().Count());
-        }
-
-        [Fact]
-        public void Expectation_2() {
-            // TODO: Replace with convention builder
-            var modelBuilder = CreateModelBuilder();
-
-            var entityBuilder = modelBuilder
-                .Entity<OrderDetails>();
-
-            var order = modelBuilder
-                .Model
-                .FindEntityType(typeof(Order));
-
-            var details = modelBuilder
-                .Model
-                .FindEntityType(typeof(OrderDetails));
-
-            // foreign key placement is dependent on the order of adding entities
-            Assert.Equal(1, details.GetForeignKeys().Count());
-            Assert.Equal(1, order.GetReferencingForeignKeys().Count());
-        }
-
-        [Fact]
-        public void Expectation_3() {
-            IMutableModel model = new Model();
-
-            // with defining navigation only when the add entity type conventions aren't present!
-            var customer = model.AddEntityType(typeof(Customer));
-            var order = model.AddEntityType(typeof(Order), nameof(Customer.Orders), customer);
-            Assert.True(order.HasDefiningNavigation());
-
-            Assert.Empty(order.GetKeys());
-            Assert.Empty(order.GetForeignKeys());
-            Assert.Empty(order.GetProperties());
-            Assert.Empty(order.GetNavigations());
-
-            InternalModelBuilder builder = new InternalModelBuilder(new Model());
-            var customerBuilder = builder.Entity(typeof(Customer), ConfigurationSource.Explicit);
-            var orderBuilder = builder.Entity(typeof(Order), ConfigurationSource.Explicit);
-
-            var relationshipBuilder = customerBuilder
-                .Relationship(orderBuilder, ConfigurationSource.Explicit)
-                .IsUnique(false, ConfigurationSource.Explicit);
- 
-            Assert.NotEmpty(customerBuilder.Metadata.GetForeignKeys());
-        }
-
-        [Fact]
-        public void Expectation_4() {
-            // TODO: Replace with convention builder
-            var modelBuilder = CreateModelBuilder();
-
-            var rb = modelBuilder.Entity<International>();
-
-            var customer = modelBuilder
-                .Model
-                .FindEntityType(typeof(International));
-
-            Assert.NotEmpty(customer.GetNavigations());            
-        }
-
-        [Fact]
-        public void Can_set_relationship() {
+        public void Can_set_relationship_without_annotations() {
             // TODO: Replace with convention builder
             var modelBuilder = CreateModelBuilder();
 
@@ -272,6 +172,10 @@ namespace Microsoft.EntityFrameworkCore.Metadata
                 .HasMany(e => e.Things)
                 .WithOne(e => e.TheMan)
                 .HasRelationship("Mine");
+
+            var owner = modelBuilder
+                .Model
+                .FindEntityType(typeof(Owner));
 
             var stuff = modelBuilder
                 .Model
@@ -284,6 +188,17 @@ namespace Microsoft.EntityFrameworkCore.Metadata
                 .Relationship;
 
             Assert.Equal("Mine", rel.Relation.Name);
+            Assert.True(rel.Starting == owner);
+            Assert.True(rel.Ending == stuff);
+
+            rel = modelBuilder
+                .Model
+                .Starting(owner.ClrType)
+                .Single();
+
+            Assert.Equal("Mine", rel.Relation.Name);
+            Assert.True(rel.Starting == owner);
+            Assert.True(rel.Ending == stuff);
         }
 
         private class Customer

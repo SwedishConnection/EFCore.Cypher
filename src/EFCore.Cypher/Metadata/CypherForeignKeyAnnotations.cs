@@ -3,6 +3,7 @@
 
 using System;
 using JetBrains.Annotations;
+using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Utilities;
 
@@ -48,12 +49,18 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         /// </summary>
         /// <param name="relationship"></param>
         /// <returns></returns>
-        protected virtual bool SetRelationship(
+        private bool SetRelationship(
             [CanBeNull] ICypherRelationship relationship
-        ) => Annotations.SetAnnotation(
+        ) {
+            // TODO: Should a relation be segregated from the rest of the entity type pool?
+            AssertMember(relationship.Starting);
+            AssertMember(relationship.Ending);
+
+            return Annotations.SetAnnotation(
                 CypherAnnotationNames.Relationship,
                 relationship
             );
+        }
 
 
         /// <summary>
@@ -64,15 +71,31 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         protected virtual bool SetRelationship(
             [CanBeNull] EntityType entityType,
             [NotNull] EntityType starting
-        ) => Annotations.SetAnnotation(
-                CypherAnnotationNames.Relationship,
-                new CypherRelationship(
-                    entityType,
-                    starting,
-                    ForeignKey.DeclaringEntityType == starting
-                        ? ForeignKey.PrincipalEntityType
-                        : ForeignKey.DeclaringEntityType
-                )
-            );
+        ) => SetRelationship(
+            new CypherRelationship(
+                entityType,
+                starting,
+                ForeignKey.DeclaringEntityType == starting
+                    ? ForeignKey.PrincipalEntityType
+                    : ForeignKey.DeclaringEntityType
+            )
+        );
+
+        /// <summary>
+        /// Assert that entity is a foreign key member
+        /// </summary>
+        /// <param name="entityType"></param>
+        private void AssertMember(IEntityType entityType) {
+            if (entityType != ForeignKey.DeclaringEntityType && 
+                entityType != ForeignKey.PrincipalEntityType) {
+                throw new InvalidOperationException(
+                    CypherStrings.NotAForeignKeyMember(
+                        entityType.DisplayName(),
+                        ForeignKey.DeclaringEntityType.DisplayName(),
+                        ForeignKey.PrincipalEntityType.DisplayName()
+                    )
+                );
+            }
+        }
     }
 }
