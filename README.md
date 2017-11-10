@@ -6,4 +6,4 @@ At a high level, the relational framework takes the fluent Linq call expressions
 # Short-list of what is near done
 
 ## The model
-Everything starts with the database model.  There are two additions to the relational extensions: labels and relationships.  Rather, than using the **table** attribute a **labels** attribute is used to categorize entity types (i.e. nodes).  The foreign key connecting entity types may be enriched with relationship metadata.  One of the navigation endpoints in a foreign key can start a relationship that is either a shadow entity or defined from a Clr type.
+Everything starts with the database model.  There are two additions to the relational extensions: labels and relationships.  Rather, than using the **table** attribute a **labels** attribute is used to categorize entity types (i.e. nodes).  The foreign key connecting entity types may be enriched with relationship metadata.  One of the navigation endpoints in a foreign key can start a relationship that is either a shadow entity (i.e. just a name) or defined from a Clr type (i.e. an entity that can have properties).
