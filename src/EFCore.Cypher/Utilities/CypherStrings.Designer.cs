@@ -71,6 +71,12 @@ namespace Microsoft.EntityFrameworkCore.Utilities
             principalEntity
         );
 
+        /// <summary>
+        ///    Cypher-specific methods can only be used when the context is using a cypher database provider.
+        /// </summary>
+        public static string CypherNotInUse
+            => GetString("CypherNotInUse");
+
         private static string GetString(string name, params string[] formatterNames)
         {
             var value = _resourceManager.GetString(name);
