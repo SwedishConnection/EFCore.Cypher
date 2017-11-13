@@ -43,7 +43,10 @@ namespace Microsoft.EntityFrameworkCore
             {
                 var command = databaseFacade
                     .GetService<IRawSqlCommandBuilder>()
-                    .Build(cypher.Format, parameters);
+                    .Build(
+                        cypher.Format, 
+                        parameters
+                    );
 
                 return command
                     .RelationalCommand

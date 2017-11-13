@@ -1,3 +1,6 @@
+// Based on https://github.com/aspnet/EntityFrameworkCore
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using JetBrains.Annotations;
@@ -23,9 +26,10 @@ namespace Microsoft.EntityFrameworkCore.Query {
         // private readonly ICypherTranslatingExpressionVisitorFactory _cypherTranslatingExpressionVisitorFactory;
         
         public CypherQueryModelVisitor(
-            [NotNullAttribute] EntityQueryModelVisitorDependencies dependencies,
-            // TODO: Specific cypher dependencies 
-            [NotNullAttribute] QueryCompilationContext queryCompilationContext
+            [NotNull] EntityQueryModelVisitorDependencies dependencies,
+            [NotNull] CypherQueryModelVisitorDependencies cypherDependencies,
+            [NotNull] QueryCompilationContext queryCompilationContext,
+            [CanBeNull] CypherQueryModelVisitor parentQueryModelVisiter
             // TODO: Match Expression
         ) : base(dependencies, queryCompilationContext)
         {

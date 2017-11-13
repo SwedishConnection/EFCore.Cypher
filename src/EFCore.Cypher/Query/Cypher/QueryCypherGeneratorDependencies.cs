@@ -1,3 +1,6 @@
+// Based on https://github.com/aspnet/EntityFrameworkCore
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore.Storage;
 
@@ -6,7 +9,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
     public sealed class QueryCypherGeneratorDependencies
     {
         public QueryCypherGeneratorDependencies(
-            [NotNull] ICypherCommandBuilderFactory commandBuilderFactory,
+            [NotNull] IRelationalCommandBuilderFactory commandBuilderFactory,
             [NotNull] IRelationalTypeMapper relationalTypeMapper,
             [NotNull] ISqlGenerationHelper sqlGenerationHelper
         ) {
@@ -19,6 +22,6 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
 
         public ISqlGenerationHelper CypherGenerationHelper { get; }
 
-        public ICypherCommandBuilderFactory CommandBuilderFactory { get; }
+        public IRelationalCommandBuilderFactory CommandBuilderFactory { get; }
     }
 }
