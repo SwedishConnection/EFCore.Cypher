@@ -1,7 +1,11 @@
 // Based on https://github.com/aspnet/EntityFrameworkCore
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System.Linq;
 using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.TestUtilities;
+using Microsoft.EntityFrameworkCore.TestUtilities.FakeProvider;
 using Remotion.Linq.Parsing.ExpressionVisitors.Transformation;
 using Remotion.Linq.Parsing.Structure;
 using Remotion.Linq.Parsing.Structure.ExpressionTreeProcessors;
@@ -13,6 +17,12 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
 
         [Fact]
         public void Get_Parsed_Query() {
+            var optionsBuilder = new DbContextOptionsBuilder();
+            var options = new FakeCypherOptionsExtension().WithConnectionString("Flash=BarryAllen");
+
+            ((IDbContextOptionsBuilderInfrastructure)optionsBuilder)
+                .AddOrUpdateExtension(options);  
+
             var nodeTypeFactory = new DefaultMethodInfoBasedNodeTypeRegistryFactory().Create();
 
             var parser = new QueryParser(
@@ -30,6 +40,14 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                     )
                 )
             );
+
+            using (var ctx = new CypherFaceDbContext(optionsBuilder.Options)) {
+                var query = ctx
+                    .Warehouses
+                    .Where(x => x.Name == "Ebaz");
+
+                var qm = parser.GetParsedQuery(query.Expression);
+            }
 
             Assert.NotNull(parser);
         }

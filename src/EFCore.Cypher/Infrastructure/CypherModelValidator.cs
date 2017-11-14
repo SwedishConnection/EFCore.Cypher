@@ -40,5 +40,20 @@ namespace Microsoft.EntityFrameworkCore.Infrastructure
         {
             // TODO: Review what to keep and what to throw
         }
+
+        protected override void ValidateNonNullPrimaryKeys([NotNull] IModel model)
+        {
+            // TODO: Review what to keep and what to throw
+        }
+
+        protected override void ValidateNoShadowKeys([NotNull] IModel model)
+        {
+            // TODO: Review what to keep and what to throw
+        }
+
+        protected override void ValidateNoShadowEntities([NotNull] IModel model)
+        {
+            // TODO: Review what to keep and what to throw
+        }
     }
 }

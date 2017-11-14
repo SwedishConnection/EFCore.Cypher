@@ -74,7 +74,7 @@ namespace Microsoft.EntityFrameworkCore.Infrastructure
             // Model
             TryAdd<IModelSource, RelationalModelSource>();  // RelationalModelSource just extends ModelSource
             TryAdd<IModelValidator, CypherModelValidator>();
-            TryAdd<IModelCustomizer, RelationalModelCustomizer>();  // Relational specific logic in the FindSets method can be ignored (i.e. nothing to override)
+            TryAdd<IModelCustomizer, CypherModelCustomizer>();  
 
             ServiceCollectionMap.GetInfrastructure()
                 .AddDependencySingleton<RelationalTypeMapperDependencies>()
