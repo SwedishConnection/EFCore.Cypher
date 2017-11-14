@@ -17,7 +17,7 @@ namespace Microsoft.EntityFrameworkCore.TestUtilities
         public static ConventionSet Build()
             => new TestCypherConventionSetBuilder(
                 new RelationalConventionSetBuilderDependencies(
-                    new TestRelationalTypeMapper(
+                    new TestCypherTypeMapper(
                         new RelationalTypeMapperDependencies()
                     ),
                     null,

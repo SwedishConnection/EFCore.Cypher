@@ -6,6 +6,7 @@ using System.Linq.Expressions;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore.Query.Expressions;
 using Microsoft.EntityFrameworkCore.Query.ExpressionVisitors;
+using Microsoft.EntityFrameworkCore.Utilities;
 using Remotion.Linq;
 using Remotion.Linq.Clauses;
 
@@ -28,9 +29,8 @@ namespace Microsoft.EntityFrameworkCore.Query {
         public CypherQueryModelVisitor(
             [NotNull] EntityQueryModelVisitorDependencies dependencies,
             [NotNull] CypherQueryModelVisitorDependencies cypherDependencies,
-            [NotNull] QueryCompilationContext queryCompilationContext,
+            [NotNull] CypherQueryCompilationContext queryCompilationContext,
             [CanBeNull] CypherQueryModelVisitor parentQueryModelVisiter
-            // TODO: Match Expression
         ) : base(dependencies, queryCompilationContext)
         {
             // TODO: Unwrap dependencies
@@ -58,9 +58,15 @@ namespace Microsoft.EntityFrameworkCore.Query {
         /// </summary>
         /// <param name="queryModel"></param>
         public override void VisitQueryModel(QueryModel queryModel) {
+            Check.NotNull(queryModel, nameof(queryModel));
+            
             base.VisitQueryModel(queryModel);
 
-            // TODO: Fold Matches & Predicates & Handle wrapped queries (lifting/purging to QueriesBySource)
+            foreach (var selectExpression in QueriesBySource.Values) {
+                // TODO: Eliminate relationships
+
+                // TODO: Opitimzers for predicates
+            }
         }
 
         public override void VisitAdditionalFromClause(
@@ -88,8 +94,11 @@ namespace Microsoft.EntityFrameworkCore.Query {
         /// <returns></returns>
         protected override Expression CompileMainFromClauseExpression(
             MainFromClause mainFromClause,
-            QueryModel queryModel)
-        {
+            QueryModel queryModel
+        ) {
+            Check.NotNull(mainFromClause, nameof(mainFromClause));
+            Check.NotNull(queryModel, nameof(queryModel));
+
             // TODO: If mainFromClause is a wrapped query then lift otherwise pass to base
             return base.CompileMainFromClauseExpression(mainFromClause, queryModel);
         }

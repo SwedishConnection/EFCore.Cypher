@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Microsoft.EntityFrameworkCore.TestUtilities
 {
-    public class TestRelationalTypeMapper: RelationalTypeMapper {
+    public class TestCypherTypeMapper: RelationalTypeMapper {
 
         private readonly IReadOnlyDictionary<Type, RelationalTypeMapping> _simpleMappings
             = new Dictionary<Type, RelationalTypeMapping>
@@ -20,7 +20,7 @@ namespace Microsoft.EntityFrameworkCore.TestUtilities
             {
             };
 
-        public TestRelationalTypeMapper(RelationalTypeMapperDependencies dependencies)
+        public TestCypherTypeMapper(RelationalTypeMapperDependencies dependencies)
             : base(dependencies)
         {
         }

@@ -29,7 +29,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         ) => new CypherQueryModelVisitor(
                 Dependencies,
                 CypherDependencies,
-                (RelationalQueryCompilationContext)Check.NotNull(queryCompilationContext, nameof(queryCompilationContext)),
+                (CypherQueryCompilationContext)Check.NotNull(queryCompilationContext, nameof(queryCompilationContext)),
                 (CypherQueryModelVisitor)parentEntityQueryModelVisitor
             );
     }

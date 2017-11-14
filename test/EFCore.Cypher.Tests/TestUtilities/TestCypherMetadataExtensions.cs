@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Microsoft.EntityFrameworkCore.TestUtilities
 {
-    public static class TestRelationalMetadataExtensions
+    public static class TestCypherMetadataExtensions
     {
         public static IRelationalPropertyAnnotations TestProvider(this IProperty property)
             => new RelationalPropertyAnnotations(property);

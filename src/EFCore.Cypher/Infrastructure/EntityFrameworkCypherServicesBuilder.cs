@@ -5,11 +5,16 @@ using System;
 using System.Collections.Generic;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.ExpressionVisitors;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Storage.Internal;
+using Microsoft.EntityFrameworkCore.Update;
+using Microsoft.EntityFrameworkCore.Update.Internal;
 using Microsoft.Extensions.DependencyInjection;
+using Remotion.Linq.Parsing.ExpressionVisitors.TreeEvaluation;
 
 namespace Microsoft.EntityFrameworkCore.Infrastructure
 {
@@ -33,7 +38,17 @@ namespace Microsoft.EntityFrameworkCore.Infrastructure
                 { typeof(IRawSqlCommandBuilder), new ServiceCharacteristics(ServiceLifetime.Singleton) },
                 { typeof(IRelationalCommandBuilderFactory), new ServiceCharacteristics(ServiceLifetime.Singleton) },
                 { typeof(IParameterNameGeneratorFactory), new ServiceCharacteristics(ServiceLifetime.Singleton) },
-                { typeof(IRelationalConnection), new ServiceCharacteristics(ServiceLifetime.Scoped) }
+                { typeof(IRelationalConnection), new ServiceCharacteristics(ServiceLifetime.Scoped) },
+                { typeof(IRelationalDatabaseCreator), new ServiceCharacteristics(ServiceLifetime.Scoped) },
+
+                { typeof(ICypherResultOperatorHandler), new ServiceCharacteristics(ServiceLifetime.Scoped) },
+
+                { typeof(IUpdateSqlGenerator), new ServiceCharacteristics(ServiceLifetime.Singleton) },
+                { typeof(ICommandBatchPreparer), new ServiceCharacteristics(ServiceLifetime.Scoped) },
+                { typeof(IModificationCommandBatchFactory), new ServiceCharacteristics(ServiceLifetime.Scoped) },
+                { typeof(IComparer<ModificationCommand>), new ServiceCharacteristics(ServiceLifetime.Singleton) },
+                { typeof(IKeyValueIndexFactorySource), new ServiceCharacteristics(ServiceLifetime.Singleton) },
+                { typeof(IBatchExecutor), new ServiceCharacteristics(ServiceLifetime.Scoped) },
             };
 
         /// <summary>
@@ -63,7 +78,8 @@ namespace Microsoft.EntityFrameworkCore.Infrastructure
 
             ServiceCollectionMap.GetInfrastructure()
                 .AddDependencySingleton<RelationalTypeMapperDependencies>()
-                .AddDependencySingleton<RelationalModelValidatorDependencies>();
+                .AddDependencySingleton<RelationalModelValidatorDependencies>()
+                .AddDependencyScoped<RelationalConventionSetBuilderDependencies>();
 
 
             // Migrations
@@ -87,11 +103,21 @@ namespace Microsoft.EntityFrameworkCore.Infrastructure
             TryAdd<IQueryCompilationContextFactory, CypherQueryCompilationContextFactory>();
             TryAdd<IEntityQueryableExpressionVisitorFactory, CypherEntityQueryableExpressionVisitorFactory>();
             TryAdd<IEntityQueryModelVisitorFactory, CypherQueryModelVisitorFactory>();
+            TryAdd<IEvaluatableExpressionFilter, RelationalEvaluatableExpressionFilter>();
+            TryAdd<ICypherResultOperatorHandler, CypherResultOperatorHandler>();
 
             ServiceCollectionMap.GetInfrastructure()
                 .AddDependencyScoped<RelationalQueryCompilationContextDependencies>()
+                .AddDependencyScoped<CypherEntityQueryableExpressionVisitorDependencies>()
                 .AddDependencyScoped<CypherQueryModelVisitorDependencies>()
                 .AddDependencyScoped<RelationalQueryCompilationContextDependencies>();
+
+
+            // Update
+            TryAdd<ICommandBatchPreparer, CommandBatchPreparer>();
+            TryAdd<IComparer<ModificationCommand>, ModificationCommandComparer>();
+            TryAdd<IKeyValueIndexFactorySource, KeyValueIndexFactorySource>();
+            TryAdd<IBatchExecutor, BatchExecutor>();
 
 
             // Relational transaction factory (post 2.0)

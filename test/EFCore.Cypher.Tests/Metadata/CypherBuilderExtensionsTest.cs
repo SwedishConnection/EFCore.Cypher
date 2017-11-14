@@ -21,17 +21,13 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         protected virtual ModelBuilder CreateConventionModelBuilder() 
             => CypherTestHelpers.Instance.CreateConventionBuilder();
 
-        protected virtual ModelBuilder CreateModelBuilder() =>
-            new ModelBuilder(TestCypherConventionSetBuilder.Build());
-
         /// <summary>
         /// Set labels (with generics)
         /// </summary>
         [Fact]
         public void Can_set_labels()
         {
-            // TODO: Replace with convention builder
-            var modelBuilder = CreateModelBuilder();
+            var modelBuilder = CreateConventionModelBuilder();
 
             modelBuilder
                 .Entity<Customer>()
@@ -51,8 +47,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         [Fact]
         public void Can_set_labels_non_generic()
         {
-            // TODO: Replace with convention builder
-            var modelBuilder = CreateModelBuilder();
+            var modelBuilder = CreateConventionModelBuilder();
 
             modelBuilder
                 .Entity(typeof(Customer))
@@ -72,8 +67,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         /// </summary>
         [Fact]
         public void Can_get_labels_negative() {
-            // TODO: Replace with convention builder
-            var modelBuilder = CreateModelBuilder();
+            var modelBuilder = CreateConventionModelBuilder();
 
             // when labels have not be defined
             var entityBuilder = modelBuilder
@@ -110,8 +104,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         /// </summary>
         [Fact]
         public void Can_set_labels_override() {
-            // TODO: Replace with convention builder
-            var modelBuilder = CreateModelBuilder();
+            var modelBuilder = CreateConventionModelBuilder();
 
             // labels from data annotation
             var entityBuilder = modelBuilder
@@ -138,8 +131,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         /// </summary>
         [Fact]
         public void Can_inherit_default_labels() {
-            // TODO: Replace with convention builder
-            var modelBuilder = CreateModelBuilder();
+            var modelBuilder = CreateConventionModelBuilder();
 
             // labels from data annotation
             modelBuilder.Entity<International>();
@@ -163,8 +155,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         /// </summary>
         [Fact]
         public void Inheritance_labels_when_ignored() { 
-            // TODO: Replace with convention builder
-            var modelBuilder = CreateModelBuilder();
+            var modelBuilder = CreateConventionModelBuilder();
 
             modelBuilder.Entity<A>();
             modelBuilder.Ignore<B>();
@@ -190,8 +181,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         /// </summary>
         [Fact]
         public void Inheritance_labels_when_not_registered() { 
-            // TODO: Replace with convention builder
-            var modelBuilder = CreateModelBuilder();
+            var modelBuilder = CreateConventionModelBuilder();
 
             modelBuilder.Entity<A>();
             // base types are only available if the entiy is registered
@@ -217,8 +207,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         /// </summary>
         [Fact]
         public void Can_set_relationship_overriding_annotations() {
-            // TODO: Replace with convention builder
-            var modelBuilder = CreateModelBuilder();
+            var modelBuilder = CreateConventionModelBuilder();
 
             modelBuilder.Entity<Owner>()
                 .HasMany(e => e.Things)
@@ -268,8 +257,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         /// </summary>
         [Fact]
         public void Can_set_relationship_with_annotations() {
-            // TODO: Replace with convention builder
-            var modelBuilder = CreateModelBuilder();
+            var modelBuilder = CreateConventionModelBuilder();
 
             modelBuilder.Entity<Owner>();
 
@@ -314,8 +302,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         public void Fail_if_starting_is_not_a_member() {
             Assert.Throws<InvalidOperationException>(
                 () => {
-                // TODO: Replace with convention builder
-                var modelBuilder = CreateModelBuilder();
+                var modelBuilder = CreateConventionModelBuilder();
 
                 modelBuilder.Entity<A>();
 
@@ -333,8 +320,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         public void Fail_if_starting_is_not_registered() {
             Assert.Throws<ArgumentNullException>(
                 () => {
-                // TODO: Replace with convention builder
-                var modelBuilder = CreateModelBuilder();
+                var modelBuilder = CreateConventionModelBuilder();
 
                 modelBuilder.Entity<Owner>()
                     .HasMany(e => e.Things)
@@ -351,8 +337,7 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         public void Fail_if_data_annotations_on_both_endpoints() {
             Assert.Throws<InvalidOperationException>(
                 () => {
-                // TODO: Replace with convention builder
-                var modelBuilder = CreateModelBuilder();
+                var modelBuilder = CreateConventionModelBuilder();
 
                 modelBuilder.Entity<Gary>();
             });

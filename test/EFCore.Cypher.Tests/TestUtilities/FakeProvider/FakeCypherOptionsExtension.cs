@@ -2,7 +2,10 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.Update;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.EntityFrameworkCore.TestUtilities.FakeProvider
@@ -27,7 +30,19 @@ namespace Microsoft.EntityFrameworkCore.TestUtilities.FakeProvider
 
         public static IServiceCollection AddEntityFrameworkCypherDatabase(IServiceCollection services) {
             var builder = new EntityFrameworkCypherServicesBuilder(services)
-                .TryAdd<IDatabaseProvider, DatabaseProvider<FakeCypherOptionsExtension>>();
+                .TryAdd<IDatabaseProvider, DatabaseProvider<FakeCypherOptionsExtension>>()
+                .TryAdd<ISqlGenerationHelper, RelationalSqlGenerationHelper>()
+                .TryAdd<IRelationalTypeMapper, TestCypherTypeMapper>()
+                // Migration SQL generator
+                .TryAdd<IConventionSetBuilder, TestCypherConventionSetBuilder>()
+                // Member translator
+                // Method call translator
+                // Query SQL Generator
+                .TryAdd<IRelationalConnection, FakeCypherConnection>()
+                // History 
+                // Update SQL Generator
+                .TryAdd<IModificationCommandBatchFactory, TestCypherModificationCommandBatchFactory>()
+                .TryAdd<IRelationalDatabaseCreator, FakeCypherDatabaseCreator>();
 
             builder.TryAddCoreServices();
 
