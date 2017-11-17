@@ -72,4 +72,19 @@
   <data name="CypherNotInUse" xml:space="preserve">
     <value>Cypher-specific methods can only be used when the context is using a cypher database provider.</value>
   </data>
+  <data name="DuplicatePropertyWithAnonymous" xml:space="preserve">
+    <value>Duplicate property {property} when creating an anonymous type.</value>
+  </data>
+  <data name="BailCreatingAnonymous" xml:space="preserve">
+    <value>Unexpected error when creating anonymous type.</value>
+  </data>
+  <data name="NoPropertiesWhenCreatingAnonymous" xml:space="preserve">
+    <value>Anonymous types must have one or more properties.</value>
+  </data>
+  <data name="PropertyNameMayNotBeNullOrWhitespace" xml:space="preserve">
+    <value>Property keys with anonymous types may not be null or whitespace.</value>
+  </data>
+  <data name="PropertyTypeMayNotBeNull" xml:space="preserve">
+    <value>Property types with anonymous types may not be null.</value>
+  </data>
 </root>

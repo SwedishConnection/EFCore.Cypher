@@ -1,6 +1,7 @@
 // Based on https://github.com/aspnet/EntityFrameworkCore
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System;
 using System.Linq;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -44,7 +45,13 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
             using (var ctx = new CypherFaceDbContext(optionsBuilder.Options)) {
                 var query = ctx
                     .Warehouses
-                    .Where(x => x.Name == "Ebaz");
+                    .Join(
+                        ctx.Things,
+                        (x) => "OWNS",
+                        (x) => String.Empty,
+                        (o, i) => new { Warehouse = o, Thing = i }
+                    )
+                    .Where(x => x.Warehouse.Name == "Ebaz");
 
                 var qm = parser.GetParsedQuery(query.Expression);
             }

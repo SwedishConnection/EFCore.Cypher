@@ -77,6 +77,43 @@ namespace Microsoft.EntityFrameworkCore.Utilities
         public static string CypherNotInUse
             => GetString("CypherNotInUse");
 
+        /// <summary>
+        ///     Duplicate property {property} when creating an anonymous type.
+        /// </summary>
+        public static string DuplicatePropertyWithAnonymous(
+            [NotNull] object property
+        ) => string.Format(
+            GetString(
+                "DuplicatePropertyWithAnonymous",
+                nameof(property)
+            ),
+            property
+        );
+
+        /// <summary>
+        ///     Unexpected error when creating anonymous type.
+        /// </summary>
+        public static string BailCreatingAnonymous
+            => GetString("BailCreatingAnonymous");
+
+        /// <summary>
+        ///     Anonymous types must have one or more properties.
+        /// </summary>
+        public static string NoPropertiesWhenCreatingAnonymous
+            => GetString("NoPropertiesWhenCreatingAnonymous");
+
+        /// <summary>
+        ///     Property keys with anonymous types may not be null or whitespace.
+        /// </summary>
+        public static string PropertyNameMayNotBeNullOrWhitespace
+            => GetString("PropertyNameMayNotBeNullOrWhitespace");
+
+        /// <summary>
+        ///     Property types with anonymous types may not be null.
+        /// </summary>
+        public static string PropertyTypeMayNotBeNull
+            => GetString("PropertyTypeMayNotBeNull");
+
         private static string GetString(string name, params string[] formatterNames)
         {
             var value = _resourceManager.GetString(name);

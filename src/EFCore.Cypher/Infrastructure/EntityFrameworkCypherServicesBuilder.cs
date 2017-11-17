@@ -98,6 +98,9 @@ namespace Microsoft.EntityFrameworkCore.Infrastructure
                 .AddDependencySingleton<ParameterNameGeneratorDependencies>();
 
 
+            // Relinq (i.e. INodeTypeProviderFactory)
+
+
             // Query
             TryAdd<IQueryContextFactory, RelationalQueryContextFactory>();
             TryAdd<IQueryCompilationContextFactory, CypherQueryCompilationContextFactory>();
