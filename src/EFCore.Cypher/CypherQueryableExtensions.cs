@@ -31,13 +31,10 @@ namespace System.Linq {
             Check.NotEmpty(relationship, nameof(relationship));
             Check.NotNull(resultSelector, nameof(resultSelector));
 
-            Expression<Func<TOuter, string>> outerKeySelector = (x) => relationship;
-            Expression<Func<TInner, string>> innerKeySelector = (x) => relationship;
-
             return outer.Join(
                 inner,
-                outerKeySelector,
-                innerKeySelector,
+                (x) => relationship,
+                (x) => relationship,
                 resultSelector
             );
         }
@@ -151,8 +148,7 @@ namespace System.Linq {
             var startReturnsKeySelector = Expression.Lambda(
                 Expression.Constant(String.Empty),
                 new ParameterExpression[] {
-                    Expression.Parameter(startReturns),
-                    Expression.Parameter(typeof(string))
+                    Expression.Parameter(startReturns)
                 }
             );
 
