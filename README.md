@@ -11,5 +11,5 @@ Everything starts with the database model.  There are two additions to the relat
 ## Infrastructure to create a database context
 There is just enough infrastructure (i.e. services) to be able to create a database context and start fleshing out the Relinq logic necessary to process Cyppher matches and implicit group statements.
 
-## Queryable extensions
-The only one avialable is **Match**.
+## Join extensions
+The **Join** call has two new derivations.  A relationship by name (label) becomes the default key selector for both the outer and inner streams.  A relationship as a stream turns the Join extension into two Join calls with the first between the outer and relationship then the resulting type and inner doing some expression replacing to fix the body of the result selector.
