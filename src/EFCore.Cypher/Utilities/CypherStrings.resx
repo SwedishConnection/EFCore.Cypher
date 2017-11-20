@@ -69,9 +69,6 @@
   <data name="NotAForeignKeyMember" xml:space="preserve">
     <value>{entity} is not a foreign key member [declaring entity: {declaringEntity}, principal entity: {principalEntity}]</value>
   </data>
-  <data name="CypherNotInUse" xml:space="preserve">
-    <value>Cypher-specific methods can only be used when the context is using a cypher database provider.</value>
-  </data>
   <data name="DuplicatePropertyWithAnonymous" xml:space="preserve">
     <value>Duplicate property {property} when creating an anonymous type.</value>
   </data>

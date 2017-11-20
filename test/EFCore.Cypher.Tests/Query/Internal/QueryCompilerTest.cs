@@ -16,19 +16,37 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
 {
     public class QueryCompilerTest {
 
-        [Fact]
-        public void Get_Parsed_Query() {
+        /// <summary>
+        /// Database context options
+        /// </summary>
+        /// <param name="connectionString"></param>
+        /// <returns></returns>
+        public static DbContextOptions Options(String connectionString) {
             var optionsBuilder = new DbContextOptionsBuilder();
-            var options = new FakeCypherOptionsExtension().WithConnectionString("Flash=BarryAllen");
+            var options = new FakeCypherOptionsExtension()
+                .WithConnectionString(connectionString);
 
             ((IDbContextOptionsBuilderInfrastructure)optionsBuilder)
-                .AddOrUpdateExtension(options);  
+                .AddOrUpdateExtension(options);
 
-            var nodeTypeFactory = new DefaultMethodInfoBasedNodeTypeRegistryFactory().Create();
+            return optionsBuilder.Options;
+        }
 
-            var parser = new QueryParser(
+        /// <summary>
+        /// Node type proivder
+        /// </summary>
+        /// <returns></returns>
+        public static INodeTypeProvider NodeTypeProvider =>
+            new DefaultMethodInfoBasedNodeTypeRegistryFactory().Create();
+
+        /// <summary>
+        /// Query Parser
+        /// </summary>
+        /// <returns></returns>
+        public static QueryParser QueryParser =>
+            new QueryParser(
                 new ExpressionTreeParser(
-                    nodeTypeFactory,
+                    NodeTypeProvider,
                     new CompoundExpressionTreeProcessor(
                         new IExpressionTreeProcessor[] {
                             new PartialEvaluatingExpressionTreeProcessor(
@@ -42,21 +60,28 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                 )
             );
 
-            using (var ctx = new CypherFaceDbContext(optionsBuilder.Options)) {
+        /// <summary>
+        /// Compile relationship join makes 2 join bodies in the query model
+        /// </summary>
+        [Fact]
+        public void Get_Parsed_Query() {
+            DbContextOptions options = Options("Flash=BarryAllen");
+
+            using (var ctx = new CypherFaceDbContext(options)) {
                 var query = ctx
                     .Warehouses
                     .Join(
-                        ctx.Things,
-                        (x) => "OWNS",
-                        (x) => String.Empty,
-                        (o, i) => new { Warehouse = o, Thing = i }
+                        ctx.Persons,
+                        ctx.Supervising,
+                        (o, i, r) => new { Warehouse = o, Person = i, Supervise = r }
                     )
-                    .Where(x => x.Warehouse.Name == "Ebaz");
+                    .Where(x => x.Warehouse.Location == "Central City");
 
-                var qm = parser.GetParsedQuery(query.Expression);
+                var qm = QueryParser.GetParsedQuery(query.Expression);
+
+                Assert.Equal(3, qm.BodyClauses.Count());
             }
 
-            Assert.NotNull(parser);
         }
     }
 }

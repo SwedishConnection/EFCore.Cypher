@@ -17,17 +17,32 @@ namespace Microsoft.EntityFrameworkCore.TestUtilities
         public DbSet<Warehouse> Warehouses { get; set; }
 
         public DbSet<Thing> Things { get; set; }
+
+        public DbSet<Person> Persons { get; set; }
+
+        public DbSet<Supervise> Supervising { get; set; }
     }
 
     [Labels(new string[] {"Warehouse"})]
     public class Warehouse {
-        public string Name { get; set; }
+        public string Location { get; set; }
 
         [Relationship("OWNS")]
         public IEnumerable<Thing> Things { get; set; }
+
+        [Relationship(typeof(Supervise))]
+        public Person PersonInCharge { get; set; }
     }
 
     public class Thing {
         public int Number { get; set; }
+    }
+
+    public class Person {
+        public string Name { get; set; }
+    }
+
+    public class Supervise {
+        public bool Certified { get; set; }
     }
 }

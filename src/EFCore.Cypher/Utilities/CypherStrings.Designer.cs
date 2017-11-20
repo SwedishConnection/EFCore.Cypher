@@ -72,12 +72,6 @@ namespace Microsoft.EntityFrameworkCore.Utilities
         );
 
         /// <summary>
-        ///    Cypher-specific methods can only be used when the context is using a cypher database provider.
-        /// </summary>
-        public static string CypherNotInUse
-            => GetString("CypherNotInUse");
-
-        /// <summary>
         ///     Duplicate property {property} when creating an anonymous type.
         /// </summary>
         public static string DuplicatePropertyWithAnonymous(
