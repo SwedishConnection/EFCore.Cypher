@@ -11,6 +11,8 @@ using Microsoft.EntityFrameworkCore.Utilities;
 using Microsoft.EntityFrameworkCore.Storage;
 using Remotion.Linq.Clauses;
 using System.Linq;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 
 namespace Microsoft.EntityFrameworkCore.Query.Expressions
 {
@@ -25,6 +27,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
     /// </summary>
     public class ReadOnlyExpression: NodeExpressionBase {
 
+        private static readonly ExpressionEqualityComparer _expressionEqualityComparer = new ExpressionEqualityComparer();
+        
         private readonly CypherQueryCompilationContext _queryCompliationContext;
 
         private readonly List<Expression> _returnItems = new List<Expression>();
@@ -38,6 +42,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
         private Expression _skip;
 
         private bool _isReturnStar;
+
+        private NodeExpressionBase _returnStarNode;
 
         public ReadOnlyExpression(
             [NotNull] ReadOnlyExpressionDependencies dependencies,
@@ -201,6 +207,114 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
             Check.NotNull(nodeExpression, nameof(nodeExpression));
 
             _readingClauses.Add(nodeExpression);
+        }
+
+        /// <summary>
+        /// Add return item
+        /// </summary>
+        /// <param name="property"></param>
+        /// <param name="querySource"></param>
+        /// <returns></returns>
+        public virtual int AddReturnItem(
+            [NotNull] IProperty property,
+            [NotNull] IQuerySource querySource
+        ) {
+            Check.NotNull(property, nameof(property));
+            Check.NotNull(querySource, nameof(querySource));
+
+            return AddReturnItem(
+                BindProperty(property, querySource)
+            );
+        }
+
+        /// <summary>
+        /// Add return item
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <param name="resetReturnStart"></param>
+        /// <returns></returns>
+        public virtual int AddReturnItem(
+            [NotNull] Expression expression,
+            bool resetReturnStart = true
+        ) {
+            Check.NotNull(expression, nameof(expression));
+
+            // convertion expressions
+            if (expression.NodeType == ExpressionType.Convert) {
+                var unary = (UnaryExpression)expression;
+
+                if (unary.Type.UnwrapNullableType() == unary.Operand.Type) {
+                    expression = unary.Operand;
+                }
+            }
+
+            var returnItemIndex = _returnItems.FindIndex(
+                e => _expressionEqualityComparer.Equals(e, expression)
+                    || _expressionEqualityComparer.Equals((e as AliasExpression)?.Expression, expression)
+            );
+
+            if (returnItemIndex != -1) {
+                return returnItemIndex;
+            }
+
+            // TODO: when not a storage expression
+
+            _returnItems.Add(expression);
+
+            if (resetReturnStart) {
+                IsReturnStar = false;
+            }
+
+            return _returnItems.Count - 1;
+        }
+
+        public virtual Expression BindProperty(
+            [NotNull] IProperty property,
+            [NotNull] IQuerySource querySource
+        ) {
+            Check.NotNull(property, nameof(property));
+            Check.NotNull(querySource, nameof(querySource));
+
+            var node = GetNodeForQuerySource(querySource);
+
+            // TODO: Nested queries + joined entities
+
+            return new StorageExpression(
+                property.Cypher().StorageName,
+                property,
+                node
+            );
+        }
+
+        /// <summary>
+        /// Node for query source
+        /// </summary>
+        /// <param name="querySource"></param>
+        /// <returns></returns>
+        public virtual NodeExpressionBase GetNodeForQuerySource(
+            [NotNull] IQuerySource querySource
+        ) {
+            Check.NotNull(querySource, nameof(querySource));
+
+            return _readingClauses
+                .FirstOrDefault(rc => rc.QuerySource == querySource)
+                ?? ReturnStarNode;
+        }
+
+        /// <summary>
+        /// Node for star return
+        /// </summary>
+        /// <returns></returns>
+        public virtual NodeExpressionBase ReturnStarNode {
+            get {
+                return _returnStarNode ??
+                    (_readingClauses.Count == 1 ? _readingClauses.Single(): null);
+            }
+
+            [param: CanBeNull]
+            set {
+                _returnStarNode = value;
+            }
         }
     }
 }

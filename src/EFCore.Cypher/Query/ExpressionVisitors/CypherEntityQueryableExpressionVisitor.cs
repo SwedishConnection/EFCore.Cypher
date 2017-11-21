@@ -157,7 +157,7 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
                     .CreateMaterializer(
                         entityType,
                         readOnlyExpression,
-                        (p, roe) => { return 0; },
+                        (p, roe) => roe.AddReturnItem(p, _querySource),
                         _querySource,
                         out var typeIndexMapping
                     )

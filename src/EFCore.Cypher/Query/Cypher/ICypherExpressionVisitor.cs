@@ -12,5 +12,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
         Expression VisitReadOnly([NotNull] ReadOnlyExpression readOnlyExpression);
 
         Expression VisitMatch([NotNull] MatchExpression matchExpression);
+
+        Expression VisitStorage([NotNull] StorageExpression storageExpression);
     }
 }

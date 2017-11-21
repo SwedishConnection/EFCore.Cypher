@@ -153,6 +153,22 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
         }
 
         /// <summary>
+        /// Visit storage expression
+        /// </summary>
+        /// <param name="storageExpression"></param>
+        /// <returns></returns>
+        public Expression VisitStorage([NotNull] StorageExpression storageExpression) {
+            Check.NotNull(storageExpression, nameof(storageExpression));
+
+            _commandBuilder
+                .Append(SqlGenerator.DelimitIdentifier(storageExpression.Node.Alias))
+                .Append(".")
+                .Append(SqlGenerator.DelimitIdentifier(storageExpression.Name));
+
+            return storageExpression;
+        }
+
+        /// <summary>
         /// Iterate over grammer visiting each term
         /// </summary>
         /// <param name="terms"></param>

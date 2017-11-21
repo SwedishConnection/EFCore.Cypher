@@ -138,5 +138,20 @@ namespace Microsoft.EntityFrameworkCore.Query {
             // TODO: If additional is a wrapped query then lift otherwise pass to base
             return base.CompileAdditionalFromClauseExpression(additionalFromClause, queryModel);
         }
+
+        /// <summary>
+        /// Visit <see cref="SelectClause" /> 
+        /// </summary>
+        /// <param name="selectClause"></param>
+        /// <param name="queryModel"></param>
+        public override void VisitSelectClause(
+            SelectClause selectClause, 
+            QueryModel queryModel
+        ) {
+            Check.NotNull(selectClause, nameof(selectClause));
+            Check.NotNull(queryModel, nameof(queryModel));
+
+            base.VisitSelectClause(selectClause, queryModel);
+        }
     }
 }

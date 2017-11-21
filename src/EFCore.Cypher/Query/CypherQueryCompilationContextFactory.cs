@@ -25,12 +25,12 @@ namespace Microsoft.EntityFrameworkCore.Query
         /// <returns></returns>
         public override QueryCompilationContext Create(bool async)
             => async
-                ? new RelationalQueryCompilationContext(
+                ? new CypherQueryCompilationContext(
                     Dependencies,
                     new AsyncLinqOperatorProvider(),
                     new AsyncQueryMethodProvider(),
                     TrackQueryResults)
-                : new RelationalQueryCompilationContext(
+                : new CypherQueryCompilationContext(
                     Dependencies,
                     new LinqOperatorProvider(),
                     new QueryMethodProvider(),
