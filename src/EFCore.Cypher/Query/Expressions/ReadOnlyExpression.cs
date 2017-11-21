@@ -50,6 +50,16 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
             _queryCompliationContext = queryCompilationContext;
         }
 
+        public ReadOnlyExpression(
+            [NotNull] ReadOnlyExpressionDependencies dependencies,
+            [NotNull] CypherQueryCompilationContext queryCompilationContext,
+            [NotNull] string alias
+        ) : this(dependencies, queryCompilationContext) {
+            Check.NotNull(alias, nameof(alias));
+
+            // TODO: Create unique alias
+        }
+
         /// <summary>
         /// Dependencies
         /// </summary>
@@ -179,6 +189,18 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
             return _readingClauses
                 .OfType<ReadOnlyExpression>()
                 .SelectMany(r => r.GetReturnTypes());
+        }
+
+        /// <summary>
+        /// Add reading clause
+        /// </summary>
+        /// <param name="nodeExpression"></param>
+        public virtual void AddReadingClause(
+            [NotNull] NodeExpressionBase nodeExpression
+        ) {
+            Check.NotNull(nodeExpression, nameof(nodeExpression));
+
+            _readingClauses.Add(nodeExpression);
         }
     }
 }

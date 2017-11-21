@@ -80,7 +80,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
         }
 
         /// <summary>
-        /// 
+        /// Uses the return types (from the read only expression) to 
+        /// create a value buffer factory (either typed or untyped)
         /// </summary>
         /// <param name="relationalValueBufferFactoryFactory"></param>
         /// <param name="dataReader"></param>
@@ -98,10 +99,102 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
                 );
         }
 
+        /// <summary>
+        /// Visit read only expression
+        /// </summary>
+        /// <param name="readOnlyExpression"></param>
+        /// <returns></returns>
         public Expression VisitReadOnly([NotNull] ReadOnlyExpression readOnlyExpression)
         {
-            throw new NotImplementedException();
+            Check.NotNull(readOnlyExpression, nameof(readOnlyExpression));
+
+            // TODO: nested read only expression
+
+            if (readOnlyExpression.ReadingClauses.Count > 0) {
+                IterateGrammer(readOnlyExpression.ReadingClauses);
+            } else {
+                CreatePseudoMatchClause();
+            }
+
+            if (readOnlyExpression.ReturnItems.Count > 0) {
+                if (readOnlyExpression.IsReturnStar) {
+                    _commandBuilder.Append(", ");
+                }
+
+                // TODO: Optimization visitors
+                IterateGrammer(readOnlyExpression.ReturnItems, s => s.Append(", "));
+            }
+
+            // TODO: Order, Skip, Limit
+
+            return readOnlyExpression;
         }
+
+        /// <summary>
+        /// Visit match expression
+        /// </summary>
+        /// <param name="matchExpression"></param>
+        /// <returns></returns>
+        public Expression VisitMatch([NotNull] MatchExpression matchExpression) {
+            Check.NotNull(matchExpression, nameof(matchExpression));
+
+            var optional = matchExpression.Optional
+                ? "OPTIONAL"
+                : String.Empty;
+
+            _commandBuilder
+                .Append($"{optional} MATCH (")
+                .Append(matchExpression.Alias)
+                .Append(":")
+                .Append(String.Join(":", matchExpression.Labels))
+                .Append(")");
+
+            return matchExpression;
+        }
+
+        /// <summary>
+        /// Iterate over grammer visiting each term
+        /// </summary>
+        /// <param name="terms"></param>
+        /// <param name="handler"></param>
+        protected virtual void IterateGrammer(
+            [NotNull] IReadOnlyList<Expression> items,
+            [CanBeNull] Action<IRelationalCommandBuilder> stringJoinAction = null
+        ) => IterateGrammer(
+                items, 
+                e => Visit(e), 
+                stringJoinAction
+            );
+
+        /// <summary>
+        /// Iterate over grammer using the string join action between handled items
+        /// </summary>
+        /// <param name="terms"></param>
+        /// <param name="seed"></param>
+        /// <param name="handler"></param>
+        protected virtual void IterateGrammer<T>(
+            [NotNull] IReadOnlyList<T> items,
+            [NotNull] Action<T> handler,
+            [CanBeNull] Action<IRelationalCommandBuilder> stringJoinAction = null
+        ) {
+            Check.NotNull(items, nameof(items));
+            Check.NotNull(handler, nameof(handler));
+
+            stringJoinAction = stringJoinAction ?? (s => s.AppendLine());
+
+            for (var index = 0; index < items.Count; index++) {
+                if (index > 0) {
+                    stringJoinAction(_commandBuilder);
+                }
+
+                handler(items[index]);
+            }
+        }
+
+        /// <summary>
+        /// Let provider supply pseudo match clause
+        /// </summary>
+        protected virtual void CreatePseudoMatchClause() {}
 
         protected override Exception CreateUnhandledItemException<T>(T unhandledItem, string visitMethod)
         {

@@ -7,8 +7,12 @@ using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal;
 using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.EntityFrameworkCore.Query.Cypher;
+using Microsoft.EntityFrameworkCore.Query.Expressions;
 using Microsoft.EntityFrameworkCore.Query.ExpressionVisitors;
+using Microsoft.EntityFrameworkCore.Query.ExpressionVisitors.Internal;
 using Microsoft.EntityFrameworkCore.Query.Internal;
+using Microsoft.EntityFrameworkCore.Query.Sql;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Storage.Internal;
 using Microsoft.EntityFrameworkCore.Update;
@@ -42,6 +46,11 @@ namespace Microsoft.EntityFrameworkCore.Infrastructure
                 { typeof(IRelationalDatabaseCreator), new ServiceCharacteristics(ServiceLifetime.Scoped) },
 
                 { typeof(ICypherResultOperatorHandler), new ServiceCharacteristics(ServiceLifetime.Scoped) },
+                { typeof(ICypherMaterializerFactory), new ServiceCharacteristics(ServiceLifetime.Singleton) },
+                { typeof(IShaperCommandContextFactory), new ServiceCharacteristics(ServiceLifetime.Singleton) },
+                { typeof(IReadOnlyExpressionFactory), new ServiceCharacteristics(ServiceLifetime.Singleton) },
+                { typeof(IQueryCypherGeneratorFactory), new ServiceCharacteristics(ServiceLifetime.Singleton) },
+                { typeof(IRelationalValueBufferFactoryFactory), new ServiceCharacteristics(ServiceLifetime.Singleton) },
 
                 { typeof(IUpdateSqlGenerator), new ServiceCharacteristics(ServiceLifetime.Singleton) },
                 { typeof(ICommandBatchPreparer), new ServiceCharacteristics(ServiceLifetime.Scoped) },
@@ -108,12 +117,21 @@ namespace Microsoft.EntityFrameworkCore.Infrastructure
             TryAdd<IEntityQueryModelVisitorFactory, CypherQueryModelVisitorFactory>();
             TryAdd<IEvaluatableExpressionFilter, RelationalEvaluatableExpressionFilter>();
             TryAdd<ICypherResultOperatorHandler, CypherResultOperatorHandler>();
+            TryAdd<ICypherMaterializerFactory, CypherMaterializerFactory>();
+            TryAdd<IRelationalValueBufferFactoryFactory, TypedRelationalValueBufferFactoryFactory>();
+            TryAdd<IShaperCommandContextFactory, ShaperCommandContextFactory>();
+            TryAdd<IReadOnlyExpressionFactory, ReadOnlyExpressionFactory>();
+            
+
 
             ServiceCollectionMap.GetInfrastructure()
                 .AddDependencyScoped<RelationalQueryCompilationContextDependencies>()
                 .AddDependencyScoped<CypherEntityQueryableExpressionVisitorDependencies>()
                 .AddDependencyScoped<CypherQueryModelVisitorDependencies>()
-                .AddDependencyScoped<RelationalQueryCompilationContextDependencies>();
+                .AddDependencyScoped<RelationalQueryCompilationContextDependencies>()
+                .AddDependencySingleton<ReadOnlyExpressionDependencies>()
+                .AddDependencySingleton<QuerySqlGeneratorDependencies>()
+                .AddDependencySingleton<RelationalValueBufferFactoryDependencies>();
 
 
             // Update

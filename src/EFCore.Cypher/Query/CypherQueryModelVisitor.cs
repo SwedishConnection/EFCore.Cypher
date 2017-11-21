@@ -42,6 +42,13 @@ namespace Microsoft.EntityFrameworkCore.Query {
         public virtual ICollection<ReadOnlyExpression> Queries => QueriesBySource.Values;
 
         /// <summary>
+        /// Concrete query compilation context
+        /// </summary>
+        /// <returns></returns>
+        public new virtual CypherQueryCompilationContext QueryCompilationContext
+            => (CypherQueryCompilationContext)base.QueryCompilationContext;
+
+        /// <summary>
         /// Get active ReadOnlyExpression
         /// </summary>
         /// <param name="querySource"></param>
@@ -51,6 +58,21 @@ namespace Microsoft.EntityFrameworkCore.Query {
             QueriesBySource.TryGetValue(querySource, out ReadOnlyExpression expr);
 
             return expr;
+        }
+
+        /// <summary>
+        /// Add read only expression
+        /// </summary>
+        /// <param name="querySource"></param>
+        /// <param name="readOnlyExpression"></param>
+        public virtual void AddQuery(
+            [NotNull] IQuerySource querySource,
+            [NotNull] ReadOnlyExpression readOnlyExpression
+        ) {
+            Check.NotNull(querySource, nameof(querySource));
+            Check.NotNull(readOnlyExpression, nameof(readOnlyExpression));
+
+            QueriesBySource.Add(querySource, readOnlyExpression);
         }
 
         /// <summary>

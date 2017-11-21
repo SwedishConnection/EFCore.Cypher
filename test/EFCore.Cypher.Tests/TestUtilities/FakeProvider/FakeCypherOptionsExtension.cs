@@ -4,6 +4,7 @@
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Query.Cypher;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Update;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,7 +38,7 @@ namespace Microsoft.EntityFrameworkCore.TestUtilities.FakeProvider
                 .TryAdd<IConventionSetBuilder, TestCypherConventionSetBuilder>()
                 // Member translator
                 // Method call translator
-                // Query SQL Generator
+                .TryAdd<IQueryCypherGeneratorFactory, TestQueryCypherGeneratorFactory>()
                 .TryAdd<IRelationalConnection, FakeCypherConnection>()
                 // History 
                 // Update SQL Generator
