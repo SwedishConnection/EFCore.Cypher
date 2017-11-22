@@ -110,10 +110,28 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
 
             // TODO: nested read only expression
 
+            // reading clauses
             if (readOnlyExpression.ReadingClauses.Count > 0) {
                 IterateGrammer(readOnlyExpression.ReadingClauses);
             } else {
                 CreatePseudoMatchClause();
+            }
+
+
+            // return items
+            _commandBuilder.Append(" RETURN ");
+            var returnItemsAdded = false;
+
+            if (readOnlyExpression.IsReturnStar) {
+                _commandBuilder
+                    .Append(
+                        SqlGenerator.DelimitIdentifier(
+                            readOnlyExpression.ReturnStarNode.Alias
+                        )
+                    )
+                    .Append(".*");
+
+                returnItemsAdded = true;
             }
 
             if (readOnlyExpression.ReturnItems.Count > 0) {
@@ -123,10 +141,16 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
 
                 // TODO: Optimization visitors
                 IterateGrammer(readOnlyExpression.ReturnItems, s => s.Append(", "));
+
+                returnItemsAdded = true;
             }
 
-            // TODO: Order, Skip, Limit
+            if (!returnItemsAdded) {
+                _commandBuilder.Append("1");
+            }
 
+
+            // TODO: Order, Skip, Limit
             return readOnlyExpression;
         }
 

@@ -27,6 +27,18 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors.Internal
             _entityMaterializerSource = entityMaterializerSource;
         }
 
+        /// <summary>
+        /// Uses the read only expression to materialize properties into 
+        /// value buffers
+        /// </summary>
+        /// <param name="entityType"></param>
+        /// <param name="readOnlyExpression"></param>
+        /// <param name="Func<IProperty"></param>
+        /// <param name="returnItemHandler"></param>
+        /// <param name="querySource"></param>
+        /// <param name="Dictionary<Type"></param>
+        /// <param name="typeIndexMapping"></param>
+        /// <returns></returns>
         public Expression<Func<ValueBuffer, object>> CreateMaterializer(
             [NotNull] IEntityType entityType, 
             [NotNull] ReadOnlyExpression readOnlyExpression, 
@@ -51,7 +63,8 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors.Internal
             int[] indexMapping = new int[concreteEntityTypes.First().PropertyCount()];
             int propertyIndex = 0;
 
-            foreach (var property in concreteEntityTypes.First().GetProperties()) {
+            // TODO: Review exclusion of shadow properties
+            foreach (var property in concreteEntityTypes.First().GetProperties().Where(p => !p.IsShadowProperty)) {
                 indexMapping[propertyIndex++] = returnItemHandler(property, readOnlyExpression);
             }
 
@@ -72,7 +85,7 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors.Internal
                 );
             }
 
-            // TODO: Discrimination with Cypher ?
+            // TODO: Handle discrimination?
 
             throw new NotImplementedException();
         }

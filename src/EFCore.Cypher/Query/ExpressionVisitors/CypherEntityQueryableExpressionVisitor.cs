@@ -60,13 +60,15 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
         {
             Check.NotNull(elementType, nameof(elementType));
 
-            // add read only expression
-            var cypherQueryCompilationContext = QueryModelVisitor.QueryCompilationContext;
+            // create then add read only expression
+            var cypherQueryCompilationContext = QueryModelVisitor
+                .QueryCompilationContext;
 
             var entityType = cypherQueryCompilationContext.FindEntityType(_querySource)
                 ?? _model.FindEntityType(elementType);
 
-            var readOnlyExpression = _readOnlyExpressionFactory.Create(cypherQueryCompilationContext);
+            var readOnlyExpression = _readOnlyExpressionFactory
+                .Create(cypherQueryCompilationContext);
 
             QueryModelVisitor.AddQuery(
                 _querySource, 
@@ -74,7 +76,7 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
             );
 
 
-            // alias
+            // unique node alias either from the Relinq query source if not generated or the first label
             string[] labels = entityType.Cypher().Labels;
             string alias = cypherQueryCompilationContext
                 .CreateUniqueNodeAlias(
@@ -83,8 +85,8 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
                         : _querySource.ItemName
                 );
 
-            // TODO: Discrimation ?
-            // add match expression
+            // TODO: Use from SQL annotation?
+            // default match
             readOnlyExpression.AddReadingClause(
                 new MatchExpression(
                     labels,
@@ -94,7 +96,8 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
             );
             
             // bundle the sql (cypher) generator inside the shaper command factory
-            Func<IQuerySqlGenerator> querySqlGeneratorFunc = readOnlyExpression.CreateDefaultQueryCypherGenerator;
+            Func<IQuerySqlGenerator> querySqlGeneratorFunc = readOnlyExpression
+                .CreateDefaultQueryCypherGenerator;
             var shaper = CreateShaper(elementType, entityType, readOnlyExpression);
 
             return Expression.Call(
@@ -137,7 +140,7 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
         }
 
         /// <summary>
-        /// 
+        /// Shaper (?) helps transfer entities potentially from state
         /// </summary>
         /// <param name="elementType"></param>
         /// <param name="entityType"></param>
@@ -175,7 +178,7 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
                             QueryModelVisitor.QueryCompilationContext.IsQueryBufferRequired
                         });
             } else {
-                // TODO: Discrimate ?
+                // TODO: Handle discriminate?
 
                 shaper = new ValueBufferShaper(_querySource);
             }
@@ -184,7 +187,7 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
         }
 
         /// <summary>
-        /// 
+        /// Create entity shaper footprint
         /// </summary>
         /// <returns></returns>
         private static readonly MethodInfo _createEntityShaperMethodInfo
@@ -193,7 +196,7 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
                 .GetDeclaredMethod(nameof(CreateEntityShaper));
 
         /// <summary>
-        /// 
+        /// Either a buffered or unbuffered entity shaper
         /// </summary>
         /// <param name="querySource"></param>
         /// <param name="trackingQuery"></param>

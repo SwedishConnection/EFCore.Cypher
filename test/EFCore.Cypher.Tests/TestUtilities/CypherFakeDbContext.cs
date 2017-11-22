@@ -28,10 +28,10 @@ namespace Microsoft.EntityFrameworkCore.TestUtilities
         public string Location { get; set; }
 
         [Relationship("OWNS")]
-        public IEnumerable<Thing> Things { get; set; }
+        public virtual IEnumerable<Thing> Things { get; set; }
 
         [Relationship(typeof(Supervise))]
-        public Person PersonInCharge { get; set; }
+        public virtual Person PersonInCharge { get; set; }
     }
 
     public class Thing {

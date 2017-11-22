@@ -91,6 +91,12 @@ namespace Microsoft.EntityFrameworkCore.Query {
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="fromClause"></param>
+        /// <param name="queryModel"></param>
+        /// <param name="index"></param>
         public override void VisitAdditionalFromClause(
             AdditionalFromClause fromClause,
             QueryModel queryModel,
