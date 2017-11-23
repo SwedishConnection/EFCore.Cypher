@@ -1,9 +1,11 @@
 // Based on https://github.com/aspnet/EntityFrameworkCore
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using JetBrains.Annotations;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query.Expressions;
 using Microsoft.EntityFrameworkCore.Query.ExpressionVisitors;
 using Microsoft.EntityFrameworkCore.Utilities;
@@ -158,6 +160,113 @@ namespace Microsoft.EntityFrameworkCore.Query {
             Check.NotNull(queryModel, nameof(queryModel));
 
             base.VisitSelectClause(selectClause, queryModel);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="memberExpression"></param>
+        /// <returns></returns>
+        public virtual Expression BindMemberToOuterQueryParameter(
+            [NotNull] MemberExpression memberExpression)
+            => base.BindMemberExpression(
+                memberExpression,
+                null,
+                (property, qs) => BindPropertyToOuterParameter(qs, property, true));
+
+        /// <summary>
+        /// See <see cref="RelationalQueryModelVisitor" />
+        /// </summary>
+        /// <param name="memberExpression"></param>
+        /// <param name="Func<IProperty"></param>
+        /// <param name="memberBinder"></param>
+        /// <param name="bindSubQueries"></param>
+        /// <returns></returns>
+        public virtual TResult BindMemberExpression<TResult>(
+            [NotNull] MemberExpression memberExpression,
+            [NotNull] Func<IProperty, IQuerySource, ReadOnlyExpression, TResult> memberBinder,
+            bool bindSubQueries = false
+        ) {
+            Check.NotNull(memberExpression, nameof(memberExpression));
+            Check.NotNull(memberBinder, nameof(memberBinder));
+
+            return BindMemberExpression(memberExpression, null, memberBinder, bindSubQueries);
+        }
+
+        /// <summary>
+        /// See <see cref="RelationalQueryModelVisitor" />
+        /// </summary>
+        /// <param name="memberExpression"></param>
+        /// <param name="querySource"></param>
+        /// <param name="Func<IProperty"></param>
+        /// <param name="memberBinder"></param>
+        /// <param name="bindSubQueries"></param>
+        /// <returns></returns>
+        private TResult BindMemberExpression<TResult>(
+            [NotNull] MemberExpression memberExpression,
+            [CanBeNull] IQuerySource querySource,
+            Func<IProperty, IQuerySource, ReadOnlyExpression, TResult> memberBinder,
+            bool bindSubQueries)
+        {
+            Check.NotNull(memberExpression, nameof(memberExpression));
+            Check.NotNull(memberBinder, nameof(memberBinder));
+
+            return base.BindMemberExpression(
+                memberExpression, querySource,
+                (property, qs) => BindMemberOrMethod(memberBinder, qs, property, bindSubQueries)
+            );
+        }
+
+        /// <summary>
+        /// See <see cref="RelationalQueryModelVisitor" />
+        /// </summary>
+        /// <param name="Func<IProperty"></param>
+        /// <param name="memberBinder"></param>
+        /// <param name="querySource"></param>
+        /// <param name="property"></param>
+        /// <param name="bindSubQueries"></param>
+        /// <returns></returns>
+        private TResult BindMemberOrMethod<TResult>(
+            Func<IProperty, IQuerySource, ReadOnlyExpression, TResult> memberBinder,
+            IQuerySource querySource,
+            IProperty property,
+            bool bindSubQueries)
+        {
+            if (!(querySource is null)) {
+                var readOnlyExpression = TryGetQuery(querySource);
+
+                if (readOnlyExpression is null && bindSubQueries) {
+                    throw new NotImplementedException();
+                }
+
+                if (!(readOnlyExpression is null)) {
+                    return memberBinder(property, querySource, readOnlyExpression);
+                }
+
+                // TODO: Parent query model visitor
+
+                readOnlyExpression?.AddReturnItem(
+                    property,
+                    querySource
+                );
+            }
+
+            return default(TResult);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="querySource"></param>
+        /// <param name="property"></param>
+        /// <param name="isMemberExpression"></param>
+        /// <returns></returns>
+        private ParameterExpression BindPropertyToOuterParameter(
+            IQuerySource querySource, 
+            IProperty property, 
+            bool isMemberExpression)
+        {
+            throw new NotImplementedException();
         }
     }
 }

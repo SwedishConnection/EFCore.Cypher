@@ -14,5 +14,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
         Expression VisitMatch([NotNull] MatchExpression matchExpression);
 
         Expression VisitStorage([NotNull] StorageExpression storageExpression);
+
+        Expression VisitAlias([NotNull] CypherAliasExpression aliasExpression);
     }
 }

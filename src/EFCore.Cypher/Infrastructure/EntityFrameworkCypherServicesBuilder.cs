@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.Cypher;
 using Microsoft.EntityFrameworkCore.Query.Expressions;
+using Microsoft.EntityFrameworkCore.Query.ExpressionTranslators;
 using Microsoft.EntityFrameworkCore.Query.ExpressionVisitors;
 using Microsoft.EntityFrameworkCore.Query.ExpressionVisitors.Internal;
 using Microsoft.EntityFrameworkCore.Query.Internal;
@@ -51,6 +52,10 @@ namespace Microsoft.EntityFrameworkCore.Infrastructure
                 { typeof(IReadOnlyExpressionFactory), new ServiceCharacteristics(ServiceLifetime.Singleton) },
                 { typeof(IQueryCypherGeneratorFactory), new ServiceCharacteristics(ServiceLifetime.Singleton) },
                 { typeof(IRelationalValueBufferFactoryFactory), new ServiceCharacteristics(ServiceLifetime.Singleton) },
+                { typeof(IExpressionFragmentTranslator), new ServiceCharacteristics(ServiceLifetime.Singleton) },
+                { typeof(ICypherTranslatingExpressionVisitorFactory), new ServiceCharacteristics(ServiceLifetime.Singleton) },
+                { typeof(ICompositeMethodCallTranslator), new ServiceCharacteristics(ServiceLifetime.Singleton) },
+                { typeof(IMemberTranslator), new ServiceCharacteristics(ServiceLifetime.Singleton) },
 
                 { typeof(IUpdateSqlGenerator), new ServiceCharacteristics(ServiceLifetime.Singleton) },
                 { typeof(ICommandBatchPreparer), new ServiceCharacteristics(ServiceLifetime.Scoped) },
@@ -121,17 +126,25 @@ namespace Microsoft.EntityFrameworkCore.Infrastructure
             TryAdd<IRelationalValueBufferFactoryFactory, TypedRelationalValueBufferFactoryFactory>();
             TryAdd<IShaperCommandContextFactory, ShaperCommandContextFactory>();
             TryAdd<IReadOnlyExpressionFactory, ReadOnlyExpressionFactory>();
+            TryAdd<IExpressionFragmentTranslator, RelationalCompositeExpressionFragmentTranslator>();
+            TryAdd<ICypherTranslatingExpressionVisitorFactory, CypherTranslatingExpressionVisitorFactory>();
+            TryAdd<IProjectionExpressionVisitorFactory, CypherProjectionExpressionVisitorFactory>();
             
 
 
             ServiceCollectionMap.GetInfrastructure()
+                .AddDependencySingleton<RelationalCompositeMemberTranslatorDependencies>()
                 .AddDependencyScoped<RelationalQueryCompilationContextDependencies>()
                 .AddDependencyScoped<CypherEntityQueryableExpressionVisitorDependencies>()
+                .AddDependencySingleton<RelationalCompositeExpressionFragmentTranslatorDependencies>()
                 .AddDependencyScoped<CypherQueryModelVisitorDependencies>()
                 .AddDependencyScoped<RelationalQueryCompilationContextDependencies>()
                 .AddDependencySingleton<ReadOnlyExpressionDependencies>()
                 .AddDependencySingleton<QuerySqlGeneratorDependencies>()
-                .AddDependencySingleton<RelationalValueBufferFactoryDependencies>();
+                .AddDependencySingleton<RelationalCompositeMethodCallTranslatorDependencies>()
+                .AddDependencySingleton<RelationalValueBufferFactoryDependencies>()
+                .AddDependencySingleton<SqlTranslatingExpressionVisitorDependencies>()
+                .AddDependencySingleton<CypherProjectionExpressionVisitorDependencies>();
 
 
             // Update

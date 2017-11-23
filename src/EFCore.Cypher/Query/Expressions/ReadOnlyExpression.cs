@@ -13,6 +13,8 @@ using Remotion.Linq.Clauses;
 using System.Linq;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query.Internal;
+using System.Reflection;
+using Microsoft.EntityFrameworkCore.Internal;
 
 namespace Microsoft.EntityFrameworkCore.Query.Expressions
 {
@@ -31,6 +33,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
         
         private readonly CypherQueryCompilationContext _queryCompliationContext;
 
+        private readonly Dictionary<MemberInfo, Expression> _memberInfoProjectionMapping = new Dictionary<MemberInfo, Expression>();
+
         private readonly List<Expression> _returnItems = new List<Expression>();
 
         private readonly List<NodeExpressionBase> _readingClauses = new List<NodeExpressionBase>();
@@ -44,6 +48,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
         private bool _isReturnStar;
 
         private NodeExpressionBase _returnStarNode;
+
+        private const string StorageAliasPrefix = "s";
 
         public ReadOnlyExpression(
             [NotNull] ReadOnlyExpressionDependencies dependencies,
@@ -250,7 +256,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
 
             var returnItemIndex = _returnItems.FindIndex(
                 e => _expressionEqualityComparer.Equals(e, expression)
-                    || _expressionEqualityComparer.Equals((e as AliasExpression)?.Expression, expression)
+                    || _expressionEqualityComparer.Equals((e as CypherAliasExpression)?.Expression, expression)
             );
 
             if (returnItemIndex != -1) {
@@ -287,6 +293,18 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
         }
 
         /// <summary>
+        /// Remove range from return (items)
+        /// </summary>
+        /// <param name="index"></param>
+        public virtual void RemoveRangeFromReturn(int index)
+        {
+            if (index < _returnItems.Count)
+            {
+                _returnItems.RemoveRange(index, _returnItems.Count - index);
+            }
+        }
+
+        /// <summary>
         /// Node for query source
         /// </summary>
         /// <param name="querySource"></param>
@@ -299,6 +317,29 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
             return _readingClauses
                 .FirstOrDefault(rc => rc.QuerySource == querySource)
                 ?? ReturnStarNode;
+        }
+
+        public virtual Expression GetReturnForMemberInfo(
+            [NotNull] MemberInfo memberInfo
+        ) {
+            Check.NotNull(memberInfo, nameof(memberInfo));
+
+            return _memberInfoProjectionMapping.ContainsKey(memberInfo)
+                ? _memberInfoProjectionMapping[memberInfo]
+                : null;
+        }
+
+        public virtual void SetReturnForMemberInfo(
+            [NotNull] MemberInfo memberInfo, 
+            [NotNull] Expression projection
+        ) {
+            Check.NotNull(memberInfo, nameof(memberInfo));
+            Check.NotNull(projection, nameof(projection));
+
+            _memberInfoProjectionMapping[memberInfo] = CreateUniqueReturn(
+                projection,
+                memberInfo.Name
+            );
         }
 
         /// <summary>
@@ -315,6 +356,68 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
             set {
                 _returnStarNode = value;
             }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString()
+            => CreateDefaultQueryCypherGenerator()
+                .GenerateSql(new Dictionary<string, object>())
+                .CommandText;
+
+        private Expression CreateUniqueReturn(
+            Expression expression,
+            string alias = null
+        ) {
+            var index = _returnItems.FindIndex(e => e.Equals(expression));
+            if (index != -1) {
+                _returnItems.RemoveAt(index);
+            }
+
+            var current = GetStorageName(expression);
+            var uniqueBase = alias ?? current ?? StorageAliasPrefix; 
+            var unique = uniqueBase;
+            var counter = 0;
+
+            while (_returnItems.Select(GetStorageName).Any(p => string.Equals(p, unique, StringComparison.Ordinal))) {
+                unique = uniqueBase + counter++;
+            }
+
+            var updatedExpression
+                = !string.Equals(
+                    current, 
+                    unique, 
+                    StringComparison.OrdinalIgnoreCase
+                )
+                ? new CypherAliasExpression(
+                    unique, 
+                    (expression as CypherAliasExpression)?.Expression ?? expression
+                )
+                : expression;
+
+            var currentOrderingIndex = _order.FindIndex(e => e.Expression.Equals(expression));
+
+            if (currentOrderingIndex != -1)
+            {
+                // TODO:
+            }
+
+            if (index != -1) {
+                _returnItems.Insert(index, updatedExpression);
+            }
+
+            return updatedExpression;
+        }
+
+        private static string GetStorageName(Expression expression) {
+            expression = expression.RemoveConvert();
+            expression = (expression as NullableExpression)?.Operand.RemoveConvert()
+                         ?? expression;
+
+            return (expression as CypherAliasExpression)?.Alias
+                   ?? (expression as StorageExpression)?.Name;         
         }
     }
 }

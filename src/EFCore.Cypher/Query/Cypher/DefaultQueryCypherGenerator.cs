@@ -24,6 +24,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
 
         private IReadOnlyDictionary<string, object> _parametersValues;
 
+        protected virtual string AliasSeparator { get; } = " AS ";
+
         protected DefaultQueryCypherGenerator(
             [NotNull] QuerySqlGeneratorDependencies dependencies,
             [NotNull] ReadOnlyExpression readOnlyExpression
@@ -163,11 +165,11 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
             Check.NotNull(matchExpression, nameof(matchExpression));
 
             var optional = matchExpression.Optional
-                ? "OPTIONAL"
+                ? "OPTIONAL "
                 : String.Empty;
 
             _commandBuilder
-                .Append($"{optional} MATCH (")
+                .Append($"{optional}MATCH (")
                 .Append(matchExpression.Alias)
                 .Append(":")
                 .Append(String.Join(":", matchExpression.Labels))
@@ -190,6 +192,26 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
                 .Append(SqlGenerator.DelimitIdentifier(storageExpression.Name));
 
             return storageExpression;
+        }
+
+        /// <summary>
+        /// Visit alias expression
+        /// </summary>
+        /// <param name="aliasExpression"></param>
+        /// <returns></returns>
+        public virtual Expression VisitAlias(CypherAliasExpression aliasExpression)
+        {
+            Check.NotNull(aliasExpression, nameof(aliasExpression));
+
+            Visit(aliasExpression.Expression);
+
+            if (aliasExpression.Alias != null) {
+                _commandBuilder
+                    .Append(AliasSeparator)
+                    .Append(SqlGenerator.DelimitIdentifier(aliasExpression.Alias));
+            }
+
+            return aliasExpression;
         }
 
         /// <summary>
@@ -237,8 +259,6 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
         protected virtual void CreatePseudoMatchClause() {}
 
         protected override Exception CreateUnhandledItemException<T>(T unhandledItem, string visitMethod)
-        {
-            throw new NotImplementedException();
-        }
+            => new NotImplementedException(visitMethod);
     }
 }

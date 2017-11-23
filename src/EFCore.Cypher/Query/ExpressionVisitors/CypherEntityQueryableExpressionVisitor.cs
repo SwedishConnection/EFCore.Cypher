@@ -120,13 +120,22 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
         }
 
         /// <summary>
-        /// TODO: Necessary ?
+        /// e.g. when member assignment in body of select
         /// </summary>
         /// <param name="node"></param>
         /// <returns></returns>
         protected override Expression VisitMember(MemberExpression node)
         {
-            throw new NotImplementedException();
+            Check.NotNull(node, nameof(node));
+
+            QueryModelVisitor
+                .BindMemberExpression(
+                    node,
+                    (p, qs, roe) => roe.AddReturnItem(p, qs),
+                    bindSubQueries: true
+                );
+
+            return base.VisitMember(node);
         }
 
         /// <summary>
