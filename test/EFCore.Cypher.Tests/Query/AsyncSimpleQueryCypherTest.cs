@@ -2,38 +2,20 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Linq;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Query.Expressions;
-using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.TestUtilities;
 using Microsoft.EntityFrameworkCore.TestUtilities.FakeProvider;
 using Xunit;
 
 namespace Microsoft.EntityFrameworkCore.Query
 {
+    /// <summary>
+    /// Queryable to Cypher
+    /// </summary>
+    /// <remarks>No checks for Cypher to CLR</remarks>
     public class AsyncSimpleQueryCypherTest {
 
-        public AsyncSimpleQueryCypherTest() {
+        public DbContextOptions DbContextOptions { get; } = CypherTestHelpers.Options("Flash=BarryAllen");
 
-        }
-
-        public DbContextOptions DbContextOptions { get; } = Options("Flash=BarryAllen");
-
-        /// <summary>
-        /// Database context options
-        /// </summary>
-        /// <param name="connectionString"></param>
-        /// <returns></returns>
-        public static DbContextOptions Options(string connectionString) {
-            var optionsBuilder = new DbContextOptionsBuilder();
-            var options = new FakeCypherOptionsExtension()
-                .WithConnectionString(connectionString);
-
-            ((IDbContextOptionsBuilderInfrastructure)optionsBuilder)
-                .AddOrUpdateExtension(options);
-
-            return optionsBuilder.Options;
-        }
 
         /// <summary>
         /// No linq just the database set
@@ -41,7 +23,8 @@ namespace Microsoft.EntityFrameworkCore.Query
         [Fact]
         public void Select_warehouse_without_linq() {
             using (var ctx = new CypherFaceDbContext(DbContextOptions)) {
-                var cypher = ctx.Warehouses.AsCypher();
+                var cypher = ctx.Warehouses
+                    .AsCypher();
 
                 Assert.Equal(
                     "MATCH (w:Warehouse) RETURN \"w\".\"Location\"",
@@ -68,7 +51,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         }
 
         /// <summary>
-        /// Only select with object assignment
+        /// Only select with flat object assignment
         /// </summary>
         [Fact]
         public void Select_warehouse_with_object() {
@@ -84,37 +67,54 @@ namespace Microsoft.EntityFrameworkCore.Query
             }
         }
 
+        /// <summary>
+        /// Only select with nested object assignment
+        /// </summary>
         [Fact]
-        public void Comparison() {
-            ExpressionEqualityComparer comparer = new ExpressionEqualityComparer();
-
+        public void Select_warehouse_with_nested() {
             using (var ctx = new CypherFaceDbContext(DbContextOptions)) {
-                var Location = ctx.Model
-                    .FindEntityType(typeof(Warehouse))
-                    .FindProperty("Location");
+                var cypher = ctx.Warehouses
+                    .Select(w => new { w.Location, Size = new { w.Size }})
+                    .AsCypher();
 
-                var me = new StorageExpression(
-                    "Place",
-                    Location,
-                    new MatchExpression(new string[] { "Sears" }, "s", null)  
+                Assert.Equal(
+                    "MATCH (w:Warehouse) RETURN \"w\".\"Location\", \"w\".\"Size\"",
+                    cypher
                 );
+            }
+        }
 
-                var other = new StorageExpression(
-                    "Place",
-                    Location,
-                    new MatchExpression(new string[] { "Sears" }, "s", null)  
+        /// <summary>
+        /// Only select with empty object
+        /// </summary>
+        [Fact]
+        public void Select_warehouse_with_empty() {
+            using (var ctx = new CypherFaceDbContext(DbContextOptions)) {
+                var cypher = ctx.Warehouses
+                    .Select(w => new { })
+                    .AsCypher();
+
+                Assert.Equal(
+                    "MATCH (w:Warehouse) RETURN 1",
+                    cypher
                 );
+            }
+        }
 
-                Assert.True(Enumerable.SequenceEqual(
-                    ((MatchExpression)me.Node).Labels.OrderBy(l => l), 
-                    ((MatchExpression)other.Node).Labels.OrderBy(l => l))
+        /// <summary>
+        /// Only select with object having a single literal
+        /// </summary>
+        [Fact]
+        public void Select_warehouse_with_literal() {
+            using (var ctx = new CypherFaceDbContext(DbContextOptions)) {
+                var cypher = ctx.Warehouses
+                    .Select(w => new { Size = 1 })
+                    .AsCypher();
+
+                Assert.Equal(
+                    "MATCH (w:Warehouse) RETURN 1",
+                    cypher
                 );
-
-                Assert.True(((MatchExpression)me.Node).Equals((MatchExpression)other.Node));
-
-                Assert.True(me.Equals(other));
-
-                Assert.True(comparer.Equals(me, other));
             }
         }
     }

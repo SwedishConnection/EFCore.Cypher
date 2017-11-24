@@ -27,6 +27,8 @@ namespace Microsoft.EntityFrameworkCore.TestUtilities
     public class Warehouse {
         public string Location { get; set; }
 
+        public int Size { get; set; }
+
         [Relationship("OWNS")]
         public virtual IEnumerable<Thing> Things { get; set; }
 

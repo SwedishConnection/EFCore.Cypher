@@ -44,5 +44,16 @@ namespace Microsoft.EntityFrameworkCore.TestUtilities
                 )
             );
         }
+
+        public static DbContextOptions Options(string connectionString) {
+            var optionsBuilder = new DbContextOptionsBuilder();
+            var options = new FakeCypherOptionsExtension()
+                .WithConnectionString(connectionString);
+
+            ((IDbContextOptionsBuilderInfrastructure)optionsBuilder)
+                .AddOrUpdateExtension(options);
+
+            return optionsBuilder.Options;
+        }
     }
 }
