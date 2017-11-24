@@ -274,6 +274,12 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
             return _returnItems.Count - 1;
         }
 
+        /// <summary>
+        /// Bind property as a storage expression
+        /// </summary>
+        /// <param name="property"></param>
+        /// <param name="querySource"></param>
+        /// <returns></returns>
         public virtual Expression BindProperty(
             [NotNull] IProperty property,
             [NotNull] IQuerySource querySource

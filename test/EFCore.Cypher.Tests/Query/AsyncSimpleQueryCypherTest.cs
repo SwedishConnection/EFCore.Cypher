@@ -3,6 +3,8 @@
 
 using System.Linq;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Query.Expressions;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.TestUtilities;
 using Microsoft.EntityFrameworkCore.TestUtilities.FakeProvider;
 using Xunit;
@@ -79,6 +81,40 @@ namespace Microsoft.EntityFrameworkCore.Query
                     "MATCH (w:Warehouse) RETURN \"w\".\"Location\" AS \"Place\"",
                     cypher
                 );
+            }
+        }
+
+        [Fact]
+        public void Comparison() {
+            ExpressionEqualityComparer comparer = new ExpressionEqualityComparer();
+
+            using (var ctx = new CypherFaceDbContext(DbContextOptions)) {
+                var Location = ctx.Model
+                    .FindEntityType(typeof(Warehouse))
+                    .FindProperty("Location");
+
+                var me = new StorageExpression(
+                    "Place",
+                    Location,
+                    new MatchExpression(new string[] { "Sears" }, "s", null)  
+                );
+
+                var other = new StorageExpression(
+                    "Place",
+                    Location,
+                    new MatchExpression(new string[] { "Sears" }, "s", null)  
+                );
+
+                Assert.True(Enumerable.SequenceEqual(
+                    ((MatchExpression)me.Node).Labels.OrderBy(l => l), 
+                    ((MatchExpression)other.Node).Labels.OrderBy(l => l))
+                );
+
+                Assert.True(((MatchExpression)me.Node).Equals((MatchExpression)other.Node));
+
+                Assert.True(me.Equals(other));
+
+                Assert.True(comparer.Equals(me, other));
             }
         }
     }

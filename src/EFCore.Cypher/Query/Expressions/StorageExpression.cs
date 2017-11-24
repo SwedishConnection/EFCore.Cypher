@@ -85,6 +85,27 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
                 && Type == other.Type
                 && Equals(Node, other.Node);
 
+        /// <summary>
+        /// Equals (object)
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public override bool Equals(object obj) {
+            if (ReferenceEquals(null, obj)) {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj)) {
+                return true;
+            }
+
+            if (obj.GetType() != GetType()) {
+                return false;
+            }
+
+		    return Equals(obj as StorageExpression);
+        }
+
 
         /// <summary>
         /// Hash
