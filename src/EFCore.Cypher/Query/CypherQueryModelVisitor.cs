@@ -163,7 +163,7 @@ namespace Microsoft.EntityFrameworkCore.Query {
         }
 
         /// <summary>
-        /// 
+        /// See <see cref="RelationalQueryModelVisitor" />
         /// </summary>
         /// <param name="memberExpression"></param>
         /// <returns></returns>
@@ -217,7 +217,7 @@ namespace Microsoft.EntityFrameworkCore.Query {
         }
 
         /// <summary>
-        /// 
+        /// See <see cref="RelationalQueryModelVisitor" />
         /// </summary>
         /// <param name="methodCallExpression"></param>
         /// <param name="querySource"></param>

@@ -52,12 +52,10 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
         /// <returns></returns>
         public override Expression Visit(Expression expression)
         {
-            var translatedExpression = _compositeExpressionFragmentTranslator.Translate(expression);
-
-            if (translatedExpression != null
-                && translatedExpression != expression)
+            var translated = _compositeExpressionFragmentTranslator.Translate(expression);
+            if (translated != null && translated != expression)
             {
-                return Visit(translatedExpression);
+                return Visit(translated);
             }
 
             if (expression != null
@@ -91,6 +89,23 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
             Check.NotNull(expression, nameof(expression));
 
             switch (expression.NodeType) {
+                case ExpressionType.Coalesce: 
+                {
+                    var left = Visit(expression.Left);
+                    var right = Visit(expression.Right);
+
+                    return !(left is null) 
+                        && !(right is null)
+                        && left.Type != typeof(Expression[])
+                        && right.Type != typeof(Expression[])
+                        ? expression.Update(
+                            left,
+                            expression.Conversion,
+                            right
+                        )
+                        : null;
+                }
+                // TODO: Equals/not equals
                 case ExpressionType.GreaterThan:
                 case ExpressionType.GreaterThanOrEqual:
                 case ExpressionType.LessThan:
@@ -98,14 +113,69 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
                 {
                     return ProcessComparisonExpression(expression);
                 }
+
+                case ExpressionType.Add:
+                case ExpressionType.Subtract:
+                case ExpressionType.Multiply:
+                case ExpressionType.Divide:
+                case ExpressionType.Modulo:
+                case ExpressionType.ExclusiveOr:
+                case ExpressionType.And:
+                case ExpressionType.Or:
+                {
+                    var left = Visit(expression.Left);
+                    var right = Visit(expression.Right);
+
+                    return !(left is null) && !(right is null)
+                        ? Expression.MakeBinary(
+                            expression.NodeType,
+                            left,
+                            right,
+                            expression.IsLiftedToNull,
+                            expression.Method
+                        )
+                        : null;
+                }
             }
 
             return null;
         }
 
+        /// <summary>
+        /// Visit conditional
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
         protected override Expression VisitConditional(ConditionalExpression expression)
         {
-            throw new NotImplementedException();
+            Check.NotNull(expression, nameof(expression));
+
+            if (expression.IsNullPropagationCandidate(out var testExpression, out var resultExpression))
+                // TODO: Null Check removal)
+            {
+                return Visit(resultExpression);
+            }
+
+            var test = Visit(expression.Test);
+            if (test?.IsSimple() == true) {
+                test = Expression.Equal(
+                    test, 
+                    Expression.Constant(true, typeof(bool))
+                );
+            }
+
+            var ifTrue = Visit(expression.IfTrue);
+            var ifFalse = Visit(expression.IfFalse);
+
+            if (!(test is null) && !(ifTrue is null) && !(ifFalse is null)) {
+                // TODO: IfTrue or IfFalse is expression array
+
+                // TODO: Invertion
+                
+                return expression.Update(test, ifTrue, ifFalse);
+            }
+
+            return null;
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression methodCallExpression)

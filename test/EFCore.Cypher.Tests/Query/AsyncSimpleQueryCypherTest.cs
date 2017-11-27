@@ -134,5 +134,19 @@ namespace Microsoft.EntityFrameworkCore.Query
                 );
             }
         }
+
+        [Fact]
+        public void Select_warehouse_with_conditional_case() {
+            using (var ctx = new CypherFaceDbContext(DbContextOptions)) {
+                var cypher = ctx.Warehouses
+                    .Select(w => new { IsBig = w.Size > 100 ? "Giant" : "Ant" })
+                    .AsCypher();
+
+                Assert.Equal(
+                    "MATCH (w:Warehouse) RETURN CASE\r\n    WHEN \"w\".\"Size\" > 100\r\n    THEN 'Giant' ELSE 'Ant'\r\nEND AS \"IsBig\"",
+                    cypher
+                );
+            }
+        }
     }
 }
