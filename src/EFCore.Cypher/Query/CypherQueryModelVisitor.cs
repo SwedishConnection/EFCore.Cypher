@@ -198,7 +198,6 @@ namespace Microsoft.EntityFrameworkCore.Query {
         /// </summary>
         /// <param name="memberExpression"></param>
         /// <param name="querySource"></param>
-        /// <param name="Func<IProperty"></param>
         /// <param name="memberBinder"></param>
         /// <param name="bindSubQueries"></param>
         /// <returns></returns>
@@ -218,9 +217,27 @@ namespace Microsoft.EntityFrameworkCore.Query {
         }
 
         /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="methodCallExpression"></param>
+        /// <param name="querySource"></param>
+        /// <param name="Func<IProperty"></param>
+        /// <param name="memberBinder"></param>
+        /// <param name="bindSubQueries"></param>
+        /// <returns></returns>
+        private TResult BindMethodCallExpression<TResult>(
+            MethodCallExpression methodCallExpression,
+            IQuerySource querySource,
+            Func<IProperty, IQuerySource, ReadOnlyExpression, TResult> memberBinder,
+            bool bindSubQueries)
+            => base.BindMethodCallExpression(
+                methodCallExpression,
+                querySource,
+                (property, qs) => BindMemberOrMethod(memberBinder, qs, property, bindSubQueries));
+
+        /// <summary>
         /// See <see cref="RelationalQueryModelVisitor" />
         /// </summary>
-        /// <param name="Func<IProperty"></param>
         /// <param name="memberBinder"></param>
         /// <param name="querySource"></param>
         /// <param name="property"></param>
@@ -252,6 +269,24 @@ namespace Microsoft.EntityFrameworkCore.Query {
             }
 
             return default(TResult);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="methodCallExpression"></param>
+        /// <param name="memberBinder"></param>
+        /// <param name="bindSubQueries"></param>
+        /// <returns></returns>
+        public virtual TResult BindMethodCallExpression<TResult>(
+            [NotNull] MethodCallExpression methodCallExpression,
+            [NotNull] Func<IProperty, IQuerySource, ReadOnlyExpression, TResult> memberBinder,
+            bool bindSubQueries = false
+        ) {
+            Check.NotNull(methodCallExpression, nameof(methodCallExpression));
+            Check.NotNull(memberBinder, nameof(memberBinder));
+
+            return BindMethodCallExpression(methodCallExpression, null, memberBinder, bindSubQueries);
         }
 
         /// <summary>

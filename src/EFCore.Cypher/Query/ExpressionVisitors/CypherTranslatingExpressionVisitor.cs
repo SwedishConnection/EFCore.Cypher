@@ -44,6 +44,12 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
             _relationalTypeMapper = dependencies.RelationalTypeMapper;            
         }
 
+        /// <summary>
+        /// Delegates everything that is not fragments, converts, negates, and new with 
+        /// a top level return marker
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
         public override Expression Visit(Expression expression)
         {
             var translatedExpression = _compositeExpressionFragmentTranslator.Translate(expression);
@@ -75,9 +81,26 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
             }
         }
 
+        /// <summary>
+        /// Binary
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
         protected override Expression VisitBinary(BinaryExpression expression)
         {
-            throw new NotImplementedException();
+            Check.NotNull(expression, nameof(expression));
+
+            switch (expression.NodeType) {
+                case ExpressionType.GreaterThan:
+                case ExpressionType.GreaterThanOrEqual:
+                case ExpressionType.LessThan:
+                case ExpressionType.LessThanOrEqual:
+                {
+                    return ProcessComparisonExpression(expression);
+                }
+            }
+
+            return null;
         }
 
         protected override Expression VisitConditional(ConditionalExpression expression)
@@ -122,9 +145,27 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Visit constant
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
         protected override Expression VisitConstant(ConstantExpression expression)
         {
-            throw new NotImplementedException();
+            Check.NotNull(expression, nameof(expression));
+
+            if (expression.Value is null) {
+                return expression;
+            }
+
+            var underlyingType = expression.Type.UnwrapNullableType().UnwrapEnumType();
+            if (underlyingType == typeof(Enum)) {
+                underlyingType = expression.Value.GetType();
+            }
+
+            return !(_relationalTypeMapper.FindMapping(underlyingType) is null)
+                ? expression
+                : null;
         }
 
         protected override Expression VisitParameter(ParameterExpression expression)
@@ -186,12 +227,91 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
             return null;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="memberExpression"></param>
+        /// <returns></returns>
         private Expression TryBindQuerySourcePropertyExpression(MemberExpression memberExpression) {
             if (memberExpression.Expression is QuerySourceReferenceExpression qsre)
             {
                 var readOnlyExpression = _queryModelVisitor.TryGetQuery(qsre.ReferencedQuerySource);
 
                 return readOnlyExpression?.GetReturnForMemberInfo(memberExpression.Member);
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
+        private Expression ProcessComparisonExpression(
+            BinaryExpression expression
+        ) {
+            var left = Visit(expression.Left);
+            if (left is null) {
+                return null;
+            }
+
+            var right = Visit(expression.Right);
+            if (right is null) {
+                return null;
+            }
+
+            var nullExpr = TransformNullComparison(left, right, expression.NodeType);
+            if (!(nullExpr is null)) {
+                return nullExpr;
+            }
+
+            if (left.Type != right.Type 
+                && left.Type.UnwrapNullableType() == right.Type.UnwrapNullableType()) {
+                if (left.Type.IsNullableType()) {
+                    right = Expression.Convert(right, left.Type);
+                }
+                else {
+                    left = Expression.Convert(left, right.Type);
+                }
+            }
+
+            return left.Type == right.Type
+                ? Expression.MakeBinary(
+                    expression.NodeType,
+                    left,
+                    right
+                )
+                : null;
+        }
+
+        /// <summary>
+        /// When expression is equals or not equals operation
+        /// </summary>
+        /// <param name="left"></param>
+        /// <param name="right"></param>
+        /// <param name="kind"></param>
+        /// <returns></returns>
+        private static Expression TransformNullComparison(
+            Expression left,
+            Expression right,
+            ExpressionType kind
+        ) {
+            if (kind == ExpressionType.Equal || kind == ExpressionType.NotEqual) {
+                var isLeftNullConst = left.IsNullConstantExpression();
+                var isRightNullConst = right.IsNullConstantExpression();
+
+                if (isLeftNullConst || isRightNullConst) {
+                    var notNull = (isLeftNullConst ? right : left).RemoveConvert();
+
+                    if (notNull is NullableExpression nullableExpression) {
+                        notNull = nullableExpression.Operand.RemoveConvert();
+                    }
+
+                    return kind == ExpressionType.Equal
+                        ? (Expression)new IsNullExpression(notNull)
+                        : Expression.Not(new IsNullExpression(notNull));
+                }
             }
 
             return null;

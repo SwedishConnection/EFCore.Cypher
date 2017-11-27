@@ -117,5 +117,22 @@ namespace Microsoft.EntityFrameworkCore.Query
                 );
             }
         }
+
+        /// <summary>
+        /// Only select with object having a single literal
+        /// </summary>
+        [Fact]
+        public void Select_warehouse_with_conditional() {
+            using (var ctx = new CypherFaceDbContext(DbContextOptions)) {
+                var cypher = ctx.Warehouses
+                    .Select(w => new { IsBig = w.Size > 100 })
+                    .AsCypher();
+
+                Assert.Equal(
+                    "MATCH (w:Warehouse) RETURN \"w\".\"Size\" > 100 AS \"IsBig\"",
+                    cypher
+                );
+            }
+        }
     }
 }

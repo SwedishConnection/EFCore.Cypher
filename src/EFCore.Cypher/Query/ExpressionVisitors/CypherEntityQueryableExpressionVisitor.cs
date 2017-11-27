@@ -145,7 +145,16 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
         /// <returns></returns>
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
-            throw new NotImplementedException();
+            Check.NotNull(node, nameof(node));
+
+            QueryModelVisitor
+                .BindMethodCallExpression(
+                    node,
+                    (p, qs, roe) => roe.AddReturnItem(p, qs),
+                    bindSubQueries: true
+                );
+            
+            return base.VisitMethodCall(node);
         }
 
         /// <summary>

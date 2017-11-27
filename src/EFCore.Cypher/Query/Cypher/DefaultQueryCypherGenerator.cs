@@ -7,6 +7,7 @@ using System.Data.Common;
 using System.Linq;
 using System.Linq.Expressions;
 using JetBrains.Annotations;
+using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.EntityFrameworkCore.Query.Expressions;
 using Microsoft.EntityFrameworkCore.Query.Sql;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -24,7 +25,29 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
 
         private IReadOnlyDictionary<string, object> _parametersValues;
 
+        private RelationalTypeMapping _typeMapping;
+
         protected virtual string AliasSeparator { get; } = " AS ";
+
+        private static readonly Dictionary<ExpressionType, string> _operators = new Dictionary<ExpressionType, string> {
+            // comparison
+            { ExpressionType.Equal, " = "},
+            { ExpressionType.NotEqual, " <> " },
+            { ExpressionType.GreaterThan, " > " },
+            { ExpressionType.GreaterThanOrEqual, " >= " },
+            { ExpressionType.LessThan, " < " },
+            { ExpressionType.LessThanOrEqual, " <= " },
+            // boolean
+            { ExpressionType.And, " AND " },
+            { ExpressionType.Or, " OR " },
+            // math
+            { ExpressionType.Add, " + " },
+            { ExpressionType.Subtract, " - " },
+            { ExpressionType.Multiply, " * " },
+            { ExpressionType.Divide, " / " },
+            { ExpressionType.Modulo, " % " },
+            { ExpressionType.ExclusiveOr, " ^ "}
+        };
 
         protected DefaultQueryCypherGenerator(
             [NotNull] QuerySqlGeneratorDependencies dependencies,
@@ -59,6 +82,18 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
         /// Sql (cypher) generation helper
         /// </summary>
         protected virtual ISqlGenerationHelper SqlGenerator => Dependencies.SqlGenerationHelper;
+
+        /// <summary>
+        /// Default true literal
+        /// </summary>
+        /// <returns></returns>
+        protected virtual string TypedTrueLiteral => "true";
+
+        /// <summary>
+        /// Default false literal
+        /// </summary>
+        /// <returns></returns>
+        protected virtual string TypedFalseLiteral => "false";
 
         /// <summary>
         /// Relational command from the read only expression
@@ -215,6 +250,192 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
         }
 
         /// <summary>
+        /// Visit conditional
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
+        protected override Expression VisitConditional(ConditionalExpression expression) {
+            Check.NotNull(expression, nameof(expression));
+
+            // Boolean valid return type in Cypher otherwise use case
+            if (expression.Type == typeof(bool)) {
+                Visit(expression.Test);
+            } else {
+                _commandBuilder.AppendLine("CASE");
+
+                using (_commandBuilder.Indent()) {
+                    _commandBuilder.Append("WHEN ");
+
+                    Visit(expression.Test);
+
+                    _commandBuilder.AppendLine();
+                    _commandBuilder.Append("THEN ");
+
+                    // when true is bool or other
+                    if (expression.IfTrue.RemoveConvert() is ConstantExpression constantIfTrue
+                        && !(constantIfTrue.Value is null)
+                        && constantIfTrue.Type.UnwrapNullableType() == typeof(bool) ) {
+                        _commandBuilder.Append(
+                            (bool)constantIfTrue.Value
+                                ? TypedTrueLiteral
+                                : TypedFalseLiteral
+                        );
+                    } else {
+                        Visit(expression.IfTrue);
+                    }
+
+                    _commandBuilder.Append(" ELSE ");
+
+                    // when false is bool or other
+                    if (expression.IfFalse.RemoveConvert() is ConstantExpression constantIfFalse
+                        && !(constantIfFalse.Value is null)
+                        && constantIfFalse.Type.UnwrapNullableType() == typeof(bool) ) {
+                        _commandBuilder.Append(
+                            (bool)constantIfFalse.Value
+                                ? TypedTrueLiteral
+                                : TypedFalseLiteral
+                        );
+                    } else {
+                        Visit(expression.IfFalse);
+                    }
+
+                    _commandBuilder.AppendLine();
+                }
+
+                _commandBuilder.Append("END");
+            }
+
+            return expression;
+        }
+
+        /// <summary>
+        /// Visit binary
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
+        protected override Expression VisitBinary(BinaryExpression expression)
+        {
+            Check.NotNull(expression, nameof(expression));
+
+            switch(expression.NodeType) {
+                case ExpressionType.Coalesce:
+                    break;
+                default:
+                    var typeMapping = _typeMapping;
+                    if (expression.IsComparisonOperation() 
+                        || expression.NodeType == ExpressionType.Add) {
+                        _typeMapping = FindTypeMapping(expression.Left)
+                            ?? FindTypeMapping(expression.Right)
+                            ?? typeMapping;
+                    }
+
+                    // left
+                    var hasLeftParens = expression.Left.RemoveConvert() is BinaryExpression left
+                        && left.NodeType != ExpressionType.Coalesce;
+
+                    if (hasLeftParens) {
+                        _commandBuilder.Append("(");
+                    }
+
+                    Visit(expression.Left);
+
+                    if (hasLeftParens) {
+                        _commandBuilder.Append(")");
+                    }
+
+                    _commandBuilder.Append(
+                        VisitOperator(expression)
+                    );
+
+                    // right
+                    var hasRightParens = expression.Right.RemoveConvert() is BinaryExpression right
+                        && right.NodeType != ExpressionType.Coalesce;
+
+                    if (hasLeftParens) {
+                        _commandBuilder.Append("(");
+                    }
+
+                    Visit(expression.Right);
+
+                    if (hasLeftParens) {
+                        _commandBuilder.Append(")");
+                    }
+
+                    _typeMapping = typeMapping;
+
+                    break;
+            }
+
+            return expression;
+        }
+
+        /// <summary>
+        /// Visit constant
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
+        protected override Expression VisitConstant(ConstantExpression expression) {
+            Check.NotNull(expression, nameof(expression));
+
+            var value = expression.Value;
+
+            // grab underlying type
+            if (expression.Type.UnwrapNullableType().IsEnum) {
+                var underlyingType = expression.Type.UnwrapEnumType();
+                value = Convert.ChangeType(value, underlyingType);
+            }
+
+            _commandBuilder.Append(
+                value is null
+                    ? "null"
+                    : GetTypeMapping(value).GenerateSqlLiteral(value)
+            );
+            
+            return expression;
+        }
+
+        /// <summary>
+        /// Visit operator
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
+        protected virtual string VisitOperator([NotNull] Expression expression) {
+            switch (expression.NodeType) {
+                case ExpressionType.Extension:
+                    if (expression is StringCompareExpression stringCompareExpression) {
+                        return GetOperator(stringCompareExpression.Operator);
+                    }
+
+                    goto default;
+                default:
+                    string symbol;
+                    if (!TryGetOperator(expression.NodeType, out symbol)) {
+                        throw new ArgumentOutOfRangeException();
+                    }
+
+                    return symbol;
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="kind"></param>
+        /// <returns></returns>
+        protected virtual string GetOperator(ExpressionType kind) => _operators[kind];
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="kind"></param>
+        /// <param name="symbol"></param>
+        /// <returns></returns>
+        protected virtual bool TryGetOperator(
+            ExpressionType kind,
+            [NotNull] out string symbol
+        ) => _operators.TryGetValue(kind, out symbol);
+
+        /// <summary>
         /// Iterate over grammer visiting each term
         /// </summary>
         /// <param name="terms"></param>
@@ -258,7 +479,43 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
         /// </summary>
         protected virtual void CreatePseudoMatchClause() {}
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="unhandledItem"></param>
+        /// <param name="visitMethod"></param>
+        /// <returns></returns>
         protected override Exception CreateUnhandledItemException<T>(T unhandledItem, string visitMethod)
             => new NotImplementedException(visitMethod);
+
+        /// <summary>
+        /// Find (relational) type mapping from storage expression
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
+        protected virtual RelationalTypeMapping FindTypeMapping(
+            [NotNull] Expression expression
+        ) {
+            switch(expression) {
+                case StorageExpression storageExpression:
+                    return Dependencies.RelationalTypeMapper.FindMapping(storageExpression.Property);
+                case CypherAliasExpression aliasExpression:
+                    return FindTypeMapping(aliasExpression.Expression);
+                default:
+                    return null;
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        private RelationalTypeMapping GetTypeMapping(object value) {
+            return _typeMapping != null
+                   && (value == null || _typeMapping.ClrType.IsInstanceOfType(value))
+                ? _typeMapping
+                : Dependencies.RelationalTypeMapper.GetMappingForValue(value);
+        }
     }
 }
