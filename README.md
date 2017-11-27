@@ -15,7 +15,7 @@ There is just enough infrastructure (i.e. services) to be able to create a datab
 The **Join** call has two new derivations.  A relationship by name (label) becomes the default key selector for both the outer and inner streams.  A relationship as a stream turns the Join extension into two Join calls with the first between the outer and relationship then the resulting type and inner doing some expression replacing to fix the body of the result selector.
 
 ## Query Cypher generation with simple clauses
-The Relinq visitor (_CypherQueryModelVisitor_) converts the relinq source, pipes (bodies) and sinks into _ReadOnlyExpression_ that the default cypher generator can turn into cypher.  The _AsyncSimpleQueryCypherTest_ has test cases that evaulate simple clause to cypher.  Here are a couple examples:
+The Relinq visitor (_CypherQueryModelVisitor_) converts the relinq source, pipes (bodies) and sinks into _ReadOnlyExpression_ that the default cypher generator can turn into cypher.  The _AsyncSimpleQueryCypherTest_ has test cases that evaulate simple clauses to cypher.  Here are a couple examples:
 
  * ```ctx.<Entity>.AsCypher()``` => "MATCH (e:Entity) RETURN <properties>"
  * ```ctx.<Entity>.Select(e => e).AsCypher()``` => "MATCH (e:Entity) RETURN <properties>"
