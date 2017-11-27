@@ -325,6 +325,11 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
                 ?? ReturnStarNode;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="memberInfo"></param>
+        /// <returns></returns>
         public virtual Expression GetReturnForMemberInfo(
             [NotNull] MemberInfo memberInfo
         ) {
@@ -335,6 +340,11 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
                 : null;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="memberInfo"></param>
+        /// <param name="projection"></param>
         public virtual void SetReturnForMemberInfo(
             [NotNull] MemberInfo memberInfo, 
             [NotNull] Expression projection
@@ -373,6 +383,12 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
                 .GenerateSql(new Dictionary<string, object>())
                 .CommandText;
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <param name="alias"></param>
+        /// <returns></returns>
         private Expression CreateUniqueReturn(
             Expression expression,
             string alias = null
@@ -417,6 +433,11 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
             return updatedExpression;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
         private static string GetStorageName(Expression expression) {
             expression = expression.RemoveConvert();
             expression = (expression as NullableExpression)?.Operand.RemoveConvert()

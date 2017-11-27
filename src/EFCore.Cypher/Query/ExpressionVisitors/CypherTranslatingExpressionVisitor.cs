@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Linq.Expressions;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore.Internal;
@@ -105,7 +106,16 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
                         )
                         : null;
                 }
-                // TODO: Equals/not equals
+                case ExpressionType.Equal:
+                case ExpressionType.NotEqual: 
+                {
+                    var unfolded = UnfoldStructuralComparison(
+                        expression.NodeType,
+                        ProcessComparisonExpression(expression)
+                    );
+
+                    return unfolded;
+                }
                 case ExpressionType.GreaterThan:
                 case ExpressionType.GreaterThanOrEqual:
                 case ExpressionType.LessThan:
@@ -258,6 +268,13 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sourceExpression"></param>
+        /// <param name="Func<TExpression"></param>
+        /// <param name="binder"></param>
+        /// <returns></returns>
         private Expression TryBindMemberOrMethodToReadOnlyExpression<TExpression>(
             TExpression sourceExpression,
             Func<TExpression, CypherQueryModelVisitor, Func<IProperty, IQuerySource, ReadOnlyExpression, Expression>, Expression> binder 
@@ -386,5 +403,83 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
 
             return null;
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="kind"></param>
+        /// <param name="expression"></param>
+        /// <returns></returns>
+        private static Expression UnfoldStructuralComparison(
+            ExpressionType kind,
+            Expression expression
+        ) {
+            BinaryExpression be = expression as BinaryExpression;
+
+            var leftConstantExpression = be?.Left as ConstantExpression;
+            var leftExpressions = leftConstantExpression?.Value as Expression[];
+            var rightConstantExpression = be?.Right as ConstantExpression;
+            var rightExpressions = rightConstantExpression?.Value as Expression[];
+
+            if (leftExpressions != null
+                && rightConstantExpression != null
+                && rightConstantExpression.Value == null)
+            {
+                rightExpressions
+                    = Enumerable
+                        .Repeat<Expression>(
+                            rightConstantExpression, 
+                            leftExpressions.Length
+                        )
+                        .ToArray();
+            }
+
+            if (rightExpressions != null
+                && leftConstantExpression != null
+                && leftConstantExpression.Value == null)
+            {
+                leftExpressions
+                    = Enumerable
+                        .Repeat<Expression>(
+                            leftConstantExpression, 
+                            rightExpressions.Length
+                        )
+                        .ToArray();
+            }
+
+            if (leftExpressions != null
+                && rightExpressions != null
+                && leftExpressions.Length == rightExpressions.Length)
+            {
+                if (leftExpressions.Length == 1
+                    && kind == ExpressionType.Equal)
+                {
+                    var translatedExpression = TransformNullComparison(
+                        leftExpressions[0], 
+                        rightExpressions[0], 
+                        kind
+                    ) ?? Expression.Equal(leftExpressions[0], rightExpressions[0]);
+
+                    return Expression.AndAlso(
+                        translatedExpression, 
+                        Expression.Constant(true, typeof(bool))
+                    );
+                }
+
+                return leftExpressions
+                    .Zip(
+                        rightExpressions, (l, r) =>
+                            TransformNullComparison(l, r, kind)
+                            ?? Expression.MakeBinary(kind, l, r))
+                    .Aggregate(
+                        (e1, e2) =>
+                            kind == ExpressionType.Equal
+                                ? Expression.AndAlso(e1, e2)
+                                : Expression.OrElse(e1, e2));
+            }
+
+            return expression;
+        }
+        
     }
 }

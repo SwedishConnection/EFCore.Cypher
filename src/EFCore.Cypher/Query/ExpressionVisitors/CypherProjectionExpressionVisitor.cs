@@ -114,6 +114,9 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
         public override Expression Visit(Expression expression)
         {
             // TODO: Group by method
+            if (_topLevelReturn) {
+                
+            }
 
             _topLevelReturn = false;
 

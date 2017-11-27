@@ -52,7 +52,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions {
         /// Append with AndAlso expression predicate to where clause
         /// </summary>
         /// <param name="where"></param>
-        public virtual void AppendWhere([NotNull] Expression where) {
+        public virtual void AddToWhere([NotNull] Expression where) {
             Check.NotNull(where, nameof(where));
 
             Where = Where is null

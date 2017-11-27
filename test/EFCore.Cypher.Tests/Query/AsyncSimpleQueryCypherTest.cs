@@ -27,7 +27,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                     .AsCypher();
 
                 Assert.Equal(
-                    "MATCH (w:Warehouse) RETURN \"w\".\"Location\"",
+                    "MATCH (w:Warehouse) RETURN \"w\".\"Location\", \"w\".\"Size\"",
                     cypher
                 );
             }
@@ -44,7 +44,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                     .AsCypher();
 
                 Assert.Equal(
-                    "MATCH (w:Warehouse) RETURN \"w\".\"Location\"",
+                    "MATCH (w:Warehouse) RETURN \"w\".\"Location\", \"w\".\"Size\"",
                     cypher
                 );
             }
@@ -119,7 +119,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         }
 
         /// <summary>
-        /// Only select with object having a single literal
+        /// Only select with object having a conditional
         /// </summary>
         [Fact]
         public void Select_warehouse_with_conditional() {
@@ -135,6 +135,9 @@ namespace Microsoft.EntityFrameworkCore.Query
             }
         }
 
+        /// <summary>
+        /// Only select with object having a conditional case
+        /// </summary>
         [Fact]
         public void Select_warehouse_with_conditional_case() {
             using (var ctx = new CypherFaceDbContext(DbContextOptions)) {
@@ -144,6 +147,23 @@ namespace Microsoft.EntityFrameworkCore.Query
 
                 Assert.Equal(
                     "MATCH (w:Warehouse) RETURN CASE\r\n    WHEN \"w\".\"Size\" > 100\r\n    THEN 'Giant' ELSE 'Ant'\r\nEND AS \"IsBig\"",
+                    cypher
+                );
+            }
+        }
+
+        /// <summary>
+        /// Where one property equals constant with default return
+        /// </summary>
+        [Fact]
+        public void Where_equal() {
+            using (var ctx = new CypherFaceDbContext(DbContextOptions)) {
+                var cypher = ctx.Warehouses
+                    .Where(w => w.Size == 100)
+                    .AsCypher();
+
+                Assert.Equal(
+                    "MATCH (w:Warehouse)\r\nWHERE \"w\".\"Size\" = 100 RETURN \"w\".\"Location\", \"w\".\"Size\"",
                     cypher
                 );
             }

@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -26,7 +27,7 @@ namespace Microsoft.EntityFrameworkCore.Query {
         /// <summary>
         /// Visitor factory
         /// </summary>    
-        // private readonly ICypherTranslatingExpressionVisitorFactory _cypherTranslatingExpressionVisitorFactory;
+        private readonly ICypherTranslatingExpressionVisitorFactory _cypherTranslatingExpressionVisitorFactory;
         
         public CypherQueryModelVisitor(
             [NotNull] EntityQueryModelVisitorDependencies dependencies,
@@ -35,6 +36,7 @@ namespace Microsoft.EntityFrameworkCore.Query {
             [CanBeNull] CypherQueryModelVisitor parentQueryModelVisiter
         ) : base(dependencies, queryCompilationContext)
         {
+            _cypherTranslatingExpressionVisitorFactory = cypherDependencies.CypherTranslatingExpressionVisitorFactory;
             // TODO: Unwrap dependencies
         }
 
@@ -106,6 +108,45 @@ namespace Microsoft.EntityFrameworkCore.Query {
         {
             // TODO: Fold SelectMany (e.g. unwinds)
             base.VisitAdditionalFromClause(fromClause, queryModel, index);
+        }
+
+        public override void VisitWhereClause(
+            WhereClause whereClause, 
+            QueryModel queryModel, 
+            int index
+        ) {
+            Check.NotNull(whereClause, nameof(whereClause));
+            Check.NotNull(queryModel, nameof(queryModel));
+
+            var readOnlyExpression = TryGetQuery(queryModel.MainFromClause);
+            var requiresClientFilter = readOnlyExpression is null;
+            
+            if (!requiresClientFilter) {
+                var cypherTranslatingExpressionVisitor = _cypherTranslatingExpressionVisitorFactory.Create(
+                    queryModelVisitor: this,
+                    targetReadOnlyExpression: readOnlyExpression,
+                    topLevelWhere: whereClause.Predicate
+                );
+
+                var cypherWhereExpression = cypherTranslatingExpressionVisitor.Visit(
+                    whereClause.Predicate
+                );
+
+                if (!(cypherWhereExpression is null)) {
+                    // TODO: Conditional removing expression visitor
+
+                    readOnlyExpression
+                        .ReadingClauses
+                        .Where(rc => rc is MatchExpression)
+                        .Cast<MatchExpression>()
+                        .Last()
+                        ?.AddToWhere(cypherWhereExpression);
+                } else {
+                    requiresClientFilter = true;
+                }
+
+                // TODO: Client filtering
+            }
         }
 
         /// <summary>

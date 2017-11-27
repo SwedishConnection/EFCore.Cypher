@@ -210,6 +210,16 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
                 .Append(String.Join(":", matchExpression.Labels))
                 .Append(")");
 
+            if (!(matchExpression.Where is null)) {
+                // TODO: optimize where
+                
+                _commandBuilder
+                    .AppendLine()
+                    .Append("WHERE ");
+
+                Visit(matchExpression.Where);
+            }
+
             return matchExpression;
         }
 
