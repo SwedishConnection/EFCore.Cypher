@@ -2,62 +2,33 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Linq;
 using System.Linq.Expressions;
 using JetBrains.Annotations;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query.Cypher;
 using Microsoft.EntityFrameworkCore.Utilities;
+using Remotion.Linq.Clauses;
 
-namespace Microsoft.EntityFrameworkCore.Query.Expressions
-{
-    public class StorageExpression: Expression, IEquatable<StorageExpression> {
+namespace Microsoft.EntityFrameworkCore.Query.Expressions {
 
-        public StorageExpression(
-            [NotNull] string name,
-            [NotNull] IProperty property,
-            [NotNull] NodeExpressionBase nodeExpression
-        ) {
-            Check.NotEmpty(name, nameof(name));
-            Check.NotNull(property, nameof(property));
-            Check.NotNull(nodeExpression, nameof(nodeExpression));
+    public class NodePatternExpression: NodeExpressionBase, IEquatable<NodePatternExpression> {
 
-            Name = name;
-            Property = property;
-            Node = nodeExpression;
+        public NodePatternExpression(
+            [NotNull] string[] labels,
+            [CanBeNull] IQuerySource querySource,
+            [CanBeNull] string alias
+        ) : base(querySource, alias) {
+            Labels = labels;
         }
 
         /// <summary>
-        /// Storage name
+        /// Labels
         /// </summary>
         /// <returns></returns>
-        public virtual string Name { get; }
+        public virtual string[] Labels { get; }
 
         /// <summary>
-        /// Node
-        /// </summary>
-        /// <returns></returns>
-        public virtual NodeExpressionBase Node { get; }
-
-        /// <summary>
-        /// Property
-        /// </summary>
-        /// <returns></returns>
-        #pragma warning disable 108
-        public virtual IProperty Property { get; }
-        #pragma warning restore 108
-
-        /// <summary>
-        /// Extension
-        /// </summary>
-        public override ExpressionType NodeType => ExpressionType.Extension;
-
-        /// <summary>
-        /// Type
-        /// </summary>
-        public override Type Type => Property.ClrType;
-
-        /// <summary>
-        /// Dispatcher
+        /// Dispatch
         /// </summary>
         /// <param name="visitor"></param>
         /// <returns></returns>
@@ -69,7 +40,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
 
             return concrete is null
                 ? base.Accept(visitor)
-                : concrete.VisitStorage(this);
+                : concrete.VisitNodePattern(this);
         }
 
         /// <summary>
@@ -84,10 +55,9 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
-        public bool Equals(StorageExpression other)
-            => string.Equals(Name, other.Name)
-                && Type == other.Type
-                && Equals(Node, other.Node);
+        public bool Equals(NodePatternExpression other) 
+            => Enumerable.SequenceEqual(Labels.OrderBy(e => e), other.Labels.OrderBy(e => e))
+                && string.Equals(Alias, other.Alias);
 
         /// <summary>
         /// Equals
@@ -107,9 +77,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
                 return false;
             }
 
-		    return Equals(obj as StorageExpression);
+		    return Equals(obj as NodePatternExpression);
         }
-
 
         /// <summary>
         /// Hash
@@ -119,18 +88,24 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
         {
             unchecked
             {
-                var hashCode = Type.GetHashCode();
-                hashCode = (hashCode * 397) ^ Node.GetHashCode();
-                hashCode = (hashCode * 397) ^ Name.GetHashCode();
+                var hashCode = Alias?.GetHashCode() ?? 0;
+                hashCode = (hashCode * 397) ^ Labels?.Aggregate(
+                    hashCode,
+                    (hc, e) => { return hc ^ e.GetHashCode(); }
+                ) ?? 0;
 
                 return hashCode;
             }
         }
 
         /// <summary>
-        /// 
+        /// Human readable
         /// </summary>
         /// <returns></returns>
-        public override string ToString() => Node.Alias + "." + Name;
+        public override string ToString() {
+            var NodeLabels = String.Join(":", Labels);
+
+            return $"({Alias}:{NodeLabels})";
+        }
     }
 }

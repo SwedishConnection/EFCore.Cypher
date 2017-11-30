@@ -89,9 +89,13 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
             // default match
             readOnlyExpression.AddReadingClause(
                 new MatchExpression(
-                    labels,
-                    alias,
-                    _querySource
+                    new PatternExpression(
+                        new NodePatternExpression(
+                            labels, 
+                            _querySource, 
+                            alias
+                        )
+                    )
                 )
             );
             

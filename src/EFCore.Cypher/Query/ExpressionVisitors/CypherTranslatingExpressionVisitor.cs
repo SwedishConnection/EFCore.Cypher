@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Linq.Expressions;
 using JetBrains.Annotations;
+using Microsoft.EntityFrameworkCore.Extensions.Internal;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query.Expressions;
@@ -24,7 +25,10 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
 
         private readonly ReadOnlyExpression _targetReadOnlyExpression;
 
+        private readonly bool _inReturn;
+
         private bool _isTopLevelReturn;
+
         
         public CypherTranslatingExpressionVisitor(
             [NotNull] SqlTranslatingExpressionVisitorDependencies dependencies,
@@ -39,6 +43,7 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
 
             _compositeExpressionFragmentTranslator = dependencies.CompositeExpressionFragmentTranslator;
             _targetReadOnlyExpression = targetReadOnlyExpresion;
+            _inReturn = inReturn;
             _isTopLevelReturn = inReturn;
             
             _queryModelVisitor = queryModelVisitor;
@@ -258,9 +263,57 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Visit query source reference
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
         protected override Expression VisitQuerySourceReference(QuerySourceReferenceExpression expression)
         {
-            throw new NotImplementedException();
+            Check.NotNull(expression, nameof(expression));
+
+            if (!_inReturn) {
+                if (expression.ReferencedQuerySource is JoinClause joinClause) {
+                    var entityType = _queryModelVisitor
+                        .QueryCompilationContext
+                        .FindEntityType(joinClause)
+                        ?? _queryModelVisitor
+                            .QueryCompilationContext
+                            .Model
+                            .FindEntityType(joinClause.ItemType);
+
+                    if (!(entityType is null)) {
+                        return Visit(
+                            expression.CreateEFPropertyExpression(
+                                entityType.FindPrimaryKey().Properties[0]
+                            )
+                        );
+                    }
+
+                    return null;
+                }
+            }
+
+            var kind = expression
+                .ReferencedQuerySource
+                .ItemType
+                .UnwrapNullableType()
+                .UnwrapEnumType();
+            if (!(_relationalTypeMapper.FindMapping(kind) is null)) {
+                var readOnlyExpression = _queryModelVisitor.TryGetQuery(
+                    expression.ReferencedQuerySource
+                );
+
+                if (!(readOnlyExpression is null)) {
+                    var nested = readOnlyExpression.ReturnItems.FirstOrDefault() as ReadOnlyExpression;
+
+                    if (!(nested is null)) {
+                        // TODO: Lift nested
+                    }
+                }
+            }
+
+            return null;
         }
 
         protected override Exception CreateUnhandledItemException<T>(T unhandledItem, string visitMethod)

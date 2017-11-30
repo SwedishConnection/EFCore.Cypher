@@ -17,7 +17,9 @@ namespace Microsoft.EntityFrameworkCore {
             var queryable = outer.Join(
                 inner,
                 "NEXT",
-                (o, i) => new { o = o, i = i }
+                (o) => o,
+                (i) => i,
+                (o, i, r) => new { o = o, i = i }
             );
 
             Assert.Equal(ExpressionType.Call, queryable.Expression.NodeType);
@@ -37,6 +39,8 @@ namespace Microsoft.EntityFrameworkCore {
             var queryable = outer.Join(
                 inner,
                 relationship,
+                (o) => o,
+                (i) => i,
                 (o, i, r) => new { o = o, i = i, r = r }
             );
 

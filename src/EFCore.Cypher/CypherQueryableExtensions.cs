@@ -12,57 +12,55 @@ namespace System.Linq {
     public static class CypherQueryableExtensions {
 
         /// <summary>
-        /// Join on relationship name
+        /// Join on relationship without properties
         /// </summary>
         /// <param name="outer"></param>
         /// <param name="inner"></param>
         /// <param name="relationship"></param>
-        /// <param name="Expression<Func<TOuter"></param>
-        /// <param name="selector"></param>
+        /// <param name="outerSelector"></param>
+        /// <param name="innerSelector"></param>
+        /// <param name="resultSelector"></param>
         /// <returns></returns>
-        public static IQueryable<TResult> Join<TOuter, TInner, TResult>(
+        public static IQueryable<TResult> Join<TOuter, TInner, TOuterEndPoint, TInnerEndPoint, TResult>(
             [NotNull] this IQueryable<TOuter> outer,
             [NotNull] IEnumerable<TInner> inner,
             string relationship,
-            Expression<Func<TOuter, TInner, TResult>> resultSelector
+            [NotNull] Expression<Func<TOuter, TOuterEndPoint>> outerSelector,
+            [NotNull] Expression<Func<TInner, TInnerEndPoint>> innerSelector,
+            Expression<Func<TOuter, TInner, string, TResult>> resultSelector
         ) {
-            Check.NotNull(outer, nameof(outer));
-            Check.NotNull(inner, nameof(inner));
-            Check.NotEmpty(relationship, nameof(relationship));
-            Check.NotNull(resultSelector, nameof(resultSelector));
-
             return outer.Join(
-                inner,
-                (x) => relationship,
-                (x) => relationship,
+                inner, 
+                new string[] { relationship }, 
+                outerSelector, 
+                innerSelector, 
                 resultSelector
             );
         }
 
         /// <summary>
-        /// Join on relationship
+        /// Join on relationship with properties
         /// </summary>
         /// <param name="outer"></param>
         /// <param name="inner"></param>
         /// <param name="relationship"></param>
-        /// <param name="Expression<Func<TOuter"></param>
-        /// <param name="selector"></param>
+        /// <param name="outerSelector"></param>
+        /// <param name="innerSelector"></param>
+        /// <param name="resultSelector"></param>
         /// <returns></returns>
-        public static IQueryable<TResult> Join<TOuter, TInner, TRelationship, TResult>(
+        public static IQueryable<TResult> Join<TOuter, TInner, TRelationship, TOuterEndPoint, TInnerEndPoint, TResult>(
             [NotNull] this IQueryable<TOuter> outer,
             [NotNull] IEnumerable<TInner> inner,
             [NotNull] IEnumerable<TRelationship> relationship,
+            [NotNull] Expression<Func<TOuter, TOuterEndPoint>> outerSelector,
+            [NotNull] Expression<Func<TInner, TInnerEndPoint>> innerSelector,
             Expression<Func<TOuter, TInner, TRelationship, TResult>> resultSelector
         ) {
             Check.NotNull(outer, nameof(outer));
             Check.NotNull(inner, nameof(inner));
-            Check.NotNull(relationship, nameof(relationship));
+            Check.NotNull(outerSelector, nameof(outerSelector));
+            Check.NotNull(innerSelector, nameof(innerSelector));
             Check.NotNull(resultSelector, nameof(resultSelector));
-
-            // fake key selectors
-            Expression<Func<TOuter, string>> outerKeySelector = (x) => String.Empty;
-            Expression<Func<TRelationship, string>> relationshipKeySelector = (x) => String.Empty;
-            Expression<Func<TInner, string>> innerKeySelector = (x) => String.Empty;
 
             // grab outer and relationship into the first join
             var startParameters = new ParameterExpression[] {
@@ -124,8 +122,15 @@ namespace System.Linq {
             var startMethodInfo = Join_TOuter_TInner_TKey_TResult_5(
                 typeof(TOuter),
                 typeof(TRelationship),
-                typeof(string),
+                typeof(TOuterEndPoint),
                 startReturns
+            );
+
+            var fakeOuterEndpointSelector = Expression.Lambda(
+                outerSelector.Body,
+                new ParameterExpression[] {
+                    Expression.Parameter(typeof(TRelationship))
+                }
             );
             
             var startExpression = Expression.Call(
@@ -133,20 +138,20 @@ namespace System.Linq {
                 startMethodInfo,
                 outer.Expression,
                 GetSourceExpression(relationship),
-                Expression.Quote(outerKeySelector),
-                Expression.Quote(relationshipKeySelector),
+                Expression.Quote(outerSelector),
+                Expression.Quote(fakeOuterEndpointSelector),
                 Expression.Quote(start)
             );
 
             var endMethodInfo = Join_TOuter_TInner_TKey_TResult_5(
                 startReturns,
                 typeof(TInner),
-                typeof(string),
+                typeof(TInnerEndPoint),
                 typeof(TResult)
             );
 
-            var startReturnsKeySelector = Expression.Lambda(
-                Expression.Constant(String.Empty),
+            var fakeInnerEndpointSelector = Expression.Lambda(
+                innerSelector.Body,
                 new ParameterExpression[] {
                     Expression.Parameter(startReturns)
                 }
@@ -157,8 +162,8 @@ namespace System.Linq {
                 endMethodInfo,
                 startExpression,
                 GetSourceExpression(inner),
-                Expression.Quote(startReturnsKeySelector),
-                Expression.Quote(innerKeySelector),
+                Expression.Quote(fakeInnerEndpointSelector),
+                Expression.Quote(innerSelector),                
                 Expression.Quote(end)
             );
 

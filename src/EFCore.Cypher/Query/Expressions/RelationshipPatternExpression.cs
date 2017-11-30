@@ -4,60 +4,58 @@
 using System;
 using System.Linq.Expressions;
 using JetBrains.Annotations;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query.Cypher;
 using Microsoft.EntityFrameworkCore.Utilities;
+using Remotion.Linq.Clauses;
 
-namespace Microsoft.EntityFrameworkCore.Query.Expressions
-{
-    public class StorageExpression: Expression, IEquatable<StorageExpression> {
+namespace Microsoft.EntityFrameworkCore.Query.Expressions {
 
-        public StorageExpression(
-            [NotNull] string name,
-            [NotNull] IProperty property,
-            [NotNull] NodeExpressionBase nodeExpression
+    public class RelationshipPatternExpression: Expression, IEquatable<RelationshipPatternExpression> {
+
+        public RelationshipPatternExpression(
+            [NotNull] RelationshipDirection direction,
+            [NotNull] RelationshipDetailExpression details
         ) {
-            Check.NotEmpty(name, nameof(name));
-            Check.NotNull(property, nameof(property));
-            Check.NotNull(nodeExpression, nameof(nodeExpression));
-
-            Name = name;
-            Property = property;
-            Node = nodeExpression;
+            Direction = direction;
         }
 
         /// <summary>
-        /// Storage name
+        /// Direction
         /// </summary>
         /// <returns></returns>
-        public virtual string Name { get; }
+        public virtual RelationshipDirection Direction { get; }
 
         /// <summary>
-        /// Node
+        /// Details
         /// </summary>
         /// <returns></returns>
-        public virtual NodeExpressionBase Node { get; }
+        public virtual RelationshipDetailExpression Details { get; }
 
         /// <summary>
-        /// Property
-        /// </summary>
-        /// <returns></returns>
-        #pragma warning disable 108
-        public virtual IProperty Property { get; }
-        #pragma warning restore 108
-
-        /// <summary>
-        /// Extension
+        /// Expression type
         /// </summary>
         public override ExpressionType NodeType => ExpressionType.Extension;
 
         /// <summary>
         /// Type
         /// </summary>
-        public override Type Type => Property.ClrType;
+        /// <returns></returns>
+        public override Type Type => typeof(object);
 
         /// <summary>
-        /// Dispatcher
+        /// Visit children
+        /// </summary>
+        /// <param name="visitor"></param>
+        /// <returns></returns>
+        protected override Expression VisitChildren(ExpressionVisitor visitor)
+        {
+            visitor.Visit(Details);
+
+            return this;
+        }
+
+        /// <summary>
+        /// Dispatch
         /// </summary>
         /// <param name="visitor"></param>
         /// <returns></returns>
@@ -69,25 +67,17 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
 
             return concrete is null
                 ? base.Accept(visitor)
-                : concrete.VisitStorage(this);
+                : concrete.VisitRelationshipPattern(this);
         }
-
-        /// <summary>
-        /// Visit children
-        /// </summary>
-        /// <param name="visitor"></param>
-        /// <returns></returns>
-        protected override Expression VisitChildren(ExpressionVisitor visitor) => this;
 
         /// <summary>
         /// Equality
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
-        public bool Equals(StorageExpression other)
-            => string.Equals(Name, other.Name)
-                && Type == other.Type
-                && Equals(Node, other.Node);
+        public bool Equals(RelationshipPatternExpression other)
+            => Direction == other.Direction &&
+                Equals(Details, other.Details);
 
         /// <summary>
         /// Equals
@@ -107,9 +97,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
                 return false;
             }
 
-		    return Equals(obj as StorageExpression);
+		    return Equals(obj as RelationshipPatternExpression);
         }
-
 
         /// <summary>
         /// Hash
@@ -119,18 +108,28 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
         {
             unchecked
             {
-                var hashCode = Type.GetHashCode();
-                hashCode = (hashCode * 397) ^ Node.GetHashCode();
-                hashCode = (hashCode * 397) ^ Name.GetHashCode();
+                var hashCode = Direction.GetHashCode();
+                hashCode = (hashCode * 397) ^ Details.GetHashCode();
 
                 return hashCode;
             }
         }
 
         /// <summary>
-        /// 
+        /// Human readable
         /// </summary>
         /// <returns></returns>
-        public override string ToString() => Node.Alias + "." + Name;
+        public override string ToString() {
+            switch (Direction) {
+                case RelationshipDirection.Left:
+                    return $"<-{Details}-";
+                case RelationshipDirection.Right:
+                    return $"-{Details}->";
+                case RelationshipDirection.Both:
+                    return $"<-{Details}->";
+                default:
+                    return $"-{Details}-";
+            }
+        }
     }
 }

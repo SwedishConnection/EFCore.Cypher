@@ -9,12 +9,20 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
 {
     public interface ICypherExpressionVisitor {
         
-        Expression VisitReadOnly([NotNull] ReadOnlyExpression readOnlyExpression);
+        Expression VisitReadOnly([NotNull] ReadOnlyExpression expression);
 
-        Expression VisitMatch([NotNull] MatchExpression matchExpression);
+        Expression VisitMatch([NotNull] MatchExpression expression);
 
-        Expression VisitStorage([NotNull] StorageExpression storageExpression);
+        Expression VisitStorage([NotNull] StorageExpression expression);
 
-        Expression VisitAlias([NotNull] CypherAliasExpression aliasExpression);
+        Expression VisitAlias([NotNull] CypherAliasExpression expression);
+
+        Expression VisitRelationshipDetail([NotNull] RelationshipDetailExpression expression);
+
+        Expression VisitRelationshipPattern([NotNull] RelationshipPatternExpression expression);
+
+        Expression VisitNodePattern([NotNull] NodePatternExpression expression);
+
+        Expression VisitPattern([NotNull] PatternExpression expression);
     }
 }

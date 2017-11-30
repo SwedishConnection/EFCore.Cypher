@@ -12,18 +12,114 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
 
         ExpressionEqualityComparer comparer = new ExpressionEqualityComparer();
 
+        
+        
+        [Fact]
+        public void RelationshipDetail() {
+            var me = new RelationshipDetailExpression(
+                new string[] { "OWNS" },
+                null,
+                "r"
+            );
+
+            var other = new RelationshipDetailExpression(
+                new string[] { "OWNS" },
+                null,
+                "r"
+            );
+
+            Assert.True(comparer.Equals(me, other));
+
+            var bad = new RelationshipDetailExpression(
+                null,
+                null,
+                null
+            );
+
+            Assert.False(comparer.Equals(me, bad));
+        }
+
+        [Fact]
+        public void RelationshipPattern() {
+            var me = new RelationshipPatternExpression(
+                RelationshipDirection.Left,
+                new RelationshipDetailExpression(
+                    new string[] { "OWNS" },
+                    null,
+                    "r"
+                )
+            );
+
+            var other = new RelationshipPatternExpression(
+                RelationshipDirection.Left,
+                new RelationshipDetailExpression(
+                    new string[] { "OWNS" },
+                    null,
+                    "r"
+                )
+            );
+
+            Assert.True(comparer.Equals(me, other));
+        }
+
+        [Fact]
+        public void NodePattern() {
+            var me = new NodePatternExpression(
+                new string[] { "Warehouse" },
+                null,
+                "w"
+            );
+
+            var other = new NodePatternExpression(
+                new string[] { "Warehouse" },
+                null,
+                "w"
+            );
+
+            Assert.True(comparer.Equals(me, other));
+        }
+
+        [Fact]
+        public void Pattern() {
+            var me = new PatternExpression(
+                new NodePatternExpression(
+                    new string[] { "Warehouse" },
+                    null,
+                    "w"
+                )
+            );
+
+            var other = new PatternExpression(
+                new NodePatternExpression(
+                    new string[] { "Warehouse" },
+                    null,
+                    "w"
+                )
+            );
+
+            Assert.True(comparer.Equals(me, other));
+        }
+
         [Fact]
         public void Match() {
             var me = new MatchExpression(
-                new string[] { "Warehouse "}, 
-                "w", 
-                null // TODO: add|get query source
+                new PatternExpression(
+                    new NodePatternExpression(
+                        new string[] { "Warehouse" },
+                        null,
+                        "w"
+                    )
+                )
             );
 
             var other = new MatchExpression(
-                new string[] { "Warehouse "}, 
-                "w", 
-                null // TODO: add|get query source
+                new PatternExpression(
+                    new NodePatternExpression(
+                        new string[] { "Warehouse" },
+                        null,
+                        "w"
+                    )
+                )
             );
 
             Assert.True(comparer.Equals(me, other));
@@ -39,21 +135,21 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
                 var me = new StorageExpression(
                     "Place",
                     Location,
-                    new MatchExpression(
-                        new string[] { "Warehouse" }, 
-                        "w", 
-                        null
-                    )  
+                    new NodePatternExpression(
+                        new string[] { "Warehouse" },
+                        null,
+                        "w"
+                    )
                 );
 
                 var other = new StorageExpression(
                     "Place",
                     Location,
-                    new MatchExpression(
-                        new string[] { "Warehouse" }, 
-                        "w", 
-                        null
-                    )  
+                    new NodePatternExpression(
+                        new string[] { "Warehouse" },
+                        null,
+                        "w"
+                    )
                 );
 
                 Assert.True(comparer.Equals(me, other));

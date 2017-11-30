@@ -10,38 +10,28 @@ using Microsoft.EntityFrameworkCore.Utilities;
 using Remotion.Linq.Clauses;
 
 namespace Microsoft.EntityFrameworkCore.Query.Expressions {
-    public class MatchExpression : ReadingClause, IEquatable<MatchExpression>
-    {
-        public MatchExpression(
-            [NotNull] PatternExpression pattern
-        ) {
-            Check.NotNull(pattern, nameof(pattern));
 
-            Pattern = pattern;
+    public class RelationshipDetailExpression: NodeExpressionBase, IEquatable<RelationshipDetailExpression> {
+
+        public RelationshipDetailExpression(
+            [CanBeNull] string[] kinds,
+            [CanBeNull] IQuerySource querySource,
+            [CanBeNull] string alias
+        ) : base(querySource, alias) {
+            Kinds = kinds ?? new string[] {};
         }
 
         /// <summary>
-        /// Pattern
+        /// Kinds (types)
         /// </summary>
         /// <returns></returns>
-        public virtual PatternExpression Pattern { get; }
+        public virtual string[] Kinds { get; }
 
         /// <summary>
-        /// Where (predicate)
+        /// Range
         /// </summary>
         /// <returns></returns>
-        public virtual Expression Where { 
-            get; 
-            
-            [param: CanBeNull] 
-            set; 
-        }
-
-        /// <summary>
-        /// Optional match
-        /// </summary>
-        /// <returns></returns>
-        public virtual bool Optional {
+        public virtual Tuple<byte?, byte?> Range { 
             get; 
 
             [param: CanBeNull]
@@ -49,19 +39,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions {
         }
 
         /// <summary>
-        /// Append with AndAlso expression predicate to where clause
-        /// </summary>
-        /// <param name="where"></param>
-        public virtual void AddToWhere([NotNull] Expression where) {
-            Check.NotNull(where, nameof(where));
-
-            Where = Where is null
-                ? where 
-                : AndAlso(Where, where);
-        }
-
-        /// <summary>
-        /// Dispatcher
+        /// Dispatch
         /// </summary>
         /// <param name="visitor"></param>
         /// <returns></returns>
@@ -73,7 +51,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions {
 
             return concrete is null
                 ? base.Accept(visitor)
-                : concrete.VisitMatch(this);
+                : concrete.VisitRelationshipDetail(this);
         }
 
         /// <summary>
@@ -81,26 +59,20 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions {
         /// </summary>
         /// <param name="visitor"></param>
         /// <returns></returns>
-        protected override Expression VisitChildren(ExpressionVisitor visitor)
-        {
-            visitor.Visit(Pattern);
-            visitor.Visit(Where);
-
-            return this;
-        }
+        protected override Expression VisitChildren(ExpressionVisitor visitor) => this;
 
         /// <summary>
-        /// Equals
+        /// Equality
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
-        public bool Equals(MatchExpression other)
-            => Equals(Pattern, other.Pattern)
-                && Optional == other.Optional
-                && Equals(Where, other.Where);
+        public bool Equals(RelationshipDetailExpression other)
+            => Enumerable.SequenceEqual(Kinds.OrderBy(e => e), other.Kinds.OrderBy(e => e))
+                && string.Equals(Alias, other.Alias)
+                && Equals(Range, other.Range);
 
         /// <summary>
-        /// Equals (object)
+        /// Equals
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
@@ -117,19 +89,24 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions {
                 return false;
             }
 
-		    return Equals(obj as MatchExpression);
+		    return Equals(obj as RelationshipDetailExpression);
         }
 
         /// <summary>
         /// Hash
         /// </summary>
         /// <returns></returns>
-        public override int GetHashCode() {
+        public override int GetHashCode()
+        {
             unchecked
             {
-                var hashCode = Pattern.GetHashCode();
-                hashCode = (hashCode * 397) ^ Optional.GetHashCode();
-                hashCode = (hashCode * 397) ^ Where?.GetHashCode() ?? 0;
+                var hashCode = Alias?.GetHashCode() ?? 0;
+                hashCode = (hashCode * 397) ^ Kinds?.Aggregate(
+                    hashCode,
+                    (hc, e) => { return hc ^ e.GetHashCode(); }
+                ) ?? 0;
+                hashCode = (hashCode * 397) ^ Range?.Item1.Value ?? 0;
+                hashCode = (hashCode * 397) ^ Range?.Item2.Value ?? 0;
 
                 return hashCode;
             }
@@ -139,9 +116,19 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions {
         /// Human readable
         /// </summary>
         /// <returns></returns>
-        public override string ToString()
-            => (Optional ? "Optional" : String.Empty) + 
-                Pattern + 
-                (Where is null ? String.Empty : " WHERE " + Where);
+        public override string ToString() {
+            var Types = Kinds.Count() == 0
+                ? String.Empty
+                : ":" + String.Join("|", Kinds);
+
+            var RangeLiteral = Range is null
+                ? String.Empty
+                : "*" + 
+                    (Range.Item1.HasValue ? Range.Item1.Value.ToString() : String.Empty) +
+                    ".." +
+                    (Range.Item2.HasValue ? Range.Item2.Value.ToString() : String.Empty);
+
+            return $"[{Alias}{Types}{RangeLiteral}]";
+        }
     }
 }

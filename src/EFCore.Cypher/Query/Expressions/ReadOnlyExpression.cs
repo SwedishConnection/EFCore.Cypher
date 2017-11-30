@@ -37,7 +37,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
 
         private readonly List<Expression> _returnItems = new List<Expression>();
 
-        private readonly List<NodeExpressionBase> _readingClauses = new List<NodeExpressionBase>();
+        private readonly List<ReadingClause> _readingClauses = new List<ReadingClause>();
 
         private readonly List<Ordering> _order = new List<Ordering>();
 
@@ -50,6 +50,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
         private NodeExpressionBase _returnStarNode;
 
         private const string StorageAliasPrefix = "s";
+
+        private Tuple<NodePatternExpression, RelationshipDetailExpression> relationshipBetweenJoins;
 
         public ReadOnlyExpression(
             [NotNull] ReadOnlyExpressionDependencies dependencies,
@@ -114,7 +116,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
         /// <summary>
         /// Reading clauses (match, unwind etc.) which including the where clause (predicate)
         /// </summary>
-        public virtual IReadOnlyList<NodeExpressionBase> ReadingClauses => _readingClauses;
+        public virtual IReadOnlyList<ReadingClause> ReadingClauses => _readingClauses;
 
         /// <summary>
         /// Order clause
@@ -206,13 +208,13 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
         /// <summary>
         /// Add reading clause
         /// </summary>
-        /// <param name="nodeExpression"></param>
+        /// <param name="readingClause"></param>
         public virtual void AddReadingClause(
-            [NotNull] NodeExpressionBase nodeExpression
+            [NotNull] ReadingClause readingClause
         ) {
-            Check.NotNull(nodeExpression, nameof(nodeExpression));
+            Check.NotNull(readingClause, nameof(readingClause));
 
-            _readingClauses.Add(nodeExpression);
+            _readingClauses.Add(readingClause);
         }
 
         /// <summary>
@@ -274,6 +276,27 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
             return _returnItems.Count - 1;
         }
 
+        public virtual void SetRelationshipLeft(
+            [NotNull] NodePatternExpression left,
+            [NotNull] RelationshipDetailExpression relationship
+        ) {
+            relationshipBetweenJoins = Tuple.Create<NodePatternExpression, RelationshipDetailExpression>(
+                left,
+                relationship
+            );
+        }
+
+        public virtual void SetRelationshipRight(
+            [NotNull] NodePatternExpression right
+        ) {
+            if (!(relationshipBetweenJoins is null)) {
+                NodePatternExpression left = relationshipBetweenJoins.Item1;
+                RelationshipDetailExpression middle = relationshipBetweenJoins.Item2;
+
+                
+            }
+        }
+
         /// <summary>
         /// Bind property as a storage expression
         /// </summary>
@@ -320,9 +343,21 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
         ) {
             Check.NotNull(querySource, nameof(querySource));
 
-            return _readingClauses
-                .FirstOrDefault(rc => rc.QuerySource == querySource)
-                ?? ReturnStarNode;
+            var node = _readingClauses
+                .OfType<MatchExpression>()
+                .Select(e => {
+                    var chains = e.Pattern.PatternElementChain ?? 
+                        Enumerable.Empty<Tuple<RelationshipPatternExpression, NodePatternExpression>>();
+
+                    return chains.Aggregate(
+                        new NodeExpressionBase[] {e.Pattern.NodePattern} as IEnumerable<NodeExpressionBase>,
+                        (bases, chain) => bases.Concat(new NodeExpressionBase[] { chain.Item1.Details, chain.Item2 })
+                    );
+                })
+                .SelectMany(e => e)
+                .FirstOrDefault(e => e.QuerySource == querySource);
+
+            return node ?? ReturnStarNode;
         }
 
         /// <summary>
@@ -358,14 +393,21 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
             );
         }
 
-        /// <summary>
+        /// <summary>        
         /// Node for star return
         /// </summary>
         /// <returns></returns>
         public virtual NodeExpressionBase ReturnStarNode {
             get {
+                var matches = _readingClauses.OfType<MatchExpression>();
+
+                // TODO: Correct logic
                 return _returnStarNode ??
-                    (_readingClauses.Count == 1 ? _readingClauses.Single(): null);
+                    (matches.Count() == 1 && 
+                        matches.Single().Pattern.PatternElementChain is null 
+                        ? matches.Single().Pattern.NodePattern
+                        : null
+                    );
             }
 
             [param: CanBeNull]

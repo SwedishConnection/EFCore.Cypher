@@ -156,7 +156,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         /// Where one property equals constant with default return
         /// </summary>
         [Fact]
-        public void Where_equal() {
+        public void Where_single_property_equal() {
             using (var ctx = new CypherFaceDbContext(DbContextOptions)) {
                 var cypher = ctx.Warehouses
                     .Where(w => w.Size == 100)
@@ -164,6 +164,27 @@ namespace Microsoft.EntityFrameworkCore.Query
 
                 Assert.Equal(
                     "MATCH (w:Warehouse)\r\nWHERE \"w\".\"Size\" = 100 RETURN \"w\".\"Location\", \"w\".\"Size\"",
+                    cypher
+                );
+            }
+        }
+
+        [Fact]
+        public void Join_relationship_by_name() {
+            // Warning: Not working!!!
+            using (var ctx = new CypherFaceDbContext(DbContextOptions)) {
+                var cypher = ctx.Warehouses
+                    .Join(
+                        ctx.Things, 
+                        "OWNS",
+                        (o) => o,
+                        (i) => i, 
+                        (o, i, r) => i
+                    )
+                    .AsCypher();
+
+                Assert.Equal(
+                    "MATCH (w:Warehouse)\r\nMATCH (t:Thing)\r\n RETURN \"t\".\"Number\"",
                     cypher
                 );
             }

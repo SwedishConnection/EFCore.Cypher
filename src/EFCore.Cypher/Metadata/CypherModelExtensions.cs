@@ -23,6 +23,30 @@ namespace Microsoft.EntityFrameworkCore.Metadata
         }
 
         /// <summary>
+        /// Is Clr type a relationship
+        /// </summary>
+        /// <param name="model"></param>
+        /// <param name="clrType"></param>
+        /// <returns></returns>
+        public static bool IsRelationship(
+            this IModel model,
+            Type clrType
+        ) => model.Relationships()
+            .Any(r => r.Relation.ClrType == clrType);
+
+        /// <summary>
+        /// Is name a relationship
+        /// </summary>
+        /// <param name="model"></param>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public static bool IsRelationship(
+            this IModel model,
+            string name
+        ) => model.Relationships()
+            .Any(r => r.Relation.Name == name);
+
+        /// <summary>
         /// Relationships starting with an entity type by name
         /// </summary>
         /// <param name="model"></param>

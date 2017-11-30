@@ -29,7 +29,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions {
         public override ExpressionType NodeType => ExpressionType.Extension;
 
         /// <summary>
-        /// 
+        /// Type
         /// </summary>
         /// <returns></returns>
         public override Type Type => typeof(object);
@@ -46,6 +46,10 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions {
             }
         }
 
+        /// <summary>
+        /// Variable for node patterns and relationship details
+        /// </summary>
+        /// <returns></returns>
         public virtual string Alias
         {
             get { return _alias; }
@@ -56,7 +60,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions {
 
                 _alias = value;
             }
-        }
+        }   
 
         protected override Expression VisitChildren(ExpressionVisitor visitor) => this;
     }

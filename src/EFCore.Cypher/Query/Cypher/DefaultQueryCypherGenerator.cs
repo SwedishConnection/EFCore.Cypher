@@ -141,15 +141,15 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
         /// </summary>
         /// <param name="readOnlyExpression"></param>
         /// <returns></returns>
-        public Expression VisitReadOnly([NotNull] ReadOnlyExpression readOnlyExpression)
+        public Expression VisitReadOnly([NotNull] ReadOnlyExpression expression)
         {
-            Check.NotNull(readOnlyExpression, nameof(readOnlyExpression));
+            Check.NotNull(expression, nameof(expression));
 
             // TODO: nested read only expression
 
             // reading clauses
-            if (readOnlyExpression.ReadingClauses.Count > 0) {
-                IterateGrammer(readOnlyExpression.ReadingClauses);
+            if (expression.ReadingClauses.Count > 0) {
+                IterateGrammer(expression.ReadingClauses);
             } else {
                 CreatePseudoMatchClause();
             }
@@ -159,11 +159,11 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
             _commandBuilder.Append(" RETURN ");
             var returnItemsAdded = false;
 
-            if (readOnlyExpression.IsReturnStar) {
+            if (expression.IsReturnStar) {
                 _commandBuilder
                     .Append(
                         SqlGenerator.DelimitIdentifier(
-                            readOnlyExpression.ReturnStarNode.Alias
+                            expression.ReturnStarNode.Alias
                         )
                     )
                     .Append(".*");
@@ -171,13 +171,13 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
                 returnItemsAdded = true;
             }
 
-            if (readOnlyExpression.ReturnItems.Count > 0) {
-                if (readOnlyExpression.IsReturnStar) {
+            if (expression.ReturnItems.Count > 0) {
+                if (expression.IsReturnStar) {
                     _commandBuilder.Append(", ");
                 }
 
                 // TODO: Optimization visitors
-                IterateGrammer(readOnlyExpression.ReturnItems, s => s.Append(", "));
+                IterateGrammer(expression.ReturnItems, s => s.Append(", "));
 
                 returnItemsAdded = true;
             }
@@ -188,7 +188,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
 
 
             // TODO: Order, Skip, Limit
-            return readOnlyExpression;
+            return expression;
         }
 
         /// <summary>
@@ -196,31 +196,159 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
         /// </summary>
         /// <param name="matchExpression"></param>
         /// <returns></returns>
-        public Expression VisitMatch([NotNull] MatchExpression matchExpression) {
-            Check.NotNull(matchExpression, nameof(matchExpression));
+        public Expression VisitMatch([NotNull] MatchExpression expression) {
+            Check.NotNull(expression, nameof(expression));
 
-            var optional = matchExpression.Optional
+            var optional = expression.Optional
                 ? "OPTIONAL "
                 : String.Empty;
 
             _commandBuilder
-                .Append($"{optional}MATCH (")
-                .Append(matchExpression.Alias)
-                .Append(":")
-                .Append(String.Join(":", matchExpression.Labels))
-                .Append(")");
+                .Append($"{optional}MATCH ");
+            Visit(expression.Pattern);
 
-            if (!(matchExpression.Where is null)) {
+            if (!(expression.Where is null)) {
                 // TODO: optimize where
                 
                 _commandBuilder
                     .AppendLine()
                     .Append("WHERE ");
 
-                Visit(matchExpression.Where);
+                Visit(expression.Where);
             }
 
-            return matchExpression;
+            return expression;
+        }
+
+        /// <summary>
+        /// Visit relationship detail
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
+        public Expression VisitRelationshipDetail([NotNull] RelationshipDetailExpression expression) {
+            Check.NotNull(expression, nameof(expression));
+
+            _commandBuilder
+                .Append("[");
+            
+            if (!(expression.Alias is null)) {
+                _commandBuilder
+                    .Append(SqlGenerator.DelimitIdentifier(expression.Alias));
+            }
+
+            if (expression.Kinds.Count() > 0) {
+                _commandBuilder
+                    .Append(":")
+                    .Append(String.Join("|", expression.Kinds.Select(e => SqlGenerator.DelimitIdentifier(e))));
+            }
+
+            if (!(expression.Range is null)) {
+                _commandBuilder
+                    .Append("*");
+
+                if (expression.Range.Item1.HasValue) {
+                    _commandBuilder
+                        .Append(expression.Range.Item1.Value);
+                }
+
+                _commandBuilder
+                    .Append("..");
+
+                if (expression.Range.Item2.HasValue) {
+                    _commandBuilder
+                        .Append(expression.Range.Item2.Value);
+                }
+            }
+
+            _commandBuilder
+                .Append("]");
+
+            return expression;
+        }
+
+        /// <summary>
+        /// Visit relationship pattern
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
+        public virtual Expression VisitRelationshipPattern([NotNull] RelationshipPatternExpression expression) {
+            Check.NotNull(expression, nameof(expression));
+
+            switch(expression.Direction) {
+                case RelationshipDirection.Both:
+                    _commandBuilder
+                        .Append("<-");
+                    Visit(expression.Details);
+                    _commandBuilder
+                        .Append("->");
+                    break;
+                case RelationshipDirection.Left:
+                    _commandBuilder
+                        .Append("<-");
+                    Visit(expression.Details);
+                    _commandBuilder
+                        .Append("-");
+                    break;
+                case RelationshipDirection.Right:
+                    _commandBuilder
+                        .Append("-");
+                    Visit(expression.Details);
+                    _commandBuilder
+                        .Append("->");
+                    break;
+                default:
+                    _commandBuilder
+                        .Append("-");
+                    Visit(expression.Details);
+                    _commandBuilder
+                        .Append("-");
+                    break;
+            }
+
+            return expression;
+        }
+
+        /// <summary>
+        /// Visit node pattern
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
+        public Expression VisitNodePattern([NotNull] NodePatternExpression expression) {
+            Check.NotNull(expression, nameof(expression));
+
+            _commandBuilder
+                .Append("(");
+            
+            if (!(expression.Alias is null)) {
+                _commandBuilder
+                    .Append(expression.Alias)
+                    .Append(":")
+                    .Append(String.Join(":", expression.Labels));
+            }
+
+            _commandBuilder
+                .Append(")");
+
+            return expression;
+        }
+
+        /// <summary>
+        /// Visit pattern
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
+        public Expression VisitPattern([NotNull] PatternExpression expression) {
+            Check.NotNull(expression, nameof(expression));
+
+            Visit(expression.NodePattern);
+            if (!(expression.PatternElementChain is null)) {
+                foreach (Tuple<RelationshipPatternExpression, NodePatternExpression> chain in expression.PatternElementChain) {
+                    Visit(chain.Item1);
+                    Visit(chain.Item2);
+                }
+            }
+
+            return expression;
         }
 
         /// <summary>
@@ -228,15 +356,15 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
         /// </summary>
         /// <param name="storageExpression"></param>
         /// <returns></returns>
-        public Expression VisitStorage([NotNull] StorageExpression storageExpression) {
-            Check.NotNull(storageExpression, nameof(storageExpression));
+        public Expression VisitStorage([NotNull] StorageExpression expression) {
+            Check.NotNull(expression, nameof(expression));
 
             _commandBuilder
-                .Append(SqlGenerator.DelimitIdentifier(storageExpression.Node.Alias))
+                .Append(SqlGenerator.DelimitIdentifier(expression.Node.Alias))
                 .Append(".")
-                .Append(SqlGenerator.DelimitIdentifier(storageExpression.Name));
+                .Append(SqlGenerator.DelimitIdentifier(expression.Name));
 
-            return storageExpression;
+            return expression;
         }
 
         /// <summary>
@@ -244,19 +372,19 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
         /// </summary>
         /// <param name="aliasExpression"></param>
         /// <returns></returns>
-        public virtual Expression VisitAlias(CypherAliasExpression aliasExpression)
+        public virtual Expression VisitAlias(CypherAliasExpression expression)
         {
-            Check.NotNull(aliasExpression, nameof(aliasExpression));
+            Check.NotNull(expression, nameof(expression));
 
-            Visit(aliasExpression.Expression);
+            Visit(expression.Expression);
 
-            if (aliasExpression.Alias != null) {
+            if (expression.Alias != null) {
                 _commandBuilder
                     .Append(AliasSeparator)
-                    .Append(SqlGenerator.DelimitIdentifier(aliasExpression.Alias));
+                    .Append(SqlGenerator.DelimitIdentifier(expression.Alias));
             }
 
-            return aliasExpression;
+            return expression;
         }
 
         /// <summary>

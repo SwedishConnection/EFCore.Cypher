@@ -138,7 +138,11 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
                         .Visit(expression);
 
                 if (cypherExpression is null) {
-                    throw new NotImplementedException();
+                    if (expression is QuerySourceReferenceExpression qsre) {
+                        // TODO: Handle query source 
+                    } else {
+                        // TODO: Client projection
+                    }
                 } else {
                     readOnlyExpression.RemoveRangeFromReturn(
                         readOnlyExpression.ReturnItems.Count
