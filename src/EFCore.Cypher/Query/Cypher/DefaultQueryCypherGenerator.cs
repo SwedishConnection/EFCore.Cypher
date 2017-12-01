@@ -233,13 +233,13 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
             
             if (!(expression.Alias is null)) {
                 _commandBuilder
-                    .Append(SqlGenerator.DelimitIdentifier(expression.Alias));
+                    .Append(expression.Alias);
             }
 
             if (expression.Kinds.Count() > 0) {
                 _commandBuilder
                     .Append(":")
-                    .Append(String.Join("|", expression.Kinds.Select(e => SqlGenerator.DelimitIdentifier(e))));
+                    .Append(String.Join("|:", expression.Kinds.Select(e => SqlGenerator.DelimitIdentifier(e))));
             }
 
             if (!(expression.Range is null)) {
@@ -321,9 +321,13 @@ namespace Microsoft.EntityFrameworkCore.Query.Cypher
             
             if (!(expression.Alias is null)) {
                 _commandBuilder
-                    .Append(expression.Alias)
-                    .Append(":")
-                    .Append(String.Join(":", expression.Labels));
+                    .Append(expression.Alias);
+
+                if (!(expression.Labels is null)) {
+                    _commandBuilder
+                        .Append(":")
+                        .Append(String.Join(":", expression.Labels));
+                }
             }
 
             _commandBuilder

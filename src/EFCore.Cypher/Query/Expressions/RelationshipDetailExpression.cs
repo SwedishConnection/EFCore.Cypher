@@ -119,7 +119,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions {
         public override string ToString() {
             var Types = Kinds.Count() == 0
                 ? String.Empty
-                : ":" + String.Join("|", Kinds);
+                : ":" + String.Join("|:", Kinds);
 
             var RangeLiteral = Range is null
                 ? String.Empty

@@ -21,6 +21,8 @@ namespace Microsoft.EntityFrameworkCore.TestUtilities
         public DbSet<Person> Persons { get; set; }
 
         public DbSet<Supervise> Supervising { get; set; }
+
+        public DbSet<Owns> Owning { get; set; }
     }
 
     [Labels(new string[] {"Warehouse"})]
@@ -29,7 +31,7 @@ namespace Microsoft.EntityFrameworkCore.TestUtilities
 
         public int Size { get; set; }
 
-        [Relationship("OWNS")]
+        [Relationship(typeof(Owns))]
         public virtual IEnumerable<Thing> Things { get; set; }
 
         [Relationship(typeof(Supervise))]
@@ -46,5 +48,10 @@ namespace Microsoft.EntityFrameworkCore.TestUtilities
 
     public class Supervise {
         public bool Certified { get; set; }
+    }
+
+    [Labels(new string[] {"OWNS"})]
+    public class Owns {
+        public bool Partial { get; set; }
     }
 }

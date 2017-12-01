@@ -94,5 +94,17 @@ namespace System
                 type = type.GetTypeInfo().BaseType;
             }
         }
+
+        public static Type GetSequenceType(this Type type)
+        {
+            var sequenceType = TryGetSequenceType(type);
+            if (sequenceType == null)
+            {
+                // TODO: Add exception message
+                throw new ArgumentException();
+            }
+
+            return sequenceType;
+        }
     }
 }

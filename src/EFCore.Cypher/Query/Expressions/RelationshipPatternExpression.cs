@@ -17,6 +17,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions {
             [NotNull] RelationshipDetailExpression details
         ) {
             Direction = direction;
+            Details = details;
         }
 
         /// <summary>

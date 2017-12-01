@@ -171,20 +171,19 @@ namespace Microsoft.EntityFrameworkCore.Query
 
         [Fact]
         public void Join_relationship_by_name() {
-            // Warning: Not working!!!
             using (var ctx = new CypherFaceDbContext(DbContextOptions)) {
                 var cypher = ctx.Warehouses
                     .Join(
                         ctx.Things, 
-                        "OWNS",
+                        ctx.Owning,
                         (o) => o,
                         (i) => i, 
-                        (o, i, r) => i
+                        (o, i, r) => new {o, i, r}
                     )
                     .AsCypher();
 
                 Assert.Equal(
-                    "MATCH (w:Warehouse)\r\nMATCH (t:Thing)\r\n RETURN \"t\".\"Number\"",
+                    "MATCH (o:Warehouse)\r\nMATCH (o)-[r:\"OWNS\"]-(i:Thing) RETURN \"o\".\"Location\", \"o\".\"Size\", \"i\".\"Number\"",
                     cypher
                 );
             }

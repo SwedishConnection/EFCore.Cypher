@@ -278,22 +278,43 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
 
         public virtual void SetRelationshipLeft(
             [NotNull] NodePatternExpression left,
-            [NotNull] RelationshipDetailExpression relationship
+            [NotNull] RelationshipDetailExpression relationship,
+            [NotNull] IEnumerable<Expression> returnItems
         ) {
             relationshipBetweenJoins = Tuple.Create<NodePatternExpression, RelationshipDetailExpression>(
                 left,
                 relationship
             );
+
+            _returnItems.AddRange(returnItems);
         }
 
         public virtual void SetRelationshipRight(
-            [NotNull] NodePatternExpression right
+            [NotNull] NodePatternExpression right,
+            [NotNull] IEnumerable<Expression> returnItems
         ) {
             if (!(relationshipBetweenJoins is null)) {
                 NodePatternExpression left = relationshipBetweenJoins.Item1;
                 RelationshipDetailExpression middle = relationshipBetweenJoins.Item2;
 
-                
+                AddReadingClause(
+                    new MatchExpression(
+                        new PatternExpression(
+                            left,
+                            new Tuple<RelationshipPatternExpression, NodePatternExpression>[] {
+                                Tuple.Create<RelationshipPatternExpression, NodePatternExpression>(
+                                    new RelationshipPatternExpression(
+                                        RelationshipDirection.None,
+                                        middle
+                                    ),
+                                    right
+                                )
+                            }
+                        )
+                    )
+                );
+
+                _returnItems.AddRange(returnItems);
             }
         }
 

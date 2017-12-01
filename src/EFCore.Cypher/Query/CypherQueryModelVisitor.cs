@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore.Extensions.Internal;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query.Expressions;
 using Microsoft.EntityFrameworkCore.Query.ExpressionVisitors;
+using Microsoft.EntityFrameworkCore.Query.ExpressionVisitors.Internal;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Utilities;
 using Remotion.Linq;
@@ -99,7 +100,7 @@ namespace Microsoft.EntityFrameworkCore.Query {
             
             base.VisitQueryModel(queryModel);
 
-            foreach (var selectExpression in QueriesBySource.Values) {
+            foreach (var readOnlyExpression in QueriesBySource.Values) {
                 // TODO: Eliminate relationships
 
                 // TODO: Opitimzers for predicates
@@ -241,6 +242,7 @@ namespace Microsoft.EntityFrameworkCore.Query {
 
             // TODO: Nested query
 
+            // TODO: Relationships enumerable strings
             Expression expression = base.CompileJoinClauseInnerSequenceExpression(
                 joinClause, 
                 queryModel
@@ -276,6 +278,49 @@ namespace Microsoft.EntityFrameworkCore.Query {
             Check.NotNull(queryModel, nameof(queryModel));
 
             base.VisitSelectClause(selectClause, queryModel);
+
+            if (Expression is MethodCallExpression methodCallExpression
+                && methodCallExpression.Method.MethodIsClosedFormOf(LinqOperatorProvider.Select)) {
+                var shape = methodCallExpression.Arguments[0] as MethodCallExpression;
+
+                if (IsShapedQueryExpression(shape)) {
+                    shape = UnwrapShapedQueryExpression(shape);
+                    var previous = ExtractShaper(shape, 0);
+
+                    // TODO: Is including result operator part of the previous shape?
+
+                    var materializer = (LambdaExpression)methodCallExpression.Arguments[1];
+                    if (selectClause.Selector.Type == typeof(AnonymousObject))
+                    {
+                        // TODO: when anonymous object
+                    }
+
+                    var qsreFinder = new CypherQuerySourceReferenceFindingExpressionVisitor();
+                    qsreFinder.Visit(materializer.Body);
+                    if (!qsreFinder.FoundAny) {
+                        Shaper next = null;
+
+                        if (selectClause.Selector is QuerySourceReferenceExpression qsre) {
+                            next = previous.Unwrap(qsre.ReferencedQuerySource);
+                        }
+
+                        next = next ?? ProjectionShaper.Create(
+                            previous, 
+                            materializer
+                        );
+
+                        Expression = Expression.Call(
+                            shape.Method
+                                .GetGenericMethodDefinition()
+                                .MakeGenericMethod(Expression.Type.GetSequenceType()),
+                            shape.Arguments[0],
+                            shape.Arguments[1],
+                            Expression.Constant(next)
+                        );
+                    }
+
+                }
+            }
         }
 
         /// <summary>
@@ -502,159 +547,139 @@ namespace Microsoft.EntityFrameworkCore.Query {
         ) {
             // TODO: Client join
 
+            // break apart method calls that must be shaped
             var joinMethodCallExpression = Expression as MethodCallExpression;
+            var outer = joinMethodCallExpression?
+                    .Arguments
+                    .FirstOrDefault() as MethodCallExpression;
+            var inner = joinMethodCallExpression?
+                    .Arguments
+                    .Skip(1)
+                    .FirstOrDefault() as MethodCallExpression;
+
             if (joinMethodCallExpression is null 
-                || !joinMethodCallExpression.Method.MethodIsClosedFormOf(LinqOperatorProvider.Join)) {
+                || !joinMethodCallExpression.Method.MethodIsClosedFormOf(LinqOperatorProvider.Join)
+                || !IsShapedQueryExpression(outer)
+                || !IsShapedQueryExpression(inner)) {
                 return false;
             }
 
             var cypherTranslatingExpressionVisitor = _cypherTranslatingExpressionVisitorFactory
                 .Create(this);
 
-            if (IsItemTypeARelationship(joinClause)) {
-                var outer = joinMethodCallExpression?
-                    .Arguments
-                    .FirstOrDefault() as MethodCallExpression;
+            // is relationship head or tail
+            bool joiningRelationship = QueryCompilationContext
+                .Model
+                .IsRelationship(joinClause.ItemType);
 
-                if (!IsShapedQueryExpression(outer)) {
-                    return false;
-                }
+            // grab read only expressions and return items to be appended
+            var readOnlyExpression = TryGetQuery(
+                QuerySourceAt(queryModel, joiningRelationship ? index : index - 1)
+            );
+            var innerReadOnlyExpression = TryGetQuery(
+                joinClause
+            );
 
-                var readOnlyExpression = TryGetQuery(
-                    QuerySourceAt(queryModel, index)
-                );
+            var returnItems = QueryCompilationContext
+                .QuerySourceRequiresMaterialization(joinClause)
+                ? innerReadOnlyExpression.ReturnItems
+                : Enumerable.Empty<Expression>();
 
+            // handle either head or tail
+            if (joiningRelationship) {
                 if (!(joinClause.OuterKeySelector is QuerySourceReferenceExpression)) {
                     return false;
                 }
 
                 var referencedQuerySource = ((QuerySourceReferenceExpression)joinClause.OuterKeySelector)
                     .ReferencedQuerySource;
-                var node = readOnlyExpression
+                var left = readOnlyExpression
                     .GetNodeForQuerySource(referencedQuerySource);
+                var relationship = innerReadOnlyExpression
+                    .GetNodeForQuerySource(joinClause);
 
-                var labels = ItemToRelationshipTypes(joinClause);
-                string alias = QueryCompilationContext
-                    .CreateUniqueNodeAlias(
-                        ((IQuerySource)joinClause).HasGeneratedItemName()
-                        ? labels[0][0].ToString().ToLowerInvariant()
-                        : joinClause.ItemName
-                );
+                var labels = QueryCompilationContext
+                    .Model
+                    .FindEntityType(joinClause.ItemType)?
+                    .Cypher()
+                    .Labels;
+
+                // TODO: Apply return items
                 
                 readOnlyExpression.SetRelationshipLeft(
                     new NodePatternExpression(
                         null, 
                         referencedQuerySource, 
-                        node.Alias
+                        left.Alias
                     ),
                     new RelationshipDetailExpression(
                         labels,
                         joinClause,
-                        alias
-                    )
-                );
-
-                // clean up
-                QueriesBySource.Remove(joinClause);
-                readOnlyExpression.RemoveRangeFromReturn(numberOfReturnItems);
+                        relationship.Alias
+                    ),
+                    returnItems
+                );                
             } else {
-                var inner = joinMethodCallExpression?
-                    .Arguments
-                    .Skip(1)
-                    .FirstOrDefault() as MethodCallExpression;
-
-                if (!IsShapedQueryExpression(inner)) {
-                    return false;
-                }
-
-                var readOnlyExpression = TryGetQuery(
-                    QuerySourceAt(queryModel, index)
-                );
-
                 var referencedQuerySource = ((QuerySourceReferenceExpression)joinClause.InnerKeySelector)
                     .ReferencedQuerySource;
                 var node = TryGetQuery(joinClause)
                     .GetNodeForQuerySource(referencedQuerySource);
 
-                if (node is null) {
-                    var entityType = QueryCompilationContext
-                        .FindEntityType(joinClause)
-                        ?? QueryCompilationContext.Model.FindEntityType(joinClause.ItemType);
-                    
-                    string[] labels = entityType.Cypher().Labels;
-                    string alias = QueryCompilationContext
-                        .CreateUniqueNodeAlias(
-                            ((IQuerySource)joinClause).HasGeneratedItemName()
-                            ? labels[0][0].ToString().ToLowerInvariant()
-                            : joinClause.ItemName
-                    );
+                var entityType = QueryCompilationContext
+                    .FindEntityType(joinClause)
+                    ?? QueryCompilationContext.Model.FindEntityType(joinClause.ItemType);
+                
+                string[] labels = entityType.Cypher().Labels;
 
-                    readOnlyExpression.SetRelationshipRight(
-                        new NodePatternExpression(
-                            labels, 
-                            referencedQuerySource, 
-                            alias
-                        )
-                    );
-                } else {
-                    readOnlyExpression.SetRelationshipRight(
-                        new NodePatternExpression(
-                            null, 
-                            referencedQuerySource, 
-                            node.Alias
-                        )
-                    );
-                }
-
-                // TODO: Shaper
+                readOnlyExpression.SetRelationshipRight(
+                    new NodePatternExpression(
+                        labels, 
+                        referencedQuerySource, 
+                        node.Alias
+                    ),
+                    returnItems
+                );
             }
 
+            QueriesBySource.Remove(joinClause);
+            if (joiningRelationship) {
+                readOnlyExpression.RemoveRangeFromReturn(numberOfReturnItems);
+            }
+
+            // shape
+                var outerShaper = ExtractShaper(outer, 0);
+                var innerShaper = ExtractShaper(inner, numberOfReturnItems);
+
+                if (innerShaper.Type == typeof(AnonymousObject)) {
+                    // TODO: when anonymous
+                } else {
+                    var materializerLambda = (LambdaExpression)joinMethodCallExpression
+                        .Arguments
+                        .Last();
+
+                    var compositeShaper = CompositeShaper.Create(
+                        joinClause, 
+                        outerShaper, 
+                        innerShaper, 
+                        materializerLambda.Compile()
+                    );
+
+                    compositeShaper.SaveAccessorExpression(
+                        QueryCompilationContext.QuerySourceMapping
+                    );
+                    innerShaper.UpdateQuerySource(joinClause);
+
+                    Expression = Expression.Call(
+                        outer.Method
+                            .GetGenericMethodDefinition()
+                            .MakeGenericMethod(materializerLambda.ReturnType),
+                        outer.Arguments[0],
+                        outer.Arguments[1],
+                        Expression.Constant(compositeShaper)
+                    );
+                }
 
             return true;
-        }
-
-        /// <summary>
-        /// Is the item type a relationship
-        /// </summary>
-        /// <param name="joinClause"></param>
-        /// <returns></returns>
-        private bool IsItemTypeARelationship(JoinClause joinClause) {
-            if (joinClause.ItemType == typeof(string)) {
-                if (joinClause.InnerSequence is ConstantExpression constantExpression) {
-                    if (typeof(IEnumerable<string>).IsAssignableFrom(constantExpression.Type)) {
-                        return QueryCompilationContext
-                            .Model
-                            .IsRelationship(
-                                (constantExpression.Value as IEnumerable<string>).SingleOrDefault()
-                            );
-                    }
-                }
-            }
-
-            return QueryCompilationContext
-                .Model
-                .IsRelationship(joinClause.ItemType);
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="joinClause"></param>
-        /// <returns></returns>
-        private string[] ItemToRelationshipTypes(JoinClause joinClause) {
-            if (joinClause.ItemType == typeof(string)) {
-                if (joinClause.InnerSequence is ConstantExpression constantExpression) {
-                    if (typeof(IEnumerable<string>).IsAssignableFrom(constantExpression.Type)) {
-                        return constantExpression.Value as string[];
-                    }
-                }
-            }
-
-            return QueryCompilationContext
-                .Model
-                .FindEntityType(joinClause.ItemType)?
-                .Cypher()
-                .Labels ?? new string[] {};
         }
 
         /// <summary>
@@ -692,6 +717,38 @@ namespace Microsoft.EntityFrameworkCore.Query {
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
+        private MethodCallExpression UnwrapShapedQueryExpression(MethodCallExpression expression)
+        {
+            if (expression.Method.MethodIsClosedFormOf(LinqOperatorProvider.DefaultIfEmpty)
+                || expression.Method.MethodIsClosedFormOf(LinqOperatorProvider.DefaultIfEmptyArg))
+            {
+                return (MethodCallExpression)expression.Arguments[0];
+            }
+
+            return expression;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="shapedQueryExpression"></param>
+        /// <param name="offset"></param>
+        /// <returns></returns>
+        private Shaper ExtractShaper(MethodCallExpression shapedQueryExpression, int offset)
+        {
+            var shaper = (Shaper)((ConstantExpression)UnwrapShapedQueryExpression(shapedQueryExpression)
+                .Arguments[2])
+                .Value;
+
+            return shaper
+                .WithOffset(offset);
         }
     }
 }
