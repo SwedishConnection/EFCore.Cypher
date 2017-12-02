@@ -604,8 +604,6 @@ namespace Microsoft.EntityFrameworkCore.Query {
                     .Cypher()
                     .Labels;
 
-                // TODO: Apply return items
-                
                 readOnlyExpression.SetRelationshipLeft(
                     new NodePatternExpression(
                         null, 
@@ -641,9 +639,11 @@ namespace Microsoft.EntityFrameworkCore.Query {
                 );
             }
 
+            // clean up
             QueriesBySource.Remove(joinClause);
             if (joiningRelationship) {
-                readOnlyExpression.RemoveRangeFromReturn(numberOfReturnItems);
+                // TODO: Remove return items using numberOfReturnItems
+                //readOnlyExpression.RemoveRangeFromReturn(numberOfReturnItems);
             }
 
             // shape

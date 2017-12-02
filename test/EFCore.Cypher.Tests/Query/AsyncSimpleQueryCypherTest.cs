@@ -170,7 +170,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         }
 
         [Fact]
-        public void Join_relationship_by_name() {
+        public void Join_relationship() {
             using (var ctx = new CypherFaceDbContext(DbContextOptions)) {
                 var cypher = ctx.Warehouses
                     .Join(
@@ -183,7 +183,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                     .AsCypher();
 
                 Assert.Equal(
-                    "MATCH (o:Warehouse)\r\nMATCH (o)-[r:\"OWNS\"]-(i:Thing) RETURN \"o\".\"Location\", \"o\".\"Size\", \"i\".\"Number\"",
+                    "MATCH (o:Warehouse)\r\nMATCH (o)-[r:\"OWNS\"]-(i:Thing) RETURN \"o\".\"Location\", \"o\".\"Size\", \"r\".\"Partial\", \"i\".\"Number\"",
                     cypher
                 );
             }
