@@ -12,11 +12,11 @@ namespace System.Linq {
     public static class CypherQueryableExtensions {
 
         /// <summary>
-        /// Join on relationship without properties
+        /// Join using types with an empty relationship
         /// </summary>
         /// <param name="outer"></param>
         /// <param name="inner"></param>
-        /// <param name="relationship"></param>
+        /// <param name="types"></param>
         /// <param name="outerSelector"></param>
         /// <param name="innerSelector"></param>
         /// <param name="resultSelector"></param>
@@ -24,14 +24,16 @@ namespace System.Linq {
         public static IQueryable<TResult> Join<TOuter, TInner, TOuterEndPoint, TInnerEndPoint, TResult>(
             [NotNull] this IQueryable<TOuter> outer,
             [NotNull] IEnumerable<TInner> inner,
-            string relationship,
+            string[] types,
             [NotNull] Expression<Func<TOuter, TOuterEndPoint>> outerSelector,
             [NotNull] Expression<Func<TInner, TInnerEndPoint>> innerSelector,
             Expression<Func<TOuter, TInner, string, TResult>> resultSelector
         ) {
+            // TODO: Turn types into an empty entity type
+
             return outer.Join(
                 inner, 
-                new string[] { relationship }, 
+                types, 
                 outerSelector, 
                 innerSelector, 
                 resultSelector
@@ -39,7 +41,7 @@ namespace System.Linq {
         }
 
         /// <summary>
-        /// Join on relationship with properties
+        /// Join using relationship
         /// </summary>
         /// <param name="outer"></param>
         /// <param name="inner"></param>
