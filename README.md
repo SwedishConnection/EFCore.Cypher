@@ -17,6 +17,13 @@ The **Join** call has two new derivations.  A relationship by name (label) becom
 ## Query Cypher generation with simple clauses
 The Relinq visitor (_CypherQueryModelVisitor_) converts the relinq source, pipes (bodies) and sinks into _ReadOnlyExpression_ that the default cypher generator can turn into cypher.  The _AsyncSimpleQueryCypherTest_ has test cases that evaulate simple clauses to cypher.  Here are a couple examples:
 
- * ```ctx.<Entity>.AsCypher()``` => "MATCH (e:Entity) RETURN <properties>"
- * ```ctx.<Entity>.Select(e => e).AsCypher()``` => "MATCH (e:Entity) RETURN <properties>"
- * ```ctx.<Entity>.Where(e => e.<Property> == 100).AsCypher()``` => "MATCH (e:Entity) WHERE e.Property = 100 RETURN <properties>"
+ * ```ctx.<Entity>.AsCypher()``` => 
+      "MATCH (e:Entity) RETURN <properties>"
+ * ```ctx.<Entity>.Select(e => e).AsCypher()``` => 
+      "MATCH (e:Entity) RETURN <properties>"
+ * ```ctx.<Entity>.Where(e => e.<Property> == 100).AsCypher()``` => 
+      "MATCH (e:Entity) WHERE e.Property = 100 RETURN <properties>"
+ * ```ctx.<Entity>.Join(ctx.<Other>, ctx.<Relation>, o => o, i => i, (o, i, r) => new {o, i, r}).AsCypher()``` => 
+      "MATCH (e:Entity) 
+       MATCH (e)-[r:Relation]->(o)
+       RETURN e.<props>, r.<props>, i.<props>"
