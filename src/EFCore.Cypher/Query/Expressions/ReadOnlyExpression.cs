@@ -51,7 +51,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
 
         private const string StorageAliasPrefix = "s";
 
-        private Tuple<NodePatternExpression, RelationshipDetailExpression> relationshipBetweenJoins;
+        private Tuple<NodePatternExpression, RelationshipDetailExpression, Func<IEntityType, RelationshipDirection>> _relationshipBetweenJoins;
 
         public ReadOnlyExpression(
             [NotNull] ReadOnlyExpressionDependencies dependencies,
@@ -279,11 +279,13 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
         public virtual void SetRelationshipLeft(
             [NotNull] NodePatternExpression left,
             [NotNull] RelationshipDetailExpression relationship,
-            [NotNull] IEnumerable<Expression> returnItems
+            [NotNull] IEnumerable<Expression> returnItems,
+            [NotNull] Func<IEntityType, RelationshipDirection> fn
         ) {
-            relationshipBetweenJoins = Tuple.Create<NodePatternExpression, RelationshipDetailExpression>(
+            _relationshipBetweenJoins = Tuple.Create<NodePatternExpression, RelationshipDetailExpression, Func<IEntityType, RelationshipDirection>>(
                 left,
-                relationship
+                relationship,
+                fn
             );
 
             _returnItems.AddRange(returnItems);
@@ -291,11 +293,12 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
 
         public virtual void SetRelationshipRight(
             [NotNull] NodePatternExpression right,
-            [NotNull] IEnumerable<Expression> returnItems
+            [NotNull] IEnumerable<Expression> returnItems,
+            [NotNull] IEntityType entityType
         ) {
-            if (!(relationshipBetweenJoins is null)) {
-                NodePatternExpression left = relationshipBetweenJoins.Item1;
-                RelationshipDetailExpression middle = relationshipBetweenJoins.Item2;
+            if (!(_relationshipBetweenJoins is null)) {
+                NodePatternExpression left = _relationshipBetweenJoins.Item1;
+                RelationshipDetailExpression middle = _relationshipBetweenJoins.Item2;
 
                 AddReadingClause(
                     new MatchExpression(
@@ -304,7 +307,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
                             new Tuple<RelationshipPatternExpression, NodePatternExpression>[] {
                                 Tuple.Create<RelationshipPatternExpression, NodePatternExpression>(
                                     new RelationshipPatternExpression(
-                                        RelationshipDirection.None,
+                                        _relationshipBetweenJoins.Item3(entityType),
                                         middle
                                     ),
                                     right
@@ -352,6 +355,33 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
             {
                 _returnItems.RemoveRange(index, _returnItems.Count - index);
             }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="querySource"></param>
+        /// <returns></returns>
+        public override bool HandlesQuerySource(IQuerySource querySource)
+        {
+            Check.NotNull(querySource, nameof(querySource));
+
+            var preprocessed = PreProcessQuerySource(querySource);
+            var matches = _readingClauses
+                .OfType<MatchExpression>()
+                .Select(e => {
+                    var chains = e.Pattern.PatternElementChain ?? 
+                        Enumerable.Empty<Tuple<RelationshipPatternExpression, NodePatternExpression>>();
+
+                    return chains.Aggregate(
+                        new NodeExpressionBase[] {e.Pattern.NodePattern} as IEnumerable<NodeExpressionBase>,
+                        (bases, chain) => bases.Concat(new NodeExpressionBase[] { chain.Item1.Details, chain.Item2 })
+                    );
+                })
+                .SelectMany(e => e);
+
+            return matches.Any(e => e.QuerySource == preprocessed || e.HandlesQuerySource(preprocessed))
+                || base.HandlesQuerySource(querySource);
         }
 
         /// <summary>

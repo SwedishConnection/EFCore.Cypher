@@ -70,10 +70,13 @@ namespace Microsoft.EntityFrameworkCore.Query {
         /// <param name="querySource"></param>
         /// <returns></returns>
         public virtual ReadOnlyExpression TryGetQuery([NotNull] IQuerySource querySource) {
-            // TODO: What happens when no reading expression is found?
-            QueriesBySource.TryGetValue(querySource, out ReadOnlyExpression expr);
+            Check.NotNull(querySource, nameof(querySource));
 
-            return expr;
+            return QueriesBySource.TryGetValue(querySource, out ReadOnlyExpression roe)
+                ? roe
+                : QueriesBySource
+                    .Values
+                    .LastOrDefault(e => e.HandlesQuerySource(querySource));
         }
 
         /// <summary>
@@ -587,22 +590,37 @@ namespace Microsoft.EntityFrameworkCore.Query {
 
             // handle either head or tail
             if (joiningRelationship) {
-                if (!(joinClause.OuterKeySelector is QuerySourceReferenceExpression)) {
+                CypherKeySelectorVisitor keySelectorVisitor = new CypherKeySelectorVisitor();
+                keySelectorVisitor.Visit(joinClause.OuterKeySelector);
+
+                if (keySelectorVisitor.QuerySource is null) {
                     return false;
                 }
 
-                var referencedQuerySource = ((QuerySourceReferenceExpression)joinClause.OuterKeySelector)
-                    .ReferencedQuerySource;
+                var referencedQuerySource = keySelectorVisitor.QuerySource;
                 var left = readOnlyExpression
                     .GetNodeForQuerySource(referencedQuerySource);
                 var relationship = innerReadOnlyExpression
                     .GetNodeForQuerySource(joinClause);
 
-                var labels = QueryCompilationContext
-                    .Model
-                    .FindEntityType(joinClause.ItemType)?
-                    .Cypher()
+                var entityType = QueryCompilationContext
+                    .FindEntityType(referencedQuerySource)
+                    ?? QueryCompilationContext.Model.FindEntityType(referencedQuerySource.ItemType);
+
+                var relationshipEntityType = QueryCompilationContext
+                    .FindEntityType(joinClause)
+                    ?? QueryCompilationContext.Model.FindEntityType(joinClause.ItemType);
+
+                if (relationshipEntityType is null) {
+                    return false;
+                }
+
+                var labels = relationshipEntityType.Cypher()
                     .Labels;
+
+                // clean-up
+                QueriesBySource.Remove(joinClause);
+                readOnlyExpression.RemoveRangeFromReturn(numberOfReturnItems);
 
                 readOnlyExpression.SetRelationshipLeft(
                     new NodePatternExpression(
@@ -615,7 +633,10 @@ namespace Microsoft.EntityFrameworkCore.Query {
                         joinClause,
                         relationship.Alias
                     ),
-                    returnItems
+                    returnItems,
+                    (e) => QueryCompilationContext
+                        .Model
+                        .Direction(entityType, relationshipEntityType, e)
                 );                
             } else {
                 var referencedQuerySource = ((QuerySourceReferenceExpression)joinClause.InnerKeySelector)
@@ -627,7 +648,12 @@ namespace Microsoft.EntityFrameworkCore.Query {
                     .FindEntityType(joinClause)
                     ?? QueryCompilationContext.Model.FindEntityType(joinClause.ItemType);
                 
-                string[] labels = entityType.Cypher().Labels;
+                string[] labels = entityType
+                    .Cypher()
+                    .Labels;
+
+                // clean-up
+                QueriesBySource.Remove(joinClause);
 
                 readOnlyExpression.SetRelationshipRight(
                     new NodePatternExpression(
@@ -635,49 +661,43 @@ namespace Microsoft.EntityFrameworkCore.Query {
                         referencedQuerySource, 
                         node.Alias
                     ),
-                    returnItems
+                    returnItems,
+                    entityType
                 );
             }
 
-            // clean up
-            QueriesBySource.Remove(joinClause);
-            if (joiningRelationship) {
-                // TODO: Remove return items using numberOfReturnItems
-                //readOnlyExpression.RemoveRangeFromReturn(numberOfReturnItems);
-            }
-
             // shape
-                var outerShaper = ExtractShaper(outer, 0);
-                var innerShaper = ExtractShaper(inner, numberOfReturnItems);
+            var outerShaper = ExtractShaper(outer, 0);
+            var innerShaper = ExtractShaper(inner, numberOfReturnItems);
 
-                if (innerShaper.Type == typeof(AnonymousObject)) {
-                    // TODO: when anonymous
-                } else {
-                    var materializerLambda = (LambdaExpression)joinMethodCallExpression
-                        .Arguments
-                        .Last();
+            if (innerShaper.Type == typeof(AnonymousObject)) {
+                // TODO: when anonymous
+            } else {
+                var materializerLambda = (LambdaExpression)joinMethodCallExpression
+                    .Arguments
+                    .Last();
 
-                    var compositeShaper = CompositeShaper.Create(
-                        joinClause, 
-                        outerShaper, 
-                        innerShaper, 
-                        materializerLambda.Compile()
-                    );
+                var compositeShaper = CompositeShaper.Create(
+                    joinClause, 
+                    outerShaper, 
+                    innerShaper, 
+                    materializerLambda.Compile()
+                );
 
-                    compositeShaper.SaveAccessorExpression(
-                        QueryCompilationContext.QuerySourceMapping
-                    );
-                    innerShaper.UpdateQuerySource(joinClause);
+                compositeShaper.SaveAccessorExpression(
+                    QueryCompilationContext.QuerySourceMapping
+                );
+                innerShaper.UpdateQuerySource(joinClause);
 
-                    Expression = Expression.Call(
-                        outer.Method
-                            .GetGenericMethodDefinition()
-                            .MakeGenericMethod(materializerLambda.ReturnType),
-                        outer.Arguments[0],
-                        outer.Arguments[1],
-                        Expression.Constant(compositeShaper)
-                    );
-                }
+                Expression = Expression.Call(
+                    outer.Method
+                        .GetGenericMethodDefinition()
+                        .MakeGenericMethod(materializerLambda.ReturnType),
+                    outer.Arguments[0],
+                    outer.Arguments[1],
+                    Expression.Constant(compositeShaper)
+                );
+            }
 
             return true;
         }

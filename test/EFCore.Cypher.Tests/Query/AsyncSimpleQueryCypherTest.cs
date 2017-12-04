@@ -170,7 +170,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         }
 
         [Fact]
-        public void Join_relationship() {
+        public void Join_single() {
             using (var ctx = new CypherFaceDbContext(DbContextOptions)) {
                 var cypher = ctx.Warehouses
                     .Join(
@@ -183,7 +183,34 @@ namespace Microsoft.EntityFrameworkCore.Query
                     .AsCypher();
 
                 Assert.Equal(
-                    "MATCH (o:Warehouse)\r\nMATCH (o)-[r:\"OWNS\"]-(i:Thing) RETURN \"o\".\"Location\", \"o\".\"Size\", \"r\".\"Partial\", \"i\".\"Number\"",
+                    "MATCH (o:Warehouse)\r\nMATCH (o)-[r:\"OWNS\"]->(i:Thing) RETURN \"o\".\"Location\", \"o\".\"Size\", \"r\".\"Partial\", \"i\".\"Number\"",
+                    cypher
+                );
+            }
+        }
+
+        [Fact]
+        public void Join_double() {
+            using (var ctx = new CypherFaceDbContext(DbContextOptions)) {
+                var cypher = ctx.Warehouses
+                    .Join(
+                        ctx.Things, 
+                        ctx.Owning,
+                        (w) => w,
+                        (t) => t, 
+                        (w, t, r) => new {w, t, r}
+                    )
+                    .Join(
+                        ctx.Persons,
+                        ctx.Supervising,
+                        (o) => o.w,
+                        (p) => p,
+                        (o, p, r) => new {o, p, r}
+                    )
+                    .AsCypher();
+
+                Assert.Equal(
+                    "MATCH (w:Warehouse)\r\nMATCH (w)-[r:\"OWNS\"]->(t:Thing)\r\nMATCH (w)-[r0:\"Supervise\"]->(p:Person) RETURN \"w\".\"Location\", \"w\".\"Size\", \"r\".\"Partial\", \"t\".\"Number\", \"r0\".\"Certified\", \"p\".\"Name\"",
                     cypher
                 );
             }

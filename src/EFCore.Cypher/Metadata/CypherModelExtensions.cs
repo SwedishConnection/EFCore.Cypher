@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.EntityFrameworkCore.Query.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Metadata
 {
@@ -93,5 +94,34 @@ namespace Microsoft.EntityFrameworkCore.Metadata
             Type clrType
         ) => model.Relationships()
             .Where(r => r.Ending.ClrType == clrType);
+
+        /// <summary>
+        /// Relationship direction
+        /// </summary>
+        /// <param name="model"></param>
+        /// <param name="left"></param>
+        /// <param name="relationship"></param>
+        /// <param name="right"></param>
+        /// <returns></returns>
+        public static RelationshipDirection Direction(
+            this IModel model,
+            IEntityType left,
+            IEntityType relationship,
+            IEntityType right
+        ) => model.Relationships()
+            .SingleOrDefault(
+                r => r.Relation == relationship 
+                && r.Starting == left 
+                && r.Ending == right
+            ) != null
+            ? RelationshipDirection.Right
+            : model.Relationships()
+                .SingleOrDefault(
+                    r => r.Relation == relationship 
+                    && r.Ending == left 
+                    && r.Starting == right
+                ) != null
+                ? RelationshipDirection.Left
+                : RelationshipDirection.None; 
     }
 }

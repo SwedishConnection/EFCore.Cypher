@@ -60,6 +60,31 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions {
 
                 _alias = value;
             }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="querySource"></param>
+        /// <returns></returns>
+        public virtual bool HandlesQuerySource([NotNull] IQuerySource querySource) {
+            Check.NotNull(querySource, nameof(querySource));
+
+            return _querySource == PreProcessQuerySource(querySource);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="querySource"></param>
+        /// <returns></returns>
+        protected virtual IQuerySource PreProcessQuerySource([NotNull] IQuerySource querySource)
+        {
+            // TODO: Grouing
+
+            // TODO: Additional from clause
+
+            return querySource;
         }   
 
         protected override Expression VisitChildren(ExpressionVisitor visitor) => this;

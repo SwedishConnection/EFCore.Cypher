@@ -115,19 +115,23 @@ namespace Microsoft.EntityFrameworkCore.Utilities {
         /// <returns></returns>
         private static Type Find(List<KeyValuePair<string, Type>> properties) {
             foreach (Type anonymous in anonymousTypes) {
+                bool candidate = true;
+
                 // wrong size
                 if (anonymous.GetProperties().Count() != properties.Count) {
-                    continue;
+                    candidate = false;
                 }
 
                 // property name and type match
                 foreach (var prop in properties) {
                     if (!anonymous.GetProperties().Any(p => p.Name == prop.Key && p.PropertyType == prop.Value)) {
-                        continue;
+                        candidate = false;
                     }
                 }
 
-                return anonymous;
+                if (candidate) {
+                    return anonymous;
+                }
             }
 
             return null;
