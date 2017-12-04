@@ -15,6 +15,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore.Internal;
+using Microsoft.EntityFrameworkCore.Query.ExpressionVisitors.Internal;
 
 namespace Microsoft.EntityFrameworkCore.Query.Expressions
 {
@@ -152,6 +153,12 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
         }
 
         /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public virtual bool HasCorrelation() => new CypherCorrelationExpressionVisitor().HasCorrelation(this);
+
+        /// <summary>
         /// Dispatch (cypher expression visitor)
         /// </summary>
         /// <param name="visitor"></param>
@@ -215,6 +222,21 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
             Check.NotNull(readingClause, nameof(readingClause));
 
             _readingClauses.Add(readingClause);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="readingClause"></param>
+        /// <param name="returnItems"></param>
+        public virtual void AddReadingClause(
+            [NotNull] ReadingClause readingClause,
+            [NotNull] IEnumerable<Expression> returnItems
+        ) {
+            Check.NotNull(readingClause, nameof(readingClause));
+
+            _readingClauses.Add(readingClause);
+            _returnItems.AddRange(returnItems);
         }
 
         /// <summary>

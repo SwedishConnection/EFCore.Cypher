@@ -121,8 +121,24 @@ namespace Microsoft.EntityFrameworkCore.Query {
             QueryModel queryModel,
             int index)
         {
-            // TODO: Fold SelectMany (e.g. unwinds)
+            Check.NotNull(fromClause, nameof(fromClause));
+            Check.NotNull(queryModel, nameof(queryModel));
+
+            var querySource = QuerySourceAt(queryModel, index);
+            var readOnlyExpression = TryGetQuery(querySource);
+            var numberOfReturnItems = readOnlyExpression?.ReturnItems.Count ?? 0;
+            
             base.VisitAdditionalFromClause(fromClause, queryModel, index);
+
+            bool canSelectMany = TrySelectMany(
+                fromClause, 
+                queryModel, 
+                index, 
+                numberOfReturnItems
+            );
+            if (!canSelectMany) {
+                // TODO: Client select many
+            }
         }
 
         public override void VisitWhereClause(
@@ -698,6 +714,121 @@ namespace Microsoft.EntityFrameworkCore.Query {
                     Expression.Constant(compositeShaper)
                 );
             }
+
+            return true;
+        }
+
+        private bool TrySelectMany(
+            AdditionalFromClause fromClause,
+            QueryModel queryModel,
+            int index,
+            int numberOfReturnItems
+        ) {
+            // TODO: Client join or select many
+
+            // grab read only expressions and return items to be appended
+            var outerQuerySource = QuerySourceAt(queryModel, index);
+            var readOnlyExpression = TryGetQuery(
+                outerQuerySource
+            );
+            if (readOnlyExpression is null) {
+                return false;
+            }
+
+            var innerReadOnlyExpression = TryGetQuery(
+                fromClause
+            );
+            if (innerReadOnlyExpression is null) {
+                return false;
+            }
+
+            // break apart linq method
+            var selectManyMethodCallExpression = Expression as MethodCallExpression;
+            var outer = selectManyMethodCallExpression?
+                    .Arguments
+                    .FirstOrDefault() as MethodCallExpression;
+            var inner = (selectManyMethodCallExpression?
+                    .Arguments
+                    .Skip(1)
+                    .FirstOrDefault() as LambdaExpression)?
+                    .Body as MethodCallExpression;
+
+            if (selectManyMethodCallExpression == null
+                || !selectManyMethodCallExpression.Method.MethodIsClosedFormOf(LinqOperatorProvider.SelectMany)
+                || !IsShapedQueryExpression(outer)
+                || !IsShapedQueryExpression(inner))
+            {
+                return false;
+            }
+
+            if (!QueryCompilationContext.QuerySourceRequiresMaterialization(outerQuerySource))
+            {
+                readOnlyExpression.RemoveRangeFromReturn(numberOfReturnItems);
+            }
+
+            // add reading clause
+            var node = innerReadOnlyExpression
+                .GetNodeForQuerySource(fromClause);
+
+            var entityType = QueryCompilationContext
+                .FindEntityType(fromClause)
+                ?? QueryCompilationContext.Model.FindEntityType(fromClause.ItemType);
+            
+            string[] labels = entityType
+                .Cypher()
+                .Labels;
+
+            var returnItems = QueryCompilationContext
+                .QuerySourceRequiresMaterialization(fromClause)
+                ? innerReadOnlyExpression.ReturnItems
+                : Enumerable.Empty<Expression>();
+
+            if (!innerReadOnlyExpression.HasCorrelation()) {
+                readOnlyExpression.AddReadingClause(
+                    new MatchExpression(
+                        new PatternExpression(
+                            new NodePatternExpression(
+                                labels,
+                                fromClause,
+                                node.Alias
+                            )
+                        )
+                    ),
+                    returnItems
+                );
+            }
+
+            // clean-up
+            QueriesBySource.Remove(fromClause);
+
+            // shape
+            var outerShaper = ExtractShaper(outer, 0);
+            var innerShaper = ExtractShaper(inner, numberOfReturnItems);
+
+            var materializerLambda = (LambdaExpression)selectManyMethodCallExpression
+                .Arguments
+                .Last();
+
+            var compositeShaper = CompositeShaper.Create(
+                fromClause, 
+                outerShaper, 
+                innerShaper, 
+                materializerLambda.Compile()
+            );
+
+            compositeShaper.SaveAccessorExpression(
+                QueryCompilationContext.QuerySourceMapping
+            );
+            innerShaper.UpdateQuerySource(fromClause);
+
+            Expression = Expression.Call(
+                outer.Method
+                    .GetGenericMethodDefinition()
+                    .MakeGenericMethod(materializerLambda.ReturnType),
+                outer.Arguments[0],
+                outer.Arguments[1],
+                Expression.Constant(compositeShaper)
+            );
 
             return true;
         }

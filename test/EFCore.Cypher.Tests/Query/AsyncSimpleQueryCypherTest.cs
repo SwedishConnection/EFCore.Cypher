@@ -169,6 +169,9 @@ namespace Microsoft.EntityFrameworkCore.Query
             }
         }
 
+        /// <summary>
+        /// Single join
+        /// </summary>
         [Fact]
         public void Join_single() {
             using (var ctx = new CypherFaceDbContext(DbContextOptions)) {
@@ -189,6 +192,9 @@ namespace Microsoft.EntityFrameworkCore.Query
             }
         }
 
+        /// <summary>
+        /// Two joins back-to-back
+        /// </summary>
         [Fact]
         public void Join_double() {
             using (var ctx = new CypherFaceDbContext(DbContextOptions)) {
@@ -211,6 +217,23 @@ namespace Microsoft.EntityFrameworkCore.Query
 
                 Assert.Equal(
                     "MATCH (w:Warehouse)\r\nMATCH (w)-[r:\"OWNS\"]->(t:Thing)\r\nMATCH (w)-[r0:\"Supervise\"]->(p:Person) RETURN \"w\".\"Location\", \"w\".\"Size\", \"r\".\"Partial\", \"t\".\"Number\", \"r0\".\"Certified\", \"p\".\"Name\"",
+                    cypher
+                );
+            }
+        }
+
+        [Fact]
+        public void SelectMany_single() {
+            using (var ctx = new CypherFaceDbContext(DbContextOptions)) {
+                var cypher = ctx.Warehouses
+                    .SelectMany(
+                        w => ctx.Persons,
+                        (w, p) => new {w, p}
+                    )
+                    .AsCypher();
+
+                Assert.Equal(
+                    "MATCH (w:Warehouse)\r\nMATCH (p:Person) RETURN \"w\".\"Location\", \"w\".\"Size\", \"p\".\"Name\"",
                     cypher
                 );
             }
