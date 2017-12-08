@@ -222,6 +222,9 @@ namespace Microsoft.EntityFrameworkCore.Query
             }
         }
 
+        /// <summary>
+        /// Select many without correlation
+        /// </summary>
         [Fact]
         public void SelectMany_single() {
             using (var ctx = new CypherFaceDbContext(DbContextOptions)) {
@@ -234,6 +237,25 @@ namespace Microsoft.EntityFrameworkCore.Query
 
                 Assert.Equal(
                     "MATCH (w:Warehouse)\r\nMATCH (p:Person) RETURN \"w\".\"Location\", \"w\".\"Size\", \"p\".\"Name\"",
+                    cypher
+                );
+            }
+        }
+
+        [Fact]
+        public void Join_simple_projection() {
+            using (var ctx = new CypherFaceDbContext(DbContextOptions)) {
+                var cypher = ctx.Warehouses
+                    .Join(ctx.Things, 
+                        ctx.Owning,
+                        (w) => w,
+                        (t) => t, 
+                        (w, t, r) => t
+                    )
+                    .AsCypher();
+
+                Assert.Equal(
+                    "MATCH (w:Warehouse)\r\nMATCH (w)-[r:\"OWNS\"]->(t:Thing) RETURN \"t\".\"Number\"",
                     cypher
                 );
             }

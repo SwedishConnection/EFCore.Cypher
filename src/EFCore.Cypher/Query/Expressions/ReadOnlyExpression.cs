@@ -340,6 +340,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
                 );
 
                 _returnItems.AddRange(returnItems);
+                _relationshipBetweenJoins = null;
             }
         }
 
@@ -401,6 +402,13 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
                     );
                 })
                 .SelectMany(e => e);
+            
+            if (!(_relationshipBetweenJoins is null)) {
+                matches = matches.Concat(new NodeExpressionBase[] {
+                    _relationshipBetweenJoins.Item1,
+                    _relationshipBetweenJoins.Item2
+                });
+            }
 
             return matches.Any(e => e.QuerySource == preprocessed || e.HandlesQuerySource(preprocessed))
                 || base.HandlesQuerySource(querySource);

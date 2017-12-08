@@ -56,6 +56,7 @@ namespace Microsoft.EntityFrameworkCore.Infrastructure
                 { typeof(ICypherTranslatingExpressionVisitorFactory), new ServiceCharacteristics(ServiceLifetime.Singleton) },
                 { typeof(ICompositeMethodCallTranslator), new ServiceCharacteristics(ServiceLifetime.Singleton) },
                 { typeof(IMemberTranslator), new ServiceCharacteristics(ServiceLifetime.Singleton) },
+                { typeof(IRequiresMaterializationExpressionVisitorFactory), new ServiceCharacteristics(ServiceLifetime.Scoped) },
 
                 { typeof(IUpdateSqlGenerator), new ServiceCharacteristics(ServiceLifetime.Singleton) },
                 { typeof(ICommandBatchPreparer), new ServiceCharacteristics(ServiceLifetime.Scoped) },
@@ -129,7 +130,7 @@ namespace Microsoft.EntityFrameworkCore.Infrastructure
             TryAdd<IExpressionFragmentTranslator, RelationalCompositeExpressionFragmentTranslator>();
             TryAdd<ICypherTranslatingExpressionVisitorFactory, CypherTranslatingExpressionVisitorFactory>();
             TryAdd<IProjectionExpressionVisitorFactory, CypherProjectionExpressionVisitorFactory>();
-            
+            TryAdd<IRequiresMaterializationExpressionVisitorFactory, CypherRequiresMaterializationExpressionVisitorFactory>();
 
 
             ServiceCollectionMap.GetInfrastructure()

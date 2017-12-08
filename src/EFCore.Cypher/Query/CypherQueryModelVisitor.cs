@@ -65,6 +65,12 @@ namespace Microsoft.EntityFrameworkCore.Query {
             => (CypherQueryCompilationContext)base.QueryCompilationContext;
 
         /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public virtual Dictionary<int, Dictionary<string, Expression>> DemotedSelectors { get; set; } = new Dictionary<int, Dictionary<string, Expression>>();
+
+        /// <summary>
         /// Get active ReadOnlyExpression
         /// </summary>
         /// <param name="querySource"></param>
@@ -200,12 +206,14 @@ namespace Microsoft.EntityFrameworkCore.Query {
             var parameter = CurrentParameter;
             var mapping = SnapshotQuerySourceMapping(queryModel);
 
+            // base 
             base.VisitJoinClause(
-                joinClause, 
-                queryModel, 
+                joinClause,
+                queryModel,
                 index
             );
 
+            // 
             bool canJoin = TryJoin(
                 joinClause, 
                 queryModel, 
@@ -607,7 +615,7 @@ namespace Microsoft.EntityFrameworkCore.Query {
             // handle either head or tail
             if (joiningRelationship) {
                 CypherKeySelectorVisitor keySelectorVisitor = new CypherKeySelectorVisitor();
-                keySelectorVisitor.Visit(joinClause.OuterKeySelector);
+                keySelectorVisitor.Visit(DemotedSelectors[index]["OuterKeySelector"]);
 
                 if (keySelectorVisitor.QuerySource is null) {
                     return false;
@@ -655,8 +663,14 @@ namespace Microsoft.EntityFrameworkCore.Query {
                         .Direction(entityType, relationshipEntityType, e)
                 );                
             } else {
-                var referencedQuerySource = ((QuerySourceReferenceExpression)joinClause.InnerKeySelector)
-                    .ReferencedQuerySource;
+                CypherKeySelectorVisitor keySelectorVisitor = new CypherKeySelectorVisitor();
+                keySelectorVisitor.Visit(DemotedSelectors[index]["InnerKeySelector"]);
+
+                if (keySelectorVisitor.QuerySource is null) {
+                    return false;
+                }
+
+                var referencedQuerySource = keySelectorVisitor.QuerySource;
                 var node = TryGetQuery(joinClause)
                     .GetNodeForQuerySource(referencedQuerySource);
 
@@ -670,6 +684,7 @@ namespace Microsoft.EntityFrameworkCore.Query {
 
                 // clean-up
                 QueriesBySource.Remove(joinClause);
+                readOnlyExpression.RemoveRangeFromReturn(numberOfReturnItems);
 
                 readOnlyExpression.SetRelationshipRight(
                     new NodePatternExpression(
