@@ -7,11 +7,16 @@ using System.Linq;
 using System.Linq.Expressions;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Utilities;
 using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors.Internal
 {
+    /// <summary>
+    /// Demotes selectors in body clauses saving references in the query
+    /// model visitor otherwise the normal promotion/demotion process fails
+    /// </summary>
     public class CypherRequiresMaterializationExpressionVisitor: RequiresMaterializationExpressionVisitor {
         private readonly EntityQueryModelVisitor _qmv;
 
@@ -23,21 +28,21 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors.Internal
         }
 
         /// <summary>
-        /// 
+        /// Cypher query model visitor
         /// </summary>
         /// <returns></returns>
         private CypherQueryModelVisitor QueryModelVisitor => 
             (CypherQueryModelVisitor)_qmv;
 
         /// <summary>
-        /// 
+        /// Entry point
         /// </summary>
         /// <param name="queryModel"></param>
         /// <returns></returns>
         public override ISet<IQuerySource> FindQuerySourcesRequiringMaterialization(
             [NotNull] Remotion.Linq.QueryModel queryModel
         ) {
-            // demote selectors
+            // store demoted selectors
             QueryModelVisitor.DemotedSelectors = queryModel.BodyClauses
                 .OfType<JoinClause>()
                 .Select((x, i) => { 
@@ -59,15 +64,21 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors.Internal
                     .SelectMany(x => x.Value.Values)
             );
 
+            // relinq transform on the query model
             foreach (var clause in queryModel.BodyClauses.OfType<JoinClause>()) {
+                var InnerSequence = clause.InnerSequence;
                 clause.TransformExpressions(visitor.Visit);
 
                 if (clause.OuterKeySelector != DemoteSelectorsVisitor.Demotion
-                    || clause.InnerKeySelector != DemoteSelectorsVisitor.Demotion) {
-                    throw new InvalidOperationException("");
+                    || clause.InnerKeySelector != DemoteSelectorsVisitor.Demotion 
+                    || clause.InnerSequence != InnerSequence) {
+                    throw new ArgumentException(
+                        CypherStrings.UnableToDemoteSelectors                    
+                    );
                 }
             }
 
+            // let EF find query source requiring materialization (i.e. returned items)
             var materializing = base.FindQuerySourcesRequiringMaterialization(queryModel);
 
             return materializing;
@@ -75,14 +86,13 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors.Internal
 
 
         /// <summary>
-        /// 
+        /// Replaces demoted selectors with a constant expression
         /// </summary>
         private class DemoteSelectorsVisitor: ExpressionVisitorBase {
             
             private readonly IEnumerable<Expression> _selectors;
 
             public static Expression Demotion { get; } = Expression.Constant(1);
-
 
             public DemoteSelectorsVisitor(IEnumerable<Expression> selectors) {
                 _selectors = selectors;

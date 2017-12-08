@@ -53,7 +53,10 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors.Internal
             typeIndexMapping = null;
 
             ParameterExpression valueBufferParameter = Expression
-                .Parameter(typeof(ValueBuffer), "valueBuffer" );
+                .Parameter(
+                    typeof(ValueBuffer), 
+                    "valueBuffer" 
+                );
 
             var concreteEntityTypes = entityType
                 .GetConcreteTypesInHierarchy()
@@ -64,8 +67,15 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors.Internal
             int propertyIndex = 0;
 
             // TODO: Review exclusion of shadow properties
-            foreach (var property in concreteEntityTypes.First().GetProperties().Where(p => !p.IsShadowProperty)) {
-                indexMapping[propertyIndex++] = returnItemHandler(property, readOnlyExpression);
+            var properties = concreteEntityTypes
+                .First()
+                .GetProperties()
+                .Where(p => !p.IsShadowProperty);
+            foreach (var property in properties) {
+                indexMapping[propertyIndex++] = returnItemHandler(
+                    property, 
+                    readOnlyExpression
+                );
             }
 
             // materializer

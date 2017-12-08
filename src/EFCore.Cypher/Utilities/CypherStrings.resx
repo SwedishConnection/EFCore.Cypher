@@ -84,4 +84,7 @@
   <data name="PropertyTypeMayNotBeNull" xml:space="preserve">
     <value>Property types with anonymous types may not be null.</value>
   </data>
+  <data name="UnableToDemoteSelectors" xml:space="preserve">
+    <value>Failed to demote selectors in body clauses</value>
+  </data>
 </root>

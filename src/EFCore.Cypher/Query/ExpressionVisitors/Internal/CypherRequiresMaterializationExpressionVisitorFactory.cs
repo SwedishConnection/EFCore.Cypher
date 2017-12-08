@@ -16,6 +16,11 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors.Internal
             _model = model;
         }
 
+        /// <summary>
+        /// Cypher preprocessor wrapping the default requires materialization
+        /// </summary>
+        /// <param name="queryModelVisitor"></param>
+        /// <returns></returns>
         public virtual RequiresMaterializationExpressionVisitor Create(EntityQueryModelVisitor queryModelVisitor)
             => new CypherRequiresMaterializationExpressionVisitor(_model, queryModelVisitor);
     }

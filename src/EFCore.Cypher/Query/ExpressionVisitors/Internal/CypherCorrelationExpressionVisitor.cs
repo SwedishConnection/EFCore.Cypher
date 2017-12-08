@@ -6,6 +6,9 @@ using Microsoft.EntityFrameworkCore.Query.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors.Internal
 {
+    /// <summary>
+    /// Coorelation expression visitor
+    /// </summary>
     public class CypherCorrelationExpressionVisitor: ExpressionVisitor {
 
         private ReadOnlyExpression _readOnlyExpression;

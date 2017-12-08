@@ -7,6 +7,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore.Extensions.Internal;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query.Expressions;
 using Microsoft.EntityFrameworkCore.Query.ExpressionVisitors;
@@ -41,9 +42,10 @@ namespace Microsoft.EntityFrameworkCore.Query {
         ) : base(dependencies, queryCompilationContext)
         {
             _cypherTranslatingExpressionVisitorFactory = cypherDependencies.CypherTranslatingExpressionVisitorFactory;
-            // TODO: Unwrap dependencies
+            // TODO: Are composite predicate and conditional removing visitors necessary
 
             ParentQueryModelVisitor = parentQueryModelVisiter;
+            ContextOptions = cypherDependencies.ContextOptions;
         }
 
         /// <summary>
@@ -58,6 +60,12 @@ namespace Microsoft.EntityFrameworkCore.Query {
         public virtual CypherQueryModelVisitor ParentQueryModelVisitor { get; }
 
         /// <summary>
+        /// Database context options
+        /// </summary>
+        /// <returns></returns>
+        protected virtual IDbContextOptions ContextOptions { get; }
+
+        /// <summary>
         /// Concrete query compilation context
         /// </summary>
         /// <returns></returns>
@@ -65,7 +73,8 @@ namespace Microsoft.EntityFrameworkCore.Query {
             => (CypherQueryCompilationContext)base.QueryCompilationContext;
 
         /// <summary>
-        /// 
+        /// Demoted selectors in body clauses found prior to finding query 
+        /// sources that require materialization
         /// </summary>
         /// <returns></returns>
         public virtual Dictionary<int, Dictionary<string, Expression>> DemotedSelectors { get; set; } = new Dictionary<int, Dictionary<string, Expression>>();
@@ -117,7 +126,7 @@ namespace Microsoft.EntityFrameworkCore.Query {
         }
 
         /// <summary>
-        /// 
+        /// Visit additional from clause
         /// </summary>
         /// <param name="fromClause"></param>
         /// <param name="queryModel"></param>
@@ -142,11 +151,18 @@ namespace Microsoft.EntityFrameworkCore.Query {
                 index, 
                 numberOfReturnItems
             );
+
             if (!canSelectMany) {
                 // TODO: Client select many
             }
         }
 
+        /// <summary>
+        /// Visit where clause
+        /// </summary>
+        /// <param name="whereClause"></param>
+        /// <param name="queryModel"></param>
+        /// <param name="index"></param>
         public override void VisitWhereClause(
             WhereClause whereClause, 
             QueryModel queryModel, 
@@ -187,7 +203,7 @@ namespace Microsoft.EntityFrameworkCore.Query {
         }
 
         /// <summary>
-        /// Visit join
+        /// Visit join clause
         /// </summary>
         /// <param name="joinClause"></param>
         /// <param name="queryModel"></param>
@@ -230,7 +246,7 @@ namespace Microsoft.EntityFrameworkCore.Query {
         }
 
         /// <summary>
-        /// Wrapped queries
+        /// Visited nested queries
         /// </summary>
         /// <param name="queryModel"></param>
         public virtual void VisitSubQueryModel([NotNull] QueryModel queryModel) {
@@ -293,7 +309,7 @@ namespace Microsoft.EntityFrameworkCore.Query {
         }
 
         /// <summary>
-        /// Visit <see cref="SelectClause" /> 
+        /// Visit select clause
         /// </summary>
         /// <param name="selectClause"></param>
         /// <param name="queryModel"></param>
@@ -554,7 +570,7 @@ namespace Microsoft.EntityFrameworkCore.Query {
         }
 
         /// <summary>
-        /// Try join
+        /// Try turning join into a match expression
         /// </summary>
         /// <param name="joinClause"></param>
         /// <param name="queryModel"></param>
@@ -594,7 +610,7 @@ namespace Microsoft.EntityFrameworkCore.Query {
             var cypherTranslatingExpressionVisitor = _cypherTranslatingExpressionVisitorFactory
                 .Create(this);
 
-            // is relationship head or tail
+            // process either left or right side of the relationship
             bool joiningRelationship = QueryCompilationContext
                 .Model
                 .IsRelationship(joinClause.ItemType);
@@ -612,8 +628,9 @@ namespace Microsoft.EntityFrameworkCore.Query {
                 ? innerReadOnlyExpression.ReturnItems
                 : Enumerable.Empty<Expression>();
 
-            // handle either head or tail
+            // add half of the match expression
             if (joiningRelationship) {
+                // grab query source for the demoted selector
                 CypherKeySelectorVisitor keySelectorVisitor = new CypherKeySelectorVisitor();
                 keySelectorVisitor.Visit(DemotedSelectors[index]["OuterKeySelector"]);
 
@@ -629,11 +646,15 @@ namespace Microsoft.EntityFrameworkCore.Query {
 
                 var entityType = QueryCompilationContext
                     .FindEntityType(referencedQuerySource)
-                    ?? QueryCompilationContext.Model.FindEntityType(referencedQuerySource.ItemType);
+                    ?? QueryCompilationContext
+                        .Model
+                        .FindEntityType(referencedQuerySource.ItemType);
 
                 var relationshipEntityType = QueryCompilationContext
                     .FindEntityType(joinClause)
-                    ?? QueryCompilationContext.Model.FindEntityType(joinClause.ItemType);
+                    ?? QueryCompilationContext
+                        .Model
+                        .FindEntityType(joinClause.ItemType);
 
                 if (relationshipEntityType is null) {
                     return false;
@@ -642,7 +663,7 @@ namespace Microsoft.EntityFrameworkCore.Query {
                 var labels = relationshipEntityType.Cypher()
                     .Labels;
 
-                // clean-up
+                // clean-up and force offset for shaper
                 QueriesBySource.Remove(joinClause);
                 readOnlyExpression.RemoveRangeFromReturn(numberOfReturnItems);
 
@@ -663,6 +684,7 @@ namespace Microsoft.EntityFrameworkCore.Query {
                         .Direction(entityType, relationshipEntityType, e)
                 );                
             } else {
+                // grab the query source for the demoted selector
                 CypherKeySelectorVisitor keySelectorVisitor = new CypherKeySelectorVisitor();
                 keySelectorVisitor.Visit(DemotedSelectors[index]["InnerKeySelector"]);
 
@@ -676,13 +698,15 @@ namespace Microsoft.EntityFrameworkCore.Query {
 
                 var entityType = QueryCompilationContext
                     .FindEntityType(joinClause)
-                    ?? QueryCompilationContext.Model.FindEntityType(joinClause.ItemType);
+                    ?? QueryCompilationContext
+                        .Model
+                        .FindEntityType(joinClause.ItemType);
                 
                 string[] labels = entityType
                     .Cypher()
                     .Labels;
 
-                // clean-up
+                // clean-up and force the offset for the shaper
                 QueriesBySource.Remove(joinClause);
                 readOnlyExpression.RemoveRangeFromReturn(numberOfReturnItems);
 
@@ -697,12 +721,13 @@ namespace Microsoft.EntityFrameworkCore.Query {
                 );
             }
 
-            // shape
+            // shape with offset
             var outerShaper = ExtractShaper(outer, 0);
             var innerShaper = ExtractShaper(inner, numberOfReturnItems);
 
             if (innerShaper.Type == typeof(AnonymousObject)) {
                 // TODO: when anonymous
+                throw new NotImplementedException();
             } else {
                 var materializerLambda = (LambdaExpression)joinMethodCallExpression
                     .Arguments
@@ -733,6 +758,14 @@ namespace Microsoft.EntityFrameworkCore.Query {
             return true;
         }
 
+        /// <summary>
+        /// Try turning the additional from clause into a match expression
+        /// </summary>
+        /// <param name="fromClause"></param>
+        /// <param name="queryModel"></param>
+        /// <param name="index"></param>
+        /// <param name="numberOfReturnItems"></param>
+        /// <returns></returns>
         private bool TrySelectMany(
             AdditionalFromClause fromClause,
             QueryModel queryModel,
@@ -787,7 +820,9 @@ namespace Microsoft.EntityFrameworkCore.Query {
 
             var entityType = QueryCompilationContext
                 .FindEntityType(fromClause)
-                ?? QueryCompilationContext.Model.FindEntityType(fromClause.ItemType);
+                ?? QueryCompilationContext
+                    .Model
+                    .FindEntityType(fromClause.ItemType);
             
             string[] labels = entityType
                 .Cypher()
@@ -849,7 +884,9 @@ namespace Microsoft.EntityFrameworkCore.Query {
         }
 
         /// <summary>
-        /// 
+        /// Has the base visitor made shaped (Linq) queries that can 
+        /// become a <see cref="QueryingEnumerable"> (that actual issues the Cypher
+        /// over a database connection)
         /// </summary>
         /// <param name="expression"></param>
         /// <returns></returns>
@@ -886,7 +923,7 @@ namespace Microsoft.EntityFrameworkCore.Query {
         }
 
         /// <summary>
-        /// 
+        /// Unwrap the method call inside the shaped query
         /// </summary>
         /// <param name="expression"></param>
         /// <returns></returns>
@@ -902,7 +939,7 @@ namespace Microsoft.EntityFrameworkCore.Query {
         }
 
         /// <summary>
-        /// 
+        /// Get the shaper <see cref="IShaper"/> in the shaped query <see cref="QueryMethodProvider"/>
         /// </summary>
         /// <param name="shapedQueryExpression"></param>
         /// <param name="offset"></param>

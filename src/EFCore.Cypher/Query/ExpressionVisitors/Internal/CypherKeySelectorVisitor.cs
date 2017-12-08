@@ -9,6 +9,9 @@ using Remotion.Linq.Clauses.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors.Internal
 {
+    /// <summary>
+    /// Finds query source in selectors
+    /// </summary>
     public class CypherKeySelectorVisitor: ExpressionVisitorBase {
 
         private string _propertyName;

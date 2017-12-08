@@ -108,6 +108,12 @@ namespace Microsoft.EntityFrameworkCore.Utilities
         public static string PropertyTypeMayNotBeNull
             => GetString("PropertyTypeMayNotBeNull");
 
+        /// <summary>
+        ///     Failed to demote selectors in body clauses
+        /// </summary>
+        public static string UnableToDemoteSelectors
+            => GetString("UnableToDemoteSelectors");
+
         private static string GetString(string name, params string[] formatterNames)
         {
             var value = _resourceManager.GetString(name);
