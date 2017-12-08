@@ -242,11 +242,21 @@ namespace Microsoft.EntityFrameworkCore.Query
             }
         }
 
+        /// <summary>
+        /// Projection with join
+        /// </summary>
+        /// <remarks>
+        /// Test case resulted in the override on the required 
+        /// materialization visitor which demote selectors so that 
+        /// the normal expectations on the demotion/promotion of query 
+        /// sources is safe.
+        /// </remarks>
         [Fact]
         public void Join_simple_projection() {
             using (var ctx = new CypherFaceDbContext(DbContextOptions)) {
                 var cypher = ctx.Warehouses
-                    .Join(ctx.Things, 
+                    .Join(
+                        ctx.Things, 
                         ctx.Owning,
                         (w) => w,
                         (t) => t, 
@@ -256,6 +266,33 @@ namespace Microsoft.EntityFrameworkCore.Query
 
                 Assert.Equal(
                     "MATCH (w:Warehouse)\r\nMATCH (w)-[r:\"OWNS\"]->(t:Thing) RETURN \"t\".\"Number\"",
+                    cypher
+                );
+            }
+        }
+
+        /// <summary>
+        /// Join then select many
+        /// </summary>
+        [Fact]
+        public void Join_select_many() {
+            using (var ctx = new CypherFaceDbContext(DbContextOptions)) {
+                var cypher = ctx.Warehouses
+                    .Join(
+                        ctx.Things, 
+                        ctx.Owning,
+                        (w) => w,
+                        (t) => t, 
+                        (w, t, r) => new {w, r}
+                    )
+                    .SelectMany(
+                        x => ctx.Persons,
+                        (x, p) => new {x, p}
+                    )
+                    .AsCypher();
+
+                Assert.Equal(
+                    "MATCH (w:Warehouse)\r\nMATCH (w)-[r:\"OWNS\"]->(t:Thing)\r\nMATCH (p:Person) RETURN \"w\".\"Location\", \"w\".\"Size\", \"r\".\"Partial\", \"p\".\"Name\"",
                     cypher
                 );
             }
